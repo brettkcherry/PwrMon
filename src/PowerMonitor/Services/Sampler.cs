@@ -22,6 +22,13 @@ public sealed class Sampler : IDisposable
     private DateTimeOffset _lastTick = DateTimeOffset.MinValue;
     private bool? _lastAc;
 
+    // learned "system minus CPU package" watts (screen/RAM/SSD/board), measured while on
+    // battery where total draw is exact; lets us estimate system + wall draw on AC
+    private const double BaselineTauSeconds = 180;
+    private const double AdapterEfficiency = 0.90;
+    private double _baselineW = AppSettings.Current.LearnedSystemBaselineW;
+    private DateTime _baselinePersisted = DateTime.UtcNow;
+
     // session accumulators
     private DateTimeOffset _sessionStart = DateTimeOffset.Now;
     private double _energyOutWh, _energyInWh, _peakDischargeW, _peakCpuW;
@@ -127,6 +134,25 @@ public sealed class Sampler : IDisposable
                 PowerEventRaised?.Invoke(new PowerEvent(now, b.AcOnline ? PowerEventKind.AcConnected : PowerEventKind.AcDisconnected));
             _lastAc = b.AcOnline;
 
+            // --- power-budget estimation
+            if (b.Discharging && !gap && h.CpuPackageW is double pkgW && b.DischargeRateW > 1)
+            {
+                var rest = b.DischargeRateW - pkgW;
+                if (rest is > 0.5 and < 200)
+                {
+                    var ab = 1 - Math.Exp(-dtClamped / BaselineTauSeconds);
+                    _baselineW = double.IsNaN(_baselineW) ? rest : _baselineW + ab * (rest - _baselineW);
+                    PersistBaselineIfDue();
+                }
+            }
+            double? estSystem = b.Discharging && b.DischargeRateW > 0.5
+                ? b.DischargeRateW
+                : h.CpuPackageW is double pw && !double.IsNaN(_baselineW) ? pw + _baselineW : null;
+            var isEstimate = !(b.Discharging && b.DischargeRateW > 0.5);
+            double? estWall = b.AcOnline && estSystem is double es
+                ? (es + b.ChargeRateW) / AdapterEfficiency
+                : null;
+
             var sample = new PowerSample
             {
                 Time = now,
@@ -172,6 +198,10 @@ public sealed class Sampler : IDisposable
                 TimeToEmpty = b.Discharging && _emaDischarge > 0.5
                     ? TimeSpan.FromHours(b.RemainingWh / _emaDischarge)
                     : null,
+                EstSystemW = estSystem,
+                EstWallW = estWall,
+                IsSystemEstimate = isEstimate,
+                LearnedBaselineW = _baselineW,
             };
 
             SampleReady?.Invoke(sample, stats, estimates);
@@ -182,8 +212,22 @@ public sealed class Sampler : IDisposable
         }
     }
 
+    private void PersistBaselineIfDue()
+    {
+        if ((DateTime.UtcNow - _baselinePersisted).TotalSeconds < 120) return;
+        if (Math.Abs((double.IsNaN(AppSettings.Current.LearnedSystemBaselineW) ? 0 : AppSettings.Current.LearnedSystemBaselineW) - _baselineW) < 0.5) return;
+        AppSettings.Current.LearnedSystemBaselineW = _baselineW;
+        AppSettings.Save();
+        _baselinePersisted = DateTime.UtcNow;
+    }
+
     public void Dispose()
     {
+        if (!double.IsNaN(_baselineW))
+        {
+            AppSettings.Current.LearnedSystemBaselineW = _baselineW;
+            AppSettings.Save();
+        }
         _cts.Cancel();
         try { _loop?.Wait(1500); } catch { }
         _timer?.Dispose();

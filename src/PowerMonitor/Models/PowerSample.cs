@@ -66,13 +66,23 @@ public sealed class SessionStats
     public double AvgDischargeW => TimeOnBattery.TotalHours > 0.003 ? EnergyOutWh / TimeOnBattery.TotalHours : 0;
 }
 
-/// <summary>Smoothed time predictions computed from EMA'd rates.</summary>
+/// <summary>Smoothed time predictions and derived power-budget figures.</summary>
 public sealed class Estimates
 {
     public TimeSpan? TimeToEmpty { get; init; }
     public TimeSpan? TimeToFull { get; init; }
     public double SmoothedDischargeW { get; init; }
     public double SmoothedChargeW { get; init; }
+
+    /// <summary>Total system draw. Exact (from the battery) while discharging; on AC it is
+    /// CPU package + the baseline learned during battery sessions.</summary>
+    public double? EstSystemW { get; init; }
+    /// <summary>Estimated wall/adapter input: system + battery charging, over ~90% adapter efficiency.</summary>
+    public double? EstWallW { get; init; }
+    /// <summary>True when <see cref="EstSystemW"/> is the learned estimate rather than a measurement.</summary>
+    public bool IsSystemEstimate { get; init; }
+    /// <summary>The learned "everything except CPU package" draw (screen, RAM, SSD, board). NaN until learned.</summary>
+    public double LearnedBaselineW { get; init; } = double.NaN;
 }
 
 public enum PowerEventKind { AcConnected, AcDisconnected, Resumed, AppStarted }
@@ -94,11 +104,14 @@ public enum SensorTier
 {
     /// <summary>LHM failed to initialize at all.</summary>
     LhmFailed,
-    /// <summary>Not elevated: CPU/iGPU power sensors locked.</summary>
+    /// <summary>No power source at all and not elevated.</summary>
     NeedsAdmin,
     /// <summary>Elevated but the kernel sensor driver could not load (e.g. HVCI blocklist, PawnIO missing).</summary>
     DriverBlocked,
-    /// <summary>Full RAPL telemetry flowing.</summary>
+    /// <summary>CPU/iGPU watts flowing via Windows' Energy Meter (EMI RAPL) counters — no admin
+    /// needed. Temps/platform power still require the full driver tier.</summary>
+    EmiOnly,
+    /// <summary>Full RAPL telemetry flowing through the kernel driver.</summary>
     Full,
     /// <summary>Still warming up / undetermined.</summary>
     Probing,

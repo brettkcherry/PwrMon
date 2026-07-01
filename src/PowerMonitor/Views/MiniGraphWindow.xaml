@@ -32,6 +32,7 @@
             </Grid.RowDefinitions>
             <DockPanel Grid.Row="0">
                 <TextBlock x:Name="MiniWatts" Text="— W" FontSize="24" FontWeight="Bold"
+                           FontFamily="{DynamicResource NumeralFontFamily}" Typography.NumeralAlignment="Tabular"
                            Foreground="{StaticResource TextBrush}" DockPanel.Dock="Left"/>
                 <TextBlock x:Name="MiniSub" Text="" FontSize="11" Foreground="{StaticResource TextDimBrush}"
                            VerticalAlignment="Bottom" Margin="8,0,0,4" DockPanel.Dock="Left"/>

@@ -34,6 +34,9 @@
         <Setter Property="Margin" Value="0,0,10,10"/>
     </Style>
 
+    <!-- numerals: stable digit widths so live values don't jitter; swapped at runtime -->
+    <FontFamily x:Key="NumeralFontFamily">Bahnschrift, Segoe UI</FontFamily>
+
     <!-- text styles -->
     <Style x:Key="CardTitle" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{StaticResource TextDimBrush}"/>
@@ -57,6 +60,8 @@
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="TextAlignment" Value="Right"/>
+        <Setter Property="FontFamily" Value="{DynamicResource NumeralFontFamily}"/>
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
     </Style>
 
     <!-- controls -->

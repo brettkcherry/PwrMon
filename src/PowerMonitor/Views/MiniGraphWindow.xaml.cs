@@ -16,13 +16,16 @@ public partial class MiniGraphWindow : Window
 {
     private readonly List<(DateTimeOffset t, double w)> _points = new();
 
-    private static readonly Brush ChargeBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x3F, 0xB9, 0x50));
-    private static readonly Brush DischargeBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF0, 0x88, 0x3E));
-    private static readonly Brush IdleBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x8B, 0x93, 0xA7));
+    private Brush ChargeBrush => (Brush)FindResource("GreenBrush");
+    private Brush DischargeBrush => (Brush)FindResource("OrangeBrush");
+    private Brush IdleBrush => (Brush)FindResource("TextDimBrush");
 
     public MiniGraphWindow()
     {
         InitializeComponent();
+        ApplyTheme(ThemeService.Current);
+        ThemeService.Changed += ApplyTheme;
+        Closed += (_, _) => ThemeService.Changed -= ApplyTheme;
 
         var s = AppSettings.Current;
         Opacity = s.MiniGraphOpacityPct / 100.0;
@@ -48,6 +51,13 @@ public partial class MiniGraphWindow : Window
             if (AppSettings.Current.MiniGraphClickThrough) SetClickThrough(true);
         };
         GraphArea.SizeChanged += (_, _) => Redraw();
+    }
+
+    private void ApplyTheme(ThemePalette t)
+    {
+        RootBorder.Background = new SolidColorBrush(ThemeService.ParseColor(t.MiniBg));
+        RootBorder.BorderBrush = new SolidColorBrush(ThemeService.ParseColor(t.CardBorder));
+        ZeroLine.Stroke = new SolidColorBrush(ThemeService.ParseColor(t.ChartGrid));
     }
 
     public void OnSample(PowerSample s, Estimates est)

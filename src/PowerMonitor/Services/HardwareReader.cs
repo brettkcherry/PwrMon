@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Principal;
 using LibreHardwareMonitor.Hardware;
 using PowerMonitor.Models;
@@ -28,6 +29,11 @@ public sealed class HardwareReader : IDisposable
     private int _updates;
     private float _maxPowerSeen;
 
+    // Windows Energy Meter (EMI) RAPL counters — CPU/iGPU watts without any driver or elevation.
+    // Values arrive in milliwatts.
+    private PerformanceCounter? _emiPkg, _emiCores, _emiGpu;
+    private float _maxEmiSeen;
+
     public bool IsElevated { get; } =
         new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
 
@@ -39,8 +45,9 @@ public sealed class HardwareReader : IDisposable
     {
         get
         {
-            if (!LhmInitialized) return SensorTier.LhmFailed;
             if (_maxPowerSeen > 0.5f) return SensorTier.Full;
+            if (_maxEmiSeen > 0.5f && _updates >= 8) return SensorTier.EmiOnly;
+            if (!LhmInitialized) return SensorTier.LhmFailed;
             if (_updates < 8) return SensorTier.Probing;
             return IsElevated ? SensorTier.DriverBlocked : SensorTier.NeedsAdmin;
         }
@@ -62,6 +69,33 @@ public sealed class HardwareReader : IDisposable
             LhmInitialized = false;
             Log.Error("LHM init failed", ex);
         }
+        InitEmi();
+    }
+
+    private void InitEmi()
+    {
+        try
+        {
+            if (!PerformanceCounterCategory.Exists("Energy Meter")) return;
+            foreach (var inst in new PerformanceCounterCategory("Energy Meter").GetInstanceNames())
+            {
+                if (inst.EndsWith("_pkg", StringComparison.OrdinalIgnoreCase))
+                    _emiPkg = new PerformanceCounter("Energy Meter", "Power", inst, readOnly: true);
+                else if (inst.EndsWith("_pp0", StringComparison.OrdinalIgnoreCase))
+                    _emiCores = new PerformanceCounter("Energy Meter", "Power", inst, readOnly: true);
+                else if (inst.EndsWith("_pp1", StringComparison.OrdinalIgnoreCase))
+                    _emiGpu = new PerformanceCounter("Energy Meter", "Power", inst, readOnly: true);
+            }
+            _emiPkg?.NextValue(); // rate counters need a priming read
+            _emiCores?.NextValue();
+            _emiGpu?.NextValue();
+            Log.Info($"EMI energy meter: pkg={_emiPkg != null} pp0={_emiCores != null} pp1={_emiGpu != null}");
+        }
+        catch (Exception ex)
+        {
+            Log.Error("EMI init", ex);
+            _emiPkg = _emiCores = _emiGpu = null;
+        }
     }
 
     /// <summary>Tear down and re-open LHM — used by the "re-detect" action after installing PawnIO.</summary>
@@ -70,8 +104,13 @@ public sealed class HardwareReader : IDisposable
         try { _computer?.Close(); } catch { }
         _computer = null;
         _cpuPackage = _cpuCores = _cpuPlatform = _cpuLoad = _cpuTemp = _gpuPower = _gpuLoad = _gpuClock = null;
+        _emiPkg?.Dispose();
+        _emiCores?.Dispose();
+        _emiGpu?.Dispose();
+        _emiPkg = _emiCores = _emiGpu = null;
         _updates = 0;
         _maxPowerSeen = 0;
+        _maxEmiSeen = 0;
         Init();
     }
 
@@ -137,38 +176,65 @@ public sealed class HardwareReader : IDisposable
 
     public HardwareReading Read()
     {
-        if (_computer is null || !LhmInitialized)
-            return new HardwareReading(null, null, null, null, null, null, null, null);
+        double? lhmPkg = null, lhmCores = null, lhmPlatform = null, lhmGpu = null;
+        double? load = null, temp = null, gpuLoad = null, gpuClock = null;
 
-        try
+        if (_computer is not null && LhmInitialized)
         {
-            foreach (var hw in _computer.Hardware)
-                hw.Update();
-        }
-        catch (Exception ex)
-        {
-            if (_updates < 3) Log.Error("LHM update", ex);
+            try
+            {
+                foreach (var hw in _computer.Hardware)
+                    hw.Update();
+            }
+            catch (Exception ex)
+            {
+                if (_updates < 3) Log.Error("LHM update", ex);
+            }
+
+            lhmPkg = Val(_cpuPackage);
+            lhmCores = Val(_cpuCores);
+            lhmPlatform = Val(_cpuPlatform);
+            lhmGpu = Val(_gpuPower);
+            load = Val(_cpuLoad);
+            temp = Val(_cpuTemp);
+            gpuLoad = Val(_gpuLoad);
+            gpuClock = Val(_gpuClock);
+
+            if (lhmPkg is > 0.5) _maxPowerSeen = Math.Max(_maxPowerSeen, (float)lhmPkg.Value);
+            if (lhmGpu is > 0.5) _maxPowerSeen = Math.Max(_maxPowerSeen, (float)lhmGpu.Value);
         }
 
         _updates++;
 
-        var pkg = Val(_cpuPackage);
-        var gpu = Val(_gpuPower);
-        if (pkg is > 0.5) _maxPowerSeen = Math.Max(_maxPowerSeen, (float)pkg.Value);
-        if (gpu is > 0.5) _maxPowerSeen = Math.Max(_maxPowerSeen, (float)gpu.Value);
+        // A flat 0 from an LHM RAPL sensor means "driver can't read MSRs", not "0 watts".
+        var lhmLive = _maxPowerSeen > 0.5f;
 
-        // A flat 0 from a RAPL sensor means "driver can't read MSRs", not "0 watts".
-        var live = _maxPowerSeen > 0.5f;
+        // EMI fallback: Windows' own RAPL counters (mW), no driver or elevation required
+        var emiPkg = EmiVal(_emiPkg);
+        var emiCores = EmiVal(_emiCores);
+        var emiGpu = EmiVal(_emiGpu);
+        if (emiPkg is > 0.5) _maxEmiSeen = Math.Max(_maxEmiSeen, (float)emiPkg.Value);
 
         return new HardwareReading(
-            CpuPackageW: live ? pkg : null,
-            CpuCoresW: live ? Val(_cpuCores) : null,
-            CpuPlatformW: live ? Val(_cpuPlatform) : null,
-            CpuLoadPct: Val(_cpuLoad),
-            CpuTempC: Val(_cpuTemp),
-            IGpuW: live ? gpu : null,
-            GpuLoadPct: Val(_gpuLoad),
-            GpuClockMhz: Val(_gpuClock));
+            CpuPackageW: lhmLive ? lhmPkg : emiPkg,
+            CpuCoresW: lhmLive ? lhmCores : emiCores,
+            CpuPlatformW: lhmLive ? lhmPlatform : null,
+            CpuLoadPct: load,
+            CpuTempC: temp,
+            IGpuW: lhmLive && lhmGpu is > 0.05 ? lhmGpu : emiGpu ?? (lhmLive ? lhmGpu : null),
+            GpuLoadPct: gpuLoad,
+            GpuClockMhz: gpuClock);
+    }
+
+    private static double? EmiVal(PerformanceCounter? c)
+    {
+        if (c is null) return null;
+        try
+        {
+            var mw = c.NextValue();
+            return mw is > 0 and < 500_000 ? mw / 1000.0 : null;
+        }
+        catch { return null; }
     }
 
     private static double? Val(ISensor? s) => s?.Value is float f && !float.IsNaN(f) ? f : null;
@@ -177,5 +243,9 @@ public sealed class HardwareReader : IDisposable
     {
         try { _computer?.Close(); } catch { }
         _computer = null;
+        _emiPkg?.Dispose();
+        _emiCores?.Dispose();
+        _emiGpu?.Dispose();
+        _emiPkg = _emiCores = _emiGpu = null;
     }
 }

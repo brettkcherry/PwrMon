@@ -12,7 +12,7 @@ namespace PowerMonitor.Services;
 /// </summary>
 public sealed class HistoryStore : IDisposable
 {
-    private const string Header = "time,charge_w,discharge_w,cpu_w,igpu_w,cpu_load,percent,remaining_wh,voltage_v,ac,gap";
+    private const string Header = "time,charge_w,discharge_w,cpu_w,igpu_w,cpu_load,percent,remaining_wh,voltage_v,ac,gap,platform_w";
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
     private readonly object _gate = new();
@@ -26,7 +26,7 @@ public sealed class HistoryStore : IDisposable
     public void Append(PowerSample s)
     {
         var line = string.Create(Inv,
-            $"{s.Time:yyyy-MM-ddTHH:mm:ss.fffzzz},{s.ChargeRateW:F3},{s.DischargeRateW:F3},{Opt(s.CpuPackageW)},{Opt(s.IGpuW)},{Opt(s.CpuLoadPct)},{s.BatteryPercent:F2},{s.RemainingWh:F3},{s.VoltageV:F3},{(s.AcOnline ? 1 : 0)},{(s.GapBefore ? 1 : 0)}");
+            $"{s.Time:yyyy-MM-ddTHH:mm:ss.fffzzz},{s.ChargeRateW:F3},{s.DischargeRateW:F3},{Opt(s.CpuPackageW)},{Opt(s.IGpuW)},{Opt(s.CpuLoadPct)},{s.BatteryPercent:F2},{s.RemainingWh:F3},{s.VoltageV:F3},{(s.AcOnline ? 1 : 0)},{(s.GapBefore ? 1 : 0)},{Opt(s.CpuPlatformW)}");
         lock (_gate)
         {
             _buffer.AppendLine(line);
@@ -145,6 +145,7 @@ public sealed class HistoryStore : IDisposable
                 VoltageV = double.Parse(p[8], Inv),
                 AcOnline = p[9] == "1",
                 GapBefore = p[10] == "1",
+                CpuPlatformW = p.Length > 11 ? OptParse(p[11]) : null,
             };
         }
         catch { return null; }

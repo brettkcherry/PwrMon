@@ -27,11 +27,13 @@
                                Foreground="{StaticResource TextDimBrush}" VerticalAlignment="Bottom" Margin="2,0,0,7"/>
                 </StackPanel>
                 <TextBlock x:Name="HeroWatts" Text="— W" FontSize="52" FontWeight="Bold"
+                           FontFamily="{DynamicResource NumeralFontFamily}" Typography.NumeralAlignment="Tabular"
                            Foreground="{StaticResource TextBrush}" Margin="0,-6,0,0"/>
                 <TextBlock x:Name="HeroSub" Text="" FontSize="13" Foreground="{StaticResource TextDimBrush}" Margin="2,0,0,0"/>
             </StackPanel>
             <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
                 <TextBlock x:Name="HeroPercent" Text="—%" FontSize="34" FontWeight="SemiBold"
+                           FontFamily="{DynamicResource NumeralFontFamily}" Typography.NumeralAlignment="Tabular"
                            Foreground="{StaticResource TextBrush}" TextAlignment="Right"/>
                 <TextBlock x:Name="HeroEta" Text="" FontSize="13" Foreground="{StaticResource TextDimBrush}" TextAlignment="Right"/>
             </StackPanel>
@@ -142,6 +144,31 @@
                         <TextBlock Grid.Row="2" Style="{StaticResource StatLabel}" Text="Clock"/>
                         <TextBlock Grid.Row="2" Grid.Column="1" x:Name="GpuClock" Style="{StaticResource StatValue}"/>
                         <TextBlock Grid.Row="3" Style="{StaticResource StatLabel}" Text=""/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Width="215">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="POWER BUDGET"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Style="{StaticResource StatLabel}" Text="System draw"
+                                   ToolTip="Exact while on battery (measured at the battery). On AC it's estimated: CPU package + the baseline learned from your battery sessions."/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="BudSystem" Style="{StaticResource StatValue}" Foreground="{StaticResource AccentBrush}"/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource StatLabel}" Text="Wall input"
+                                   ToolTip="System draw + battery charging, assuming ~90% adapter efficiency. Estimate."/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="BudWall" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="2" Style="{StaticResource StatLabel}" Text="CPU package"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="BudSilicon" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="3" Style="{StaticResource StatLabel}" Text="Rest of system"
+                                   ToolTip="Learned during battery sessions: screen, RAM, SSD, board — everything that isn't the CPU package."/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" x:Name="BudBaseline" Style="{StaticResource StatValue}"/>
                     </Grid>
                 </StackPanel>
             </Border>

@@ -15,6 +15,29 @@ public partial class SettingsWindow : Window
     {
         InitializeComponent();
 
+        foreach (var t in ThemeService.All)
+            CmbTheme.Items.Add(t.Name);
+        CmbTheme.SelectedItem = ThemeService.Current.Name;
+        CmbTheme.SelectionChanged += (_, _) =>
+        {
+            if (_initializing || CmbTheme.SelectedItem is not string themeName) return;
+            AppSettings.Current.Theme = themeName;
+            AppSettings.Save();
+            ThemeService.Apply(themeName);
+        };
+
+        foreach (var f in new[] { "Bahnschrift", "Cascadia Mono", "Segoe UI" })
+            CmbFont.Items.Add(f);
+        CmbFont.SelectedItem = AppSettings.Current.NumeralFont;
+        if (CmbFont.SelectedItem is null) CmbFont.SelectedIndex = 0;
+        CmbFont.SelectionChanged += (_, _) =>
+        {
+            if (_initializing || CmbFont.SelectedItem is not string fontName) return;
+            AppSettings.Current.NumeralFont = fontName;
+            AppSettings.Save();
+            ThemeService.ApplyNumeralFont(fontName);
+        };
+
         ChkCloseToTray.IsChecked = AppSettings.Current.CloseToTray;
         ChkStartMinimized.IsChecked = AppSettings.Current.StartMinimized;
         ChkSlimMode.IsChecked = AppSettings.Current.SlimMode;

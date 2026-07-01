@@ -39,6 +39,14 @@ public sealed class AppSettings
     public double WindowWidth { get; set; } = 1100;
     public double WindowHeight { get; set; } = 780;
 
+    public string Theme { get; set; } = "Phosphor";
+    /// <summary>Font family for the large live numerals (needs stable digit widths).</summary>
+    public string NumeralFont { get; set; } = "Bahnschrift";
+
+    /// <summary>Learned "system minus CPU package" draw in watts, measured during battery
+    /// sessions and used to estimate total system/wall draw on AC. NaN until learned.</summary>
+    public double LearnedSystemBaselineW { get; set; } = double.NaN;
+
     // ---- persistence ----
 
     public static string Dir { get; } =

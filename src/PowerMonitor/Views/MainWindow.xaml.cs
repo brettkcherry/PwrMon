@@ -34,7 +34,9 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        SourceInitialized += (_, _) => EnableDarkTitleBar();
+        SourceInitialized += (_, _) => EnableDarkTitleBar(ThemeService.Current.IsDark);
+        ThemeService.Changed += OnThemeChanged;
+        Closed += (_, _) => ThemeService.Changed -= OnThemeChanged;
 
         Width = AppSettings.Current.WindowWidth;
         Height = AppSettings.Current.WindowHeight;
@@ -55,16 +57,12 @@ public partial class MainWindow : Window
 
     // ─────────────────────────── chart setup ───────────────────────────
 
+    private HorizontalLine _zeroLine = null!;
+
     private void SetupChart()
     {
         var plot = Chart.Plot;
-
-        plot.FigureBackground.Color = ScottPlot.Color.FromHex("#171A21");
-        plot.DataBackground.Color = ScottPlot.Color.FromHex("#12151B");
-        plot.Axes.Color(ScottPlot.Color.FromHex("#8B93A7"));
-        plot.Grid.MajorLineColor = ScottPlot.Color.FromHex("#232833");
         plot.Legend.IsVisible = false;
-
         plot.Axes.DateTimeTicksBottom();
 
         _netLog = NewLogger(plot, NetColor, 1.8f);
@@ -75,16 +73,40 @@ public partial class MainWindow : Window
         _pctLog.Axes.YAxis = plot.Axes.Right;
         _loadLog.Axes.YAxis = plot.Axes.Right;
 
-        var zero = plot.Add.HorizontalLine(0);
-        zero.Color = ScottPlot.Color.FromHex("#3A4250");
-        zero.LineWidth = 1;
+        _zeroLine = plot.Add.HorizontalLine(0);
+        _zeroLine.LineWidth = 1;
 
         _hoverLine = plot.Add.VerticalLine(0);
-        _hoverLine.Color = ScottPlot.Color.FromHex("#556077");
         _hoverLine.LineWidth = 1;
         _hoverLine.IsVisible = false;
 
         plot.Axes.SetLimitsY(0, 105, plot.Axes.Right);
+
+        ApplyChartTheme(ThemeService.Current);
+    }
+
+    private void OnThemeChanged(ThemePalette t)
+    {
+        ApplyChartTheme(t);
+        EnableDarkTitleBar(t.IsDark);
+        Chart.Refresh();
+    }
+
+    private void ApplyChartTheme(ThemePalette t)
+    {
+        var plot = Chart.Plot;
+        plot.FigureBackground.Color = ScottPlot.Color.FromHex(t.ChartFigure);
+        plot.DataBackground.Color = ScottPlot.Color.FromHex(t.ChartData);
+        plot.Axes.Color(ScottPlot.Color.FromHex(t.TextDim));
+        plot.Grid.MajorLineColor = ScottPlot.Color.FromHex(t.ChartGrid);
+        _netLog.Color = ScottPlot.Color.FromHex(t.SeriesNet);
+        _cpuLog.Color = ScottPlot.Color.FromHex(t.SeriesCpu);
+        _gpuLog.Color = ScottPlot.Color.FromHex(t.SeriesGpu);
+        _pctLog.Color = ScottPlot.Color.FromHex(t.SeriesPct);
+        _loadLog.Color = ScottPlot.Color.FromHex(t.SeriesLoad);
+        _zeroLine.Color = ScottPlot.Color.FromHex(t.ChartGrid).Lighten(0.2);
+        _hoverLine.Color = ScottPlot.Color.FromHex(t.TextDim).WithAlpha(150);
+        ChkGpu.Foreground = new System.Windows.Media.SolidColorBrush(ThemeService.ParseColor(t.SeriesGpu));
     }
 
     private static DataLogger NewLogger(Plot plot, ScottPlot.Color color, float width)
@@ -216,7 +238,8 @@ public partial class MainWindow : Window
         {
             HeroWatts.Text = UnitFormatter.Power(s.NetW, signed: true);
             HeroWatts.Foreground = brush;
-            HeroSub.Text = $"{UnitFormatter.Energy(s.RemainingWh, s.VoltageV)} of {UnitFormatter.Energy(s.FullChargeWh, s.VoltageV)} • {s.VoltageV:F2} V • {(s.AcOnline ? "on AC power" : "on battery")}";
+            var sysNote = s.AcOnline && est.EstSystemW is double es2 ? $" • system ≈ {UnitFormatter.Power(es2)}" : "";
+            HeroSub.Text = $"{UnitFormatter.Energy(s.RemainingWh, s.VoltageV)} of {UnitFormatter.Energy(s.FullChargeWh, s.VoltageV)} • {s.VoltageV:F2} V • {(s.AcOnline ? "on AC power" : "on battery")}{sysNote}";
             HeroPercent.Text = $"{s.BatteryPercent:F1}%";
             HeroEta.Text = s.Charging ? $"full in {UnitFormatter.Duration(est.TimeToFull)}"
                          : s.Discharging ? $"{UnitFormatter.Duration(est.TimeToEmpty)} remaining"
@@ -259,6 +282,15 @@ public partial class MainWindow : Window
         BatVoltage.Text = s.HasBattery ? $"{s.VoltageV:F2} V" : "—";
         BatState.Text = !s.HasBattery ? "none" : s.Charging ? "charging" : s.Discharging ? "discharging" : "idle";
 
+        BudSystem.Text = est.EstSystemW is double sysW
+            ? (est.IsSystemEstimate ? "≈ " : "") + UnitFormatter.Power(sysW)
+            : "—";
+        BudWall.Text = est.EstWallW is double wallW ? "≈ " + UnitFormatter.Power(wallW) : "—";
+        BudSilicon.Text = s.CpuPackageW is double pkgW ? UnitFormatter.Power(pkgW) : "—";
+        BudBaseline.Text = !double.IsNaN(est.LearnedBaselineW)
+            ? "≈ " + UnitFormatter.Power(est.LearnedBaselineW)
+            : "unplug to learn";
+
         SesEnergy.Text = $"{stats.EnergyOutWh:F1} / {stats.EnergyInWh:F1} Wh";
         SesAvg.Text = stats.AvgDischargeW > 0.1 ? UnitFormatter.Power(stats.AvgDischargeW) : "—";
         SesPeak.Text = stats.PeakDischargeW > 0.1
@@ -280,6 +312,10 @@ public partial class MainWindow : Window
             case SensorTier.Full:
                 Banner.Visibility = Visibility.Collapsed;
                 StatusTier.Text = "⚡ full silicon telemetry";
+                break;
+            case SensorTier.EmiOnly:
+                Banner.Visibility = Visibility.Collapsed;
+                StatusTier.Text = "⚡ CPU/iGPU watts via Windows EMI — admin+PawnIO adds temps";
                 break;
             case SensorTier.NeedsAdmin:
                 Banner.Visibility = Visibility.Visible;
@@ -659,12 +695,13 @@ public partial class MainWindow : Window
         // the app lives on in the tray, and reopening rebuilds from CSV backfill
     }
 
-    private void EnableDarkTitleBar()
+    private void EnableDarkTitleBar(bool dark)
     {
         try
         {
             var handle = new WindowInteropHelper(this).Handle;
-            var value = 1;
+            if (handle == IntPtr.Zero) return;
+            var value = dark ? 1 : 0;
             DwmSetWindowAttribute(handle, 20 /*DWMWA_USE_IMMERSIVE_DARK_MODE*/, ref value, sizeof(int));
         }
         catch { /* cosmetic only */ }

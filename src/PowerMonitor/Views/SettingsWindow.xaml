@@ -7,6 +7,16 @@
         WindowStartupLocation="CenterOwner">
     <StackPanel Margin="20,16">
 
+        <TextBlock Style="{StaticResource CardTitle}" Text="APPEARANCE"/>
+        <DockPanel Margin="0,4">
+            <TextBlock Text="Theme" Style="{StaticResource StatLabel}" DockPanel.Dock="Left" Width="110"/>
+            <ComboBox x:Name="CmbTheme" Width="150" HorizontalAlignment="Left"/>
+        </DockPanel>
+        <DockPanel Margin="0,4,0,12">
+            <TextBlock Text="Numeral font" Style="{StaticResource StatLabel}" DockPanel.Dock="Left" Width="110"/>
+            <ComboBox x:Name="CmbFont" Width="150" HorizontalAlignment="Left"/>
+        </DockPanel>
+
         <TextBlock Style="{StaticResource CardTitle}" Text="BEHAVIOR"/>
         <CheckBox x:Name="ChkCloseToTray" Content="Close button minimizes to tray"
                   Foreground="{StaticResource TextBrush}" Margin="0,4"/>

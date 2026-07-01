@@ -62,6 +62,8 @@ public partial class App : Application
         }
 
         AppSettings.Load();
+        ThemeService.Apply(AppSettings.Current.Theme);
+        ThemeService.ApplyNumeralFont(AppSettings.Current.NumeralFont);
         Log.Info($"=== PowerMonitor starting (args: {string.Join(' ', e.Args)}) ===");
 
         DispatcherUnhandledException += OnDispatcherException;
