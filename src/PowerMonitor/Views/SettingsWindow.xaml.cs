@@ -17,6 +17,7 @@ public partial class SettingsWindow : Window
 
         ChkCloseToTray.IsChecked = AppSettings.Current.CloseToTray;
         ChkStartMinimized.IsChecked = AppSettings.Current.StartMinimized;
+        ChkSlimMode.IsChecked = AppSettings.Current.SlimMode;
 
         ChkAutostart.IsChecked = StartupHelper.IsRunKeyEnabled() || StartupHelper.IsElevatedTaskEnabled();
         ChkAutostartElevated.IsChecked = StartupHelper.IsElevatedTaskEnabled();
@@ -34,6 +35,7 @@ public partial class SettingsWindow : Window
 
         ChkCloseToTray.Click += (_, _) => SaveBehavior();
         ChkStartMinimized.Click += (_, _) => SaveBehavior();
+        ChkSlimMode.Click += (_, _) => SaveBehavior();
         CmbRetention.SelectionChanged += (_, _) => SaveBehavior();
 
         _initializing = false;
@@ -44,6 +46,7 @@ public partial class SettingsWindow : Window
         if (_initializing) return;
         AppSettings.Current.CloseToTray = ChkCloseToTray.IsChecked == true;
         AppSettings.Current.StartMinimized = ChkStartMinimized.IsChecked == true;
+        AppSettings.Current.SlimMode = ChkSlimMode.IsChecked == true;
         if (CmbRetention.SelectedItem is int days)
             AppSettings.Current.HistoryRetentionDays = days;
         AppSettings.Save();

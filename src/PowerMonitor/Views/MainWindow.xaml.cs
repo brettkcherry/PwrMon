@@ -314,9 +314,26 @@ public partial class MainWindow : Window
 
     // ─────────────────────────── chart data ───────────────────────────
 
+    // ≈72 h at 1 s sampling; beyond this the oldest quarter is trimmed so week-long
+    // uptimes don't grow RAM without bound
+    private const int MaxChartPoints = 260_000;
+    private const int TrimTarget = 200_000;
+
     private void AppendToChart(PowerSample s)
     {
         var x = s.Time.LocalDateTime.ToOADate();
+
+        // break chart lines across sleep/hibernate gaps
+        if (s.GapBefore && _times.Count > 0)
+        {
+            var gapX = (_times[^1] + x) / 2;
+            _netLog.Add(gapX, double.NaN);
+            _pctLog.Add(gapX, double.NaN);
+            _cpuLog.Add(gapX, double.NaN);
+            _gpuLog.Add(gapX, double.NaN);
+            _loadLog.Add(gapX, double.NaN);
+        }
+
         _times.Add(x);
         _net.Add(s.NetW);
         _cpu.Add(s.CpuPackageW ?? double.NaN);
@@ -329,6 +346,34 @@ public partial class MainWindow : Window
         if (s.CpuPackageW is double cw) _cpuLog.Add(x, cw);
         if (s.IGpuW is double gw) _gpuLog.Add(x, gw);
         if (s.CpuLoadPct is double lw) _loadLog.Add(x, lw);
+
+        if (_times.Count > MaxChartPoints) TrimChart();
+    }
+
+    private void TrimChart()
+    {
+        var remove = _times.Count - TrimTarget;
+        _times.RemoveRange(0, remove);
+        _net.RemoveRange(0, remove);
+        _cpu.RemoveRange(0, remove);
+        _gpu.RemoveRange(0, remove);
+        _pct.RemoveRange(0, remove);
+        _load.RemoveRange(0, remove);
+
+        _netLog.Clear();
+        _cpuLog.Clear();
+        _gpuLog.Clear();
+        _pctLog.Clear();
+        _loadLog.Clear();
+        for (var i = 0; i < _times.Count; i++)
+        {
+            _netLog.Add(_times[i], _net[i]);
+            _pctLog.Add(_times[i], _pct[i]);
+            if (!double.IsNaN(_cpu[i])) _cpuLog.Add(_times[i], _cpu[i]);
+            if (!double.IsNaN(_gpu[i])) _gpuLog.Add(_times[i], _gpu[i]);
+            if (!double.IsNaN(_load[i])) _loadLog.Add(_times[i], _load[i]);
+        }
+        Log.Info($"chart trimmed to {_times.Count} points");
     }
 
     public void OnPowerEvent(PowerEvent ev)
@@ -527,11 +572,61 @@ public partial class MainWindow : Window
                 StartupHelper.RestartElevated(); // new instance signals us to exit via --replace
                 break;
             case SensorTier.DriverBlocked:
-                Process.Start(new ProcessStartInfo("https://pawnio.eu/") { UseShellExecute = true });
+                _ = InstallPawnIoAsync();
                 break;
             case SensorTier.LhmFailed:
                 RequestRedetect();
                 break;
+        }
+    }
+
+    private const string PawnIoDownloadUrl =
+        "https://github.com/namazso/PawnIO.Setup/releases/latest/download/PawnIO_setup.exe";
+
+    /// <summary>Downloads the official PawnIO installer (with explicit consent — it's a kernel
+    /// driver) and runs it; its own wizard + UAC handle the actual install.</summary>
+    private async Task InstallPawnIoAsync()
+    {
+        var consent = MessageBox.Show(this,
+            "PawnIO is a signed kernel driver that lets Windows read CPU/iGPU power sensors while " +
+            "Memory Integrity is enabled.\n\n" +
+            $"PowerMonitor will download the official installer from:\n{PawnIoDownloadUrl}\n\n" +
+            "and launch it. Continue?",
+            "Install PawnIO", MessageBoxButton.OKCancel, MessageBoxImage.Information);
+        if (consent != MessageBoxResult.OK) return;
+
+        BannerBtn1.IsEnabled = false;
+        BannerBtn1.Content = "Downloading…";
+        try
+        {
+            var dest = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "PawnIO_setup.exe");
+            using (var http = new System.Net.Http.HttpClient())
+            {
+                http.Timeout = TimeSpan.FromMinutes(2);
+                var bytes = await http.GetByteArrayAsync(PawnIoDownloadUrl);
+                if (bytes.Length < 100_000)
+                    throw new InvalidOperationException($"download too small ({bytes.Length} bytes)");
+                await System.IO.File.WriteAllBytesAsync(dest, bytes);
+            }
+
+            BannerBtn1.Content = "Installing…";
+            var proc = Process.Start(new ProcessStartInfo(dest) { UseShellExecute = true });
+            if (proc is not null)
+            {
+                await proc.WaitForExitAsync();
+                RequestRedetect();
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error("pawnio install", ex);
+            // fall back to the website so the user can grab it manually
+            Process.Start(new ProcessStartInfo("https://pawnio.eu/") { UseShellExecute = true });
+        }
+        finally
+        {
+            BannerBtn1.IsEnabled = true;
+            BannerBtn1.Content = "Get PawnIO";
         }
     }
 
@@ -551,15 +646,17 @@ public partial class MainWindow : Window
         AppSettings.Current.WindowWidth = Width;
         AppSettings.Current.WindowHeight = Height;
         AppSettings.Save();
-        if (AppSettings.Current.CloseToTray)
+        if (!AppSettings.Current.CloseToTray)
+        {
+            App.Current.ExitApp();
+        }
+        else if (!AppSettings.Current.SlimMode)
         {
             e.Cancel = true;
             Hide();
         }
-        else
-        {
-            App.Current.ExitApp();
-        }
+        // slim mode: let the window actually close — chart + history buffers are freed,
+        // the app lives on in the tray, and reopening rebuilds from CSV backfill
     }
 
     private void EnableDarkTitleBar()

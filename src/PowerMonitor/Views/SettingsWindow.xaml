@@ -12,6 +12,9 @@
                   Foreground="{StaticResource TextBrush}" Margin="0,4"/>
         <CheckBox x:Name="ChkStartMinimized" Content="Start minimized to tray"
                   Foreground="{StaticResource TextBrush}" Margin="0,4"/>
+        <CheckBox x:Name="ChkSlimMode" Content="Slim mode (free dashboard memory when closed)"
+                  Foreground="{StaticResource TextBrush}" Margin="0,4"
+                  ToolTip="The dashboard window is fully released when closed instead of hidden — the app keeps sampling from the tray with a much smaller footprint. Reopening rebuilds the chart from saved history."/>
 
         <TextBlock Style="{StaticResource CardTitle}" Text="START WITH WINDOWS" Margin="0,14,0,6"/>
         <CheckBox x:Name="ChkAutostart" Content="Start PowerMonitor at logon"

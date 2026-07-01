@@ -4,7 +4,8 @@ Live, real-time power telemetry for Windows laptops — because every battery ap
 Microsoft Store shows you *health summaries* when what you actually want to know is
 **what is my machine pulling right now, in watts?**
 
-No ads, no telemetry, no network access, no installer. One portable exe.
+No ads, no telemetry, no installer required. One portable exe. The only network access is
+the optional PawnIO driver download — and only when you explicitly click the button.
 
 ## What it shows
 

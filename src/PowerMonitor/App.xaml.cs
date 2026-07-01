@@ -108,9 +108,9 @@ public partial class App : Application
 
         History.CleanupOldFiles();
 
-        _mainWindow = new MainWindow();
-        if (!minimized)
-            _mainWindow.Show();
+        // dashboard is created lazily (ShowDashboard) so slim/minimized starts stay light
+        if (!minimized && !AppSettings.Current.SlimMode)
+            ShowDashboard();
 
         if (AppSettings.Current.MiniGraphEnabled)
             ToggleMiniGraph(forceOn: true);
@@ -127,7 +127,12 @@ public partial class App : Application
     public void ShowDashboard()
     {
         if (_exiting) return;
-        _mainWindow ??= new MainWindow();
+        if (_mainWindow is null)
+        {
+            History.Flush(); // so the chart backfill includes samples still in the write buffer
+            _mainWindow = new MainWindow();
+            _mainWindow.Closed += (_, _) => _mainWindow = null;
+        }
         _mainWindow.Show();
         if (_mainWindow.WindowState == WindowState.Minimized)
             _mainWindow.WindowState = WindowState.Normal;

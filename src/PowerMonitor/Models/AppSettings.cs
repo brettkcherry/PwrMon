@@ -17,6 +17,9 @@ public sealed class AppSettings
     public TrayDisplay TrayDisplay { get; set; } = TrayDisplay.Watts;
     public bool CloseToTray { get; set; } = true;
     public bool StartMinimized { get; set; }
+    /// <summary>Slim mode: the dashboard window is created on demand and fully disposed on
+    /// close, so the resident footprint is just tray + sampler (+ mini-graph).</summary>
+    public bool SlimMode { get; set; }
     public int HistoryRetentionDays { get; set; } = 7;
 
     public bool MiniGraphEnabled { get; set; }
