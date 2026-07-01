@@ -1,0 +1,12 @@
+# build output
+bin/
+obj/
+publish/
+
+# user/IDE
+*.user
+.vs/
+.idea/
+
+# probe output
+tools/SensorProbe/probe-elevated.txt

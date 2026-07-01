@@ -1,0 +1,271 @@
+<Window x:Class="PowerMonitor.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sp="clr-namespace:ScottPlot.WPF;assembly=ScottPlot.WPF"
+        Title="PowerMonitor"
+        Width="1100" Height="780" MinWidth="960" MinHeight="680"
+        Background="{StaticResource BgBrush}"
+        WindowStartupLocation="CenterScreen">
+    <Grid Margin="16,12,6,8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ═══ hero ═══ -->
+        <Grid Grid.Row="0" Margin="0,0,10,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Orientation="Vertical">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="HeroState" Text="MEASURING…" FontSize="13" FontWeight="Bold"
+                               Foreground="{StaticResource TextDimBrush}" VerticalAlignment="Bottom" Margin="2,0,0,7"/>
+                </StackPanel>
+                <TextBlock x:Name="HeroWatts" Text="— W" FontSize="52" FontWeight="Bold"
+                           Foreground="{StaticResource TextBrush}" Margin="0,-6,0,0"/>
+                <TextBlock x:Name="HeroSub" Text="" FontSize="13" Foreground="{StaticResource TextDimBrush}" Margin="2,0,0,0"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
+                <TextBlock x:Name="HeroPercent" Text="—%" FontSize="34" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextBrush}" TextAlignment="Right"/>
+                <TextBlock x:Name="HeroEta" Text="" FontSize="13" Foreground="{StaticResource TextDimBrush}" TextAlignment="Right"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- ═══ sensor-tier banner ═══ -->
+        <Border x:Name="Banner" Grid.Row="1" Visibility="Collapsed"
+                Background="#2A2416" BorderBrush="#5C4A18" BorderThickness="1" CornerRadius="8"
+                Padding="12,8" Margin="0,0,10,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="BannerText" Grid.Column="0" TextWrapping="Wrap" VerticalAlignment="Center"
+                           Foreground="#E8D9A0" FontSize="12.5"/>
+                <Button x:Name="BannerBtn1" Grid.Column="1" Style="{StaticResource FlatButton}" Margin="10,0,0,0"
+                        Click="BannerBtn1_Click"/>
+                <Button x:Name="BannerBtn2" Grid.Column="2" Style="{StaticResource FlatButton}" Margin="8,0,0,0"
+                        Click="BannerBtn2_Click"/>
+            </Grid>
+        </Border>
+
+        <!-- ═══ stat cards ═══ -->
+        <WrapPanel Grid.Row="2" Orientation="Horizontal">
+
+            <Border Style="{StaticResource Card}" Width="200">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="POWER FLOW"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Style="{StaticResource StatLabel}" Text="In (charging)"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="FlowIn" Style="{StaticResource StatValue}" Foreground="{StaticResource GreenBrush}"/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource StatLabel}" Text="Out (discharge)"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="FlowOut" Style="{StaticResource StatValue}" Foreground="{StaticResource OrangeBrush}"/>
+                        <TextBlock Grid.Row="2" Style="{StaticResource StatLabel}" Text="Net battery"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="FlowNet" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="3" Style="{StaticResource StatLabel}" Text="Current"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" x:Name="FlowCurrent" Style="{StaticResource StatValue}"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Width="205">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="ESTIMATES (30s smoothed)"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Style="{StaticResource StatLabel}" Text="Time to empty"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="EstEmpty" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource StatLabel}" Text="Time to full"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="EstFull" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="2" Style="{StaticResource StatLabel}" Text="Avg discharge"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="EstDischargeRate" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="3" Style="{StaticResource StatLabel}" Text="Avg charge"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" x:Name="EstChargeRate" Style="{StaticResource StatValue}"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Width="215">
+                <StackPanel>
+                    <TextBlock x:Name="CpuTitle" Style="{StaticResource CardTitle}" Text="PROCESSOR"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Style="{StaticResource StatLabel}" Text="Package"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="CpuPkg" Style="{StaticResource StatValue}" Foreground="{StaticResource BlueBrush}"/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource StatLabel}" Text="Cores / Platform"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="CpuCoresPlatform" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="2" Style="{StaticResource StatLabel}" Text="Load"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="CpuLoad" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="3" Style="{StaticResource StatLabel}" Text="Temperature"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" x:Name="CpuTemp" Style="{StaticResource StatValue}"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Width="195">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="iGPU"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Style="{StaticResource StatLabel}" Text="Power"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="GpuPower" Style="{StaticResource StatValue}" Foreground="#BC8CFF"/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource StatLabel}" Text="3D load"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="GpuLoad" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="2" Style="{StaticResource StatLabel}" Text="Clock"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="GpuClock" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="3" Style="{StaticResource StatLabel}" Text=""/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Width="205">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="BATTERY"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Style="{StaticResource StatLabel}" Text="Remaining"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="BatRemaining" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource StatLabel}" Text="Full charge"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="BatFull" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="2" Style="{StaticResource StatLabel}" Text="Voltage"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="BatVoltage" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="3" Style="{StaticResource StatLabel}" Text="State"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" x:Name="BatState" Style="{StaticResource StatValue}"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Width="200">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="HEALTH"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Style="{StaticResource StatLabel}" Text="Wear"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="HpWear" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource StatLabel}" Text="Design cap."/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="HpDesign" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="2" Style="{StaticResource StatLabel}" Text="Cycles"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="HpCycles" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="3" Style="{StaticResource StatLabel}" Text="Chemistry"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" x:Name="HpChem" Style="{StaticResource StatValue}"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Width="235">
+                <StackPanel>
+                    <Grid>
+                        <TextBlock Style="{StaticResource CardTitle}" Text="SESSION"/>
+                        <Button x:Name="SesResetBtn" Content="reset" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                Style="{StaticResource FlatButton}" Padding="8,1" FontSize="10" Click="SesReset_Click"/>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Style="{StaticResource StatLabel}" Text="Drawn / charged"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="SesEnergy" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource StatLabel}" Text="Avg draw"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="SesAvg" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="2" Style="{StaticResource StatLabel}" Text="Peak draw"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="SesPeak" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="3" Style="{StaticResource StatLabel}" Text="On battery"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" x:Name="SesOnBattery" Style="{StaticResource StatValue}"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+        </WrapPanel>
+
+        <!-- ═══ history chart ═══ -->
+        <Border Grid.Row="3" Style="{StaticResource Card}" Padding="10" Margin="0,0,10,10">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="2,0,2,8">
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                        <RadioButton Style="{StaticResource RangePill}" Content="5m" Tag="5" GroupName="Range" Checked="Range_Checked"/>
+                        <RadioButton Style="{StaticResource RangePill}" Content="15m" Tag="15" GroupName="Range" Checked="Range_Checked"/>
+                        <RadioButton Style="{StaticResource RangePill}" Content="1h" Tag="60" GroupName="Range" Checked="Range_Checked"/>
+                        <RadioButton Style="{StaticResource RangePill}" Content="6h" Tag="360" GroupName="Range" Checked="Range_Checked"/>
+                        <RadioButton Style="{StaticResource RangePill}" Content="24h" Tag="1440" GroupName="Range" Checked="Range_Checked"/>
+                        <RadioButton Style="{StaticResource RangePill}" Content="48h" Tag="2880" GroupName="Range" Checked="Range_Checked"/>
+                        <Rectangle Width="1" Fill="{StaticResource CardBorderBrush}" Margin="8,2"/>
+                        <CheckBox x:Name="ChkNet" Style="{StaticResource SeriesCheck}" Content="Net" Foreground="{StaticResource AccentBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
+                        <CheckBox x:Name="ChkCpu" Style="{StaticResource SeriesCheck}" Content="CPU" Foreground="{StaticResource BlueBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
+                        <CheckBox x:Name="ChkGpu" Style="{StaticResource SeriesCheck}" Content="iGPU" Foreground="#BC8CFF" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
+                        <CheckBox x:Name="ChkPct" Style="{StaticResource SeriesCheck}" Content="Battery %" Foreground="{StaticResource GreenBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
+                        <CheckBox x:Name="ChkLoad" Style="{StaticResource SeriesCheck}" Content="Load %" Foreground="{StaticResource TextDimBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <ToggleButton x:Name="LiveToggle" Content="● LIVE" IsChecked="True" FontSize="11" FontWeight="Bold"
+                                      Checked="Live_Checked" Foreground="{StaticResource GreenBrush}"
+                                      Background="Transparent" BorderThickness="0" Cursor="Hand"/>
+                        <Button Content="Export CSV…" Style="{StaticResource FlatButton}" Margin="12,0,0,0" FontSize="11"
+                                Click="Export_Click"/>
+                    </StackPanel>
+                </DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" x:Name="HoverReadout" FontSize="11.5"
+                           Foreground="{StaticResource TextDimBrush}" Margin="4,6,0,0" Text=" "/>
+                <sp:WpfPlot x:Name="Chart"/>
+            </DockPanel>
+        </Border>
+
+        <!-- ═══ status bar ═══ -->
+        <DockPanel Grid.Row="4" Margin="2,0,10,0">
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                <TextBlock Text="Sample every" Style="{StaticResource StatLabel}"/>
+                <ComboBox x:Name="StatusInterval" Width="66" Margin="6,0,14,0" SelectionChanged="Interval_Changed"/>
+                <TextBlock Text="Power in" Style="{StaticResource StatLabel}"/>
+                <ComboBox x:Name="StatusPowerUnit" Width="66" Margin="6,0,14,0" SelectionChanged="Units_Changed"/>
+                <TextBlock Text="Energy in" Style="{StaticResource StatLabel}"/>
+                <ComboBox x:Name="StatusEnergyUnit" Width="66" Margin="6,0,0,0" SelectionChanged="Units_Changed"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <TextBlock x:Name="StatusTier" Style="{StaticResource StatLabel}" Margin="0,0,14,0"/>
+                <Button x:Name="BtnMiniGraph" Content="Mini graph" Style="{StaticResource FlatButton}" FontSize="11"
+                        Margin="0,0,8,0" Click="MiniGraph_Click"/>
+                <Button Content="Settings" Style="{StaticResource FlatButton}" FontSize="11" Click="Settings_Click"/>
+            </StackPanel>
+        </DockPanel>
+    </Grid>
+</Window>

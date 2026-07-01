@@ -1,0 +1,105 @@
+namespace PowerMonitor.Models;
+
+/// <summary>One point-in-time reading of everything the machine reports about power.</summary>
+public sealed class PowerSample
+{
+    public DateTimeOffset Time { get; init; }
+
+    public bool HasBattery { get; init; }
+    public bool AcOnline { get; init; }
+    public bool Charging { get; init; }
+    public bool Discharging { get; init; }
+
+    /// <summary>Power flowing into the battery, watts (0 when not charging).</summary>
+    public double ChargeRateW { get; init; }
+    /// <summary>Power flowing out of the battery, watts (0 when not discharging).</summary>
+    public double DischargeRateW { get; init; }
+    /// <summary>Signed battery flow: positive = charging, negative = discharging.</summary>
+    public double NetW => ChargeRateW - DischargeRateW;
+
+    public double BatteryPercent { get; init; }
+    public double RemainingWh { get; init; }
+    public double FullChargeWh { get; init; }
+    public double VoltageV { get; init; }
+    /// <summary>Battery current in amps derived from rate/voltage; signed like <see cref="NetW"/>.</summary>
+    public double CurrentA => VoltageV > 1 ? NetW / VoltageV : 0;
+
+    // CPU/GPU silicon telemetry (null when the sensor tier doesn't provide it).
+    public double? CpuPackageW { get; init; }
+    public double? CpuCoresW { get; init; }
+    public double? CpuPlatformW { get; init; }
+    public double? IGpuW { get; init; }
+    public double? CpuLoadPct { get; init; }
+    public double? CpuTempC { get; init; }
+    public double? GpuLoadPct { get; init; }
+    public double? GpuClockMhz { get; init; }
+
+    /// <summary>True when the wall-clock gap since the previous sample is large (sleep/hibernate) —
+    /// charts should break the line before this sample.</summary>
+    public bool GapBefore { get; init; }
+}
+
+/// <summary>Static battery pack facts; refreshed rarely.</summary>
+public sealed class BatteryStaticInfo
+{
+    public bool HasBattery { get; init; }
+    public double DesignWh { get; init; }
+    public double FullChargeWh { get; init; }
+    public int? CycleCount { get; init; }
+    public string Chemistry { get; init; } = "";
+    public string Manufacturer { get; init; } = "";
+    public string DeviceName { get; init; } = "";
+    public double DesignVoltageV { get; init; }
+    public double WearPct => DesignWh > 0 ? Math.Max(0, (DesignWh - FullChargeWh) / DesignWh * 100.0) : 0;
+}
+
+/// <summary>Rolling statistics since app start (or manual reset).</summary>
+public sealed class SessionStats
+{
+    public DateTimeOffset StartTime { get; init; }
+    public double EnergyOutWh { get; init; }
+    public double EnergyInWh { get; init; }
+    public double PeakDischargeW { get; init; }
+    public DateTimeOffset? PeakDischargeTime { get; init; }
+    public double PeakCpuW { get; init; }
+    public TimeSpan TimeOnBattery { get; init; }
+    public double AvgDischargeW => TimeOnBattery.TotalHours > 0.003 ? EnergyOutWh / TimeOnBattery.TotalHours : 0;
+}
+
+/// <summary>Smoothed time predictions computed from EMA'd rates.</summary>
+public sealed class Estimates
+{
+    public TimeSpan? TimeToEmpty { get; init; }
+    public TimeSpan? TimeToFull { get; init; }
+    public double SmoothedDischargeW { get; init; }
+    public double SmoothedChargeW { get; init; }
+}
+
+public enum PowerEventKind { AcConnected, AcDisconnected, Resumed, AppStarted }
+
+/// <summary>Notable moment worth marking on the history chart.</summary>
+public sealed record PowerEvent(DateTimeOffset Time, PowerEventKind Kind)
+{
+    public string Label => Kind switch
+    {
+        PowerEventKind.AcConnected => "AC in",
+        PowerEventKind.AcDisconnected => "AC out",
+        PowerEventKind.Resumed => "resume",
+        _ => "start",
+    };
+}
+
+/// <summary>What level of silicon telemetry the current process can reach.</summary>
+public enum SensorTier
+{
+    /// <summary>LHM failed to initialize at all.</summary>
+    LhmFailed,
+    /// <summary>Not elevated: CPU/iGPU power sensors locked.</summary>
+    NeedsAdmin,
+    /// <summary>Elevated but the kernel sensor driver could not load (e.g. HVCI blocklist, PawnIO missing).</summary>
+    DriverBlocked,
+    /// <summary>Full RAPL telemetry flowing.</summary>
+    Full,
+    /// <summary>Still warming up / undetermined.</summary>
+    Probing,
+}

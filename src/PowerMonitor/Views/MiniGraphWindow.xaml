@@ -1,0 +1,47 @@
+<Window x:Class="PowerMonitor.Views.MiniGraphWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="PowerMonitor Mini"
+        Width="300" Height="150"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Topmost="True" ShowInTaskbar="False" ResizeMode="NoResize"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+    <Border x:Name="RootBorder" CornerRadius="12" Background="#EE12151B" BorderBrush="#333B49" BorderThickness="1"
+            Padding="12,8">
+        <Border.ContextMenu>
+            <ContextMenu>
+                <MenuItem Header="Open dashboard" Click="OpenDashboard_Click" FontWeight="Bold"/>
+                <Separator/>
+                <MenuItem x:Name="MenuOpacity100" Header="Opacity 100%" Click="Opacity_Click" Tag="100"/>
+                <MenuItem x:Name="MenuOpacity85" Header="Opacity 85%" Click="Opacity_Click" Tag="85"/>
+                <MenuItem x:Name="MenuOpacity70" Header="Opacity 70%" Click="Opacity_Click" Tag="70"/>
+                <MenuItem x:Name="MenuOpacity50" Header="Opacity 50%" Click="Opacity_Click" Tag="50"/>
+                <Separator/>
+                <MenuItem x:Name="MenuWin60" Header="Show last 60 s" Click="WindowSecs_Click" Tag="60"/>
+                <MenuItem x:Name="MenuWin120" Header="Show last 2 min" Click="WindowSecs_Click" Tag="120"/>
+                <MenuItem x:Name="MenuWin300" Header="Show last 5 min" Click="WindowSecs_Click" Tag="300"/>
+                <Separator/>
+                <MenuItem Header="Click-through (disable via tray menu)" Click="ClickThrough_Click"/>
+                <MenuItem Header="Hide mini graph" Click="Hide_Click"/>
+            </ContextMenu>
+        </Border.ContextMenu>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <DockPanel Grid.Row="0">
+                <TextBlock x:Name="MiniWatts" Text="— W" FontSize="24" FontWeight="Bold"
+                           Foreground="{StaticResource TextBrush}" DockPanel.Dock="Left"/>
+                <TextBlock x:Name="MiniSub" Text="" FontSize="11" Foreground="{StaticResource TextDimBrush}"
+                           VerticalAlignment="Bottom" Margin="8,0,0,4" DockPanel.Dock="Left"/>
+                <TextBlock x:Name="MiniPct" Text="" FontSize="13" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextDimBrush}" HorizontalAlignment="Right" VerticalAlignment="Top"/>
+            </DockPanel>
+            <Grid Grid.Row="1" x:Name="GraphArea" Margin="0,6,0,0" ClipToBounds="True">
+                <Line x:Name="ZeroLine" Stroke="#333B49" StrokeThickness="1" StrokeDashArray="3 3"/>
+                <Polyline x:Name="Spark" StrokeThickness="1.8" StrokeLineJoin="Round"/>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>
