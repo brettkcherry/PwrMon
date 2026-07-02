@@ -230,7 +230,7 @@ public partial class MainWindow : Window
         var card = _dragCard;
         _dragCard = null;
         ShowGhost(card);
-        card.Opacity = 0.25; // in-place card becomes the "slot preview"
+        card.Opacity = 0; // card fully lifts out; the empty slot marks where it will land
         try
         {
             DragDrop.DoDragDrop(card, new DataObject(CardDragFormat, card), DragDropEffects.Move);
@@ -303,7 +303,6 @@ public partial class MainWindow : Window
         private readonly System.Windows.Media.ImageSource _snapshot;
         private readonly Size _size;
         private readonly Point _grabOffset;
-        private readonly System.Windows.Media.Pen _outline;
         private Point _position = new(double.NaN, double.NaN);
 
         public DragGhostAdorner(UIElement adorned, System.Windows.Media.ImageSource snapshot,
@@ -312,11 +311,7 @@ public partial class MainWindow : Window
             _snapshot = snapshot;
             _size = size;
             _grabOffset = grabOffset;
-            _outline = new System.Windows.Media.Pen(
-                new System.Windows.Media.SolidColorBrush(accent) { Opacity = 0.9 }, 1.5);
-            _outline.Freeze();
             IsHitTestVisible = false;
-            Opacity = 0.9;
         }
 
         public void UpdatePosition(Point mouseInPanel)
@@ -328,11 +323,7 @@ public partial class MainWindow : Window
         protected override void OnRender(System.Windows.Media.DrawingContext dc)
         {
             if (double.IsNaN(_position.X)) return;
-            var rect = new Rect(_position, _size);
-            dc.PushOpacity(0.92);
-            dc.DrawImage(_snapshot, rect);
-            dc.Pop();
-            dc.DrawRoundedRectangle(null, _outline, rect, 10, 10);
+            dc.DrawImage(_snapshot, new Rect(_position, _size));
         }
     }
 
