@@ -258,7 +258,13 @@ public partial class MainWindow : Window
             var h = Math.Max(1, (int)(card.ActualHeight * dpi));
             var snapshot = new System.Windows.Media.Imaging.RenderTargetBitmap(
                 w, h, 96 * dpi, 96 * dpi, System.Windows.Media.PixelFormats.Pbgra32);
-            snapshot.Render(card);
+            // render via VisualBrush: RTB.Render(element) bakes in the element's layout
+            // offset, which pushes every card except the top-left one outside the bitmap
+            var visual = new System.Windows.Media.DrawingVisual();
+            using (var ctx = visual.RenderOpen())
+                ctx.DrawRectangle(new System.Windows.Media.VisualBrush(card), null,
+                    new Rect(0, 0, card.ActualWidth, card.ActualHeight));
+            snapshot.Render(visual);
             snapshot.Freeze();
 
             _ghostLayer = AdornerLayer.GetAdornerLayer(CardsPanel);
@@ -267,6 +273,8 @@ public partial class MainWindow : Window
             _ghost = new DragGhostAdorner(CardsPanel, snapshot,
                 new Size(card.ActualWidth, card.ActualHeight), _grabOffset, accent);
             _ghostLayer.Add(_ghost);
+            if (GetCursorPos(out var pt)) // ghost visible from the very first frame
+                _ghost.UpdatePosition(CardsPanel.PointFromScreen(new Point(pt.X, pt.Y)));
         }
         catch (Exception ex)
         {
