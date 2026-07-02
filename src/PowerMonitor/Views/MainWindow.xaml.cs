@@ -176,15 +176,14 @@ public partial class MainWindow : Window
     {
         ApplySavedCardOrder();
         CardsPanel.AllowDrop = true;
-        CardsPanel.Drop += CardsPanel_Drop;
         CardsPanel.DragOver += (_, e) => { e.Effects = DragDropEffects.Move; e.Handled = true; };
         foreach (var card in CardsPanel.Children.OfType<Border>())
         {
             card.AllowDrop = true;
             card.PreviewMouseLeftButtonDown += Card_MouseDown;
             card.PreviewMouseMove += Card_MouseMove;
-            card.Drop += Card_Drop;
-            card.DragOver += (_, e) => { e.Effects = DragDropEffects.Move; e.Handled = true; };
+            card.DragOver += Card_DragOver;
+            card.Drop += (_, e) => e.Handled = true; // reorder already happened live in DragOver
         }
     }
 
@@ -235,29 +234,30 @@ public partial class MainWindow : Window
         finally
         {
             card.Opacity = 1.0;
+            SaveCardOrder(); // live reordering already placed it; persist the final layout
         }
     }
 
-    private void Card_Drop(object sender, DragEventArgs e)
+    /// <summary>Live reflow: as the drag passes over a card, the dragged card immediately
+    /// takes its new slot, so the layout previews the result the whole time.</summary>
+    private void Card_DragOver(object sender, DragEventArgs e)
     {
+        e.Effects = DragDropEffects.Move;
+        e.Handled = true;
         if (e.Data.GetData(typeof(Border)) is not Border dragged || sender is not Border target || dragged == target)
             return;
-        var targetIndex = CardsPanel.Children.IndexOf(target);
-        var before = e.GetPosition(target).X < target.ActualWidth / 2;
-        CardsPanel.Children.Remove(dragged);
-        targetIndex = CardsPanel.Children.IndexOf(target); // may have shifted after removal
-        CardsPanel.Children.Insert(before ? targetIndex : targetIndex + 1, dragged);
-        SaveCardOrder();
-        e.Handled = true;
-    }
 
-    private void CardsPanel_Drop(object sender, DragEventArgs e)
-    {
-        // dropped on empty panel space → move to the end
-        if (e.Data.GetData(typeof(Border)) is not Border dragged || e.Handled) return;
+        var targetIndex = CardsPanel.Children.IndexOf(target);
+        var draggedIndex = CardsPanel.Children.IndexOf(dragged);
+        if (targetIndex < 0 || draggedIndex < 0) return;
+
+        var before = e.GetPosition(target).X < target.ActualWidth / 2;
+        var desired = before ? targetIndex : targetIndex + 1;
+        if (draggedIndex < desired) desired--; // account for the removal shift
+        if (desired == draggedIndex) return;
+
         CardsPanel.Children.Remove(dragged);
-        CardsPanel.Children.Add(dragged);
-        SaveCardOrder();
+        CardsPanel.Children.Insert(Math.Clamp(desired, 0, CardsPanel.Children.Count), dragged);
     }
 
     private static bool HasButtonAncestor(DependencyObject? d)
