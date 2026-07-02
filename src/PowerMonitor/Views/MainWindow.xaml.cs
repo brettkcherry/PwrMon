@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using PowerMonitor.Models;
@@ -183,6 +184,7 @@ public partial class MainWindow : Window
             card.PreviewMouseLeftButtonDown += Card_MouseDown;
             card.PreviewMouseMove += Card_MouseMove;
             card.DragOver += Card_DragOver;
+            card.GiveFeedback += Card_GiveFeedback; // fires on the drag source: moves the ghost
             card.Drop += (_, e) => e.Handled = true; // reorder already happened live in DragOver
         }
     }
@@ -215,6 +217,7 @@ public partial class MainWindow : Window
         if (HasButtonAncestor(e.OriginalSource as DependencyObject)) return;
         _dragCard = (Border)sender;
         _dragStart = e.GetPosition(this);
+        _grabOffset = e.GetPosition(_dragCard);
     }
 
     private void Card_MouseMove(object sender, MouseEventArgs e)
@@ -226,7 +229,8 @@ public partial class MainWindow : Window
 
         var card = _dragCard;
         _dragCard = null;
-        card.Opacity = 0.45;
+        ShowGhost(card);
+        card.Opacity = 0.25; // in-place card becomes the "slot preview"
         try
         {
             DragDrop.DoDragDrop(card, new DataObject(CardDragFormat, card), DragDropEffects.Move);
@@ -234,7 +238,101 @@ public partial class MainWindow : Window
         finally
         {
             card.Opacity = 1.0;
+            RemoveGhost();
             SaveCardOrder(); // live reordering already placed it; persist the final layout
+        }
+    }
+
+    // ── drag ghost: a floating snapshot of the card that rides the cursor ──
+
+    private Point _grabOffset;
+    private DragGhostAdorner? _ghost;
+    private AdornerLayer? _ghostLayer;
+
+    private void ShowGhost(Border card)
+    {
+        try
+        {
+            var dpi = System.Windows.Media.VisualTreeHelper.GetDpi(this).PixelsPerDip;
+            var w = Math.Max(1, (int)(card.ActualWidth * dpi));
+            var h = Math.Max(1, (int)(card.ActualHeight * dpi));
+            var snapshot = new System.Windows.Media.Imaging.RenderTargetBitmap(
+                w, h, 96 * dpi, 96 * dpi, System.Windows.Media.PixelFormats.Pbgra32);
+            snapshot.Render(card);
+            snapshot.Freeze();
+
+            _ghostLayer = AdornerLayer.GetAdornerLayer(CardsPanel);
+            if (_ghostLayer is null) return;
+            var accent = ((System.Windows.Media.SolidColorBrush)FindResource("AccentBrush")).Color;
+            _ghost = new DragGhostAdorner(CardsPanel, snapshot,
+                new Size(card.ActualWidth, card.ActualHeight), _grabOffset, accent);
+            _ghostLayer.Add(_ghost);
+        }
+        catch (Exception ex)
+        {
+            Log.Error("drag ghost", ex);
+            _ghost = null;
+        }
+    }
+
+    private void RemoveGhost()
+    {
+        if (_ghost is not null && _ghostLayer is not null)
+            _ghostLayer.Remove(_ghost);
+        _ghost = null;
+        _ghostLayer = null;
+    }
+
+    private void Card_GiveFeedback(object sender, GiveFeedbackEventArgs e)
+    {
+        if (_ghost is null) return;
+        if (GetCursorPos(out var pt))
+            _ghost.UpdatePosition(CardsPanel.PointFromScreen(new Point(pt.X, pt.Y)));
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out Win32Point pt);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct Win32Point { public int X; public int Y; }
+
+    /// <summary>Renders a frozen snapshot of the dragged card, outlined in the theme accent,
+    /// at the cursor position (in CardsPanel coordinates). Hit-test invisible.</summary>
+    private sealed class DragGhostAdorner : Adorner
+    {
+        private readonly System.Windows.Media.ImageSource _snapshot;
+        private readonly Size _size;
+        private readonly Point _grabOffset;
+        private readonly System.Windows.Media.Pen _outline;
+        private Point _position = new(double.NaN, double.NaN);
+
+        public DragGhostAdorner(UIElement adorned, System.Windows.Media.ImageSource snapshot,
+            Size size, Point grabOffset, System.Windows.Media.Color accent) : base(adorned)
+        {
+            _snapshot = snapshot;
+            _size = size;
+            _grabOffset = grabOffset;
+            _outline = new System.Windows.Media.Pen(
+                new System.Windows.Media.SolidColorBrush(accent) { Opacity = 0.9 }, 1.5);
+            _outline.Freeze();
+            IsHitTestVisible = false;
+            Opacity = 0.9;
+        }
+
+        public void UpdatePosition(Point mouseInPanel)
+        {
+            _position = new Point(mouseInPanel.X - _grabOffset.X, mouseInPanel.Y - _grabOffset.Y);
+            InvalidateVisual();
+        }
+
+        protected override void OnRender(System.Windows.Media.DrawingContext dc)
+        {
+            if (double.IsNaN(_position.X)) return;
+            var rect = new Rect(_position, _size);
+            dc.PushOpacity(0.92);
+            dc.DrawImage(_snapshot, rect);
+            dc.Pop();
+            dc.DrawRoundedRectangle(null, _outline, rect, 10, 10);
         }
     }
 
