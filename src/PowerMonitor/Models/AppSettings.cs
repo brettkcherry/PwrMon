@@ -42,6 +42,11 @@ public sealed class AppSettings
     public string Theme { get; set; } = "Phosphor";
     /// <summary>Font family for the large live numerals (needs stable digit widths).</summary>
     public string NumeralFont { get; set; } = "Bahnschrift";
+    /// <summary>Font family for all interface text (labels, titles, body).</summary>
+    public string TextFont { get; set; } = "Segoe UI";
+
+    /// <summary>Comma-separated card keys in display order; empty = default layout.</summary>
+    public string CardOrder { get; set; } = "";
 
     /// <summary>Learned "system minus CPU package" draw in watts, measured during battery
     /// sessions and used to estimate total system/wall draw on AC. NaN until learned.</summary>

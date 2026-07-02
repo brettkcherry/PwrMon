@@ -4,6 +4,7 @@
         Title="PowerMonitor Settings"
         Width="420" SizeToContent="Height" ResizeMode="NoResize"
         Background="{StaticResource BgBrush}"
+        FontFamily="{DynamicResource TextFontFamily}"
         WindowStartupLocation="CenterOwner">
     <StackPanel Margin="20,16">
 
@@ -12,9 +13,13 @@
             <TextBlock Text="Theme" Style="{StaticResource StatLabel}" DockPanel.Dock="Left" Width="110"/>
             <ComboBox x:Name="CmbTheme" Width="150" HorizontalAlignment="Left"/>
         </DockPanel>
-        <DockPanel Margin="0,4,0,12">
+        <DockPanel Margin="0,4">
             <TextBlock Text="Numeral font" Style="{StaticResource StatLabel}" DockPanel.Dock="Left" Width="110"/>
-            <ComboBox x:Name="CmbFont" Width="150" HorizontalAlignment="Left"/>
+            <ComboBox x:Name="CmbFont" Width="180" HorizontalAlignment="Left"/>
+        </DockPanel>
+        <DockPanel Margin="0,4,0,12">
+            <TextBlock Text="Interface font" Style="{StaticResource StatLabel}" DockPanel.Dock="Left" Width="110"/>
+            <ComboBox x:Name="CmbTextFont" Width="180" HorizontalAlignment="Left"/>
         </DockPanel>
 
         <TextBlock Style="{StaticResource CardTitle}" Text="BEHAVIOR"/>

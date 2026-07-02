@@ -43,6 +43,7 @@ public partial class MainWindow : Window
 
         SetupChart();
         SetupToolbar();
+        SetupCardDrag();
         BackfillHistoryAsync();
         LoadStaticInfoAsync();
 
@@ -164,6 +165,111 @@ public partial class MainWindow : Window
         }
         Walk(this);
         return result;
+    }
+
+    // ─────────────────────────── card rearranging ───────────────────────────
+
+    private Border? _dragCard;
+    private Point _dragStart;
+
+    private void SetupCardDrag()
+    {
+        ApplySavedCardOrder();
+        CardsPanel.AllowDrop = true;
+        CardsPanel.Drop += CardsPanel_Drop;
+        CardsPanel.DragOver += (_, e) => { e.Effects = DragDropEffects.Move; e.Handled = true; };
+        foreach (var card in CardsPanel.Children.OfType<Border>())
+        {
+            card.AllowDrop = true;
+            card.PreviewMouseLeftButtonDown += Card_MouseDown;
+            card.PreviewMouseMove += Card_MouseMove;
+            card.Drop += Card_Drop;
+            card.DragOver += (_, e) => { e.Effects = DragDropEffects.Move; e.Handled = true; };
+        }
+    }
+
+    private void ApplySavedCardOrder()
+    {
+        var order = AppSettings.Current.CardOrder.Split(',', StringSplitOptions.RemoveEmptyEntries);
+        if (order.Length == 0) return;
+        var byKey = CardsPanel.Children.OfType<Border>().ToDictionary(b => (string)b.Tag);
+        var index = 0;
+        foreach (var key in order)
+        {
+            if (!byKey.TryGetValue(key, out var card)) continue;
+            CardsPanel.Children.Remove(card);
+            CardsPanel.Children.Insert(Math.Min(index, CardsPanel.Children.Count), card);
+            index++;
+        }
+    }
+
+    private void SaveCardOrder()
+    {
+        AppSettings.Current.CardOrder =
+            string.Join(',', CardsPanel.Children.OfType<Border>().Select(b => (string)b.Tag));
+        AppSettings.Save();
+    }
+
+    private void Card_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        // don't hijack clicks on interactive children (e.g. the session Reset button)
+        if (HasButtonAncestor(e.OriginalSource as DependencyObject)) return;
+        _dragCard = (Border)sender;
+        _dragStart = e.GetPosition(this);
+    }
+
+    private void Card_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (_dragCard is null || e.LeftButton != MouseButtonState.Pressed) return;
+        var pos = e.GetPosition(this);
+        if (Math.Abs(pos.X - _dragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(pos.Y - _dragStart.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+
+        var card = _dragCard;
+        _dragCard = null;
+        card.Opacity = 0.45;
+        try
+        {
+            DragDrop.DoDragDrop(card, card, DragDropEffects.Move);
+        }
+        finally
+        {
+            card.Opacity = 1.0;
+        }
+    }
+
+    private void Card_Drop(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetData(typeof(Border)) is not Border dragged || sender is not Border target || dragged == target)
+            return;
+        var targetIndex = CardsPanel.Children.IndexOf(target);
+        var before = e.GetPosition(target).X < target.ActualWidth / 2;
+        CardsPanel.Children.Remove(dragged);
+        targetIndex = CardsPanel.Children.IndexOf(target); // may have shifted after removal
+        CardsPanel.Children.Insert(before ? targetIndex : targetIndex + 1, dragged);
+        SaveCardOrder();
+        e.Handled = true;
+    }
+
+    private void CardsPanel_Drop(object sender, DragEventArgs e)
+    {
+        // dropped on empty panel space → move to the end
+        if (e.Data.GetData(typeof(Border)) is not Border dragged || e.Handled) return;
+        CardsPanel.Children.Remove(dragged);
+        CardsPanel.Children.Add(dragged);
+        SaveCardOrder();
+    }
+
+    private static bool HasButtonAncestor(DependencyObject? d)
+    {
+        while (d is not null)
+        {
+            if (d is System.Windows.Controls.Primitives.ButtonBase) return true;
+            d = d is System.Windows.Media.Visual or System.Windows.Media.Media3D.Visual3D
+                ? System.Windows.Media.VisualTreeHelper.GetParent(d)
+                : LogicalTreeHelper.GetParent(d);
+        }
+        return false;
     }
 
     private void BackfillHistoryAsync()

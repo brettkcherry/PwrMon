@@ -5,6 +5,7 @@
         Width="300" Height="150"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="False" ResizeMode="NoResize"
+        FontFamily="{DynamicResource TextFontFamily}"
         MouseLeftButtonDown="Window_MouseLeftButtonDown">
     <Border x:Name="RootBorder" CornerRadius="12" Background="#EE12151B" BorderBrush="#333B49" BorderThickness="1"
             Padding="12,8">

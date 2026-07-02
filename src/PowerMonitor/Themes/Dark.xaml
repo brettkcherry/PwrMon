@@ -36,6 +36,8 @@
 
     <!-- numerals: stable digit widths so live values don't jitter; swapped at runtime -->
     <FontFamily x:Key="NumeralFontFamily">Bahnschrift, Segoe UI</FontFamily>
+    <!-- interface text; swapped at runtime -->
+    <FontFamily x:Key="TextFontFamily">Segoe UI</FontFamily>
 
     <!-- text styles -->
     <Style x:Key="CardTitle" TargetType="TextBlock">

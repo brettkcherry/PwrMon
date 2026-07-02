@@ -5,6 +5,7 @@
         Title="PowerMonitor"
         Width="1100" Height="780" MinWidth="960" MinHeight="680"
         Background="{StaticResource BgBrush}"
+        FontFamily="{DynamicResource TextFontFamily}"
         WindowStartupLocation="CenterScreen">
     <Grid Margin="16,12,6,8">
         <Grid.RowDefinitions>
@@ -58,10 +59,10 @@
             </Grid>
         </Border>
 
-        <!-- ═══ stat cards ═══ -->
-        <WrapPanel Grid.Row="2" Orientation="Horizontal">
+        <!-- ═══ stat cards (drag to rearrange) ═══ -->
+        <WrapPanel Grid.Row="2" Orientation="Horizontal" x:Name="CardsPanel">
 
-            <Border Style="{StaticResource Card}" Width="200">
+            <Border Style="{StaticResource Card}" Width="200" Tag="flow">
                 <StackPanel>
                     <TextBlock Style="{StaticResource CardTitle}" Text="POWER FLOW"/>
                     <Grid>
@@ -83,7 +84,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Style="{StaticResource Card}" Width="205">
+            <Border Style="{StaticResource Card}" Width="205" Tag="estimates">
                 <StackPanel>
                     <TextBlock Style="{StaticResource CardTitle}" Text="ESTIMATES (30s smoothed)"/>
                     <Grid>
@@ -105,7 +106,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Style="{StaticResource Card}" Width="215">
+            <Border Style="{StaticResource Card}" Width="215" Tag="cpu">
                 <StackPanel>
                     <TextBlock x:Name="CpuTitle" Style="{StaticResource CardTitle}" Text="PROCESSOR"/>
                     <Grid>
@@ -127,7 +128,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Style="{StaticResource Card}" Width="195">
+            <Border Style="{StaticResource Card}" Width="195" Tag="gpu">
                 <StackPanel>
                     <TextBlock Style="{StaticResource CardTitle}" Text="iGPU"/>
                     <Grid>
@@ -148,7 +149,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Style="{StaticResource Card}" Width="215">
+            <Border Style="{StaticResource Card}" Width="215" Tag="budget">
                 <StackPanel>
                     <TextBlock Style="{StaticResource CardTitle}" Text="POWER BUDGET"/>
                     <Grid>
@@ -173,7 +174,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Style="{StaticResource Card}" Width="205">
+            <Border Style="{StaticResource Card}" Width="205" Tag="battery">
                 <StackPanel>
                     <TextBlock Style="{StaticResource CardTitle}" Text="BATTERY"/>
                     <Grid>
@@ -195,7 +196,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Style="{StaticResource Card}" Width="200">
+            <Border Style="{StaticResource Card}" Width="200" Tag="health">
                 <StackPanel>
                     <TextBlock Style="{StaticResource CardTitle}" Text="HEALTH"/>
                     <Grid>
@@ -217,7 +218,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Style="{StaticResource Card}" Width="235">
+            <Border Style="{StaticResource Card}" Width="235" Tag="session">
                 <StackPanel>
                     <Grid>
                         <TextBlock Style="{StaticResource CardTitle}" Text="SESSION"/>

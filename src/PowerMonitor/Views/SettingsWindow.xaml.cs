@@ -26,16 +26,28 @@ public partial class SettingsWindow : Window
             ThemeService.Apply(themeName);
         };
 
-        foreach (var f in new[] { "Bahnschrift", "Cascadia Mono", "Segoe UI" })
-            CmbFont.Items.Add(f);
-        CmbFont.SelectedItem = AppSettings.Current.NumeralFont;
-        if (CmbFont.SelectedItem is null) CmbFont.SelectedIndex = 0;
+        var fonts = ThemeService.InstalledFonts().ToList();
+        foreach (var f in fonts) CmbFont.Items.Add(f);
+        foreach (var f in fonts) CmbTextFont.Items.Add(f);
+
+        CmbFont.SelectedItem = fonts.FirstOrDefault(f => f.Equals(AppSettings.Current.NumeralFont, StringComparison.OrdinalIgnoreCase))
+                               ?? fonts.FirstOrDefault(f => f == "Segoe UI");
         CmbFont.SelectionChanged += (_, _) =>
         {
             if (_initializing || CmbFont.SelectedItem is not string fontName) return;
             AppSettings.Current.NumeralFont = fontName;
             AppSettings.Save();
             ThemeService.ApplyNumeralFont(fontName);
+        };
+
+        CmbTextFont.SelectedItem = fonts.FirstOrDefault(f => f.Equals(AppSettings.Current.TextFont, StringComparison.OrdinalIgnoreCase))
+                                   ?? fonts.FirstOrDefault(f => f == "Segoe UI");
+        CmbTextFont.SelectionChanged += (_, _) =>
+        {
+            if (_initializing || CmbTextFont.SelectedItem is not string fontName) return;
+            AppSettings.Current.TextFont = fontName;
+            AppSettings.Save();
+            ThemeService.ApplyTextFont(fontName);
         };
 
         ChkCloseToTray.IsChecked = AppSettings.Current.CloseToTray;

@@ -4,19 +4,20 @@
 ; Output: installer\Output\PowerMonitor-Setup.exe
 
 #define AppName "PowerMonitor"
-#define AppVersion "1.1.0"
+#define AppVersion "1.3.0"
 #define AppExe "PowerMonitor.exe"
-#define AppPublisher "Brett"
+#define AppPublisher "Brett Cherry"
 #define AppURL "https://github.com/"
 
 [Setup]
-AppId={{7A3E9C41-5B84-4F1D-9E27-PowerMon0001}
+AppId={{B7C61B0E-9A2D-4F63-8A0B-3D5E1C7F4A29}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
 AppSupportURL={#AppURL}
 DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
+LicenseFile=..\LICENSE
 UninstallDisplayIcon={app}\{#AppExe}
 ; app offers in-place elevation when the user wants CPU/iGPU sensors
 PrivilegesRequired=admin
@@ -30,9 +31,11 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 
 [Files]
-; framework-dependent single-file build (requires .NET 8 Desktop Runtime;
-; swap the Source to publish\standalone\ for the zero-dependency build)
-Source: "..\publish\portable\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
+; self-contained build: runs on any 64-bit Windows 10/11 with no runtime install
+; (swap Source to ..\publish\portable\ for the small framework-dependent build)
+Source: "..\publish\standalone\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\THIRD-PARTY-NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"

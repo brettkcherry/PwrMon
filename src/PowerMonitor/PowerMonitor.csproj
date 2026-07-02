@@ -11,7 +11,12 @@
     <PlatformTarget>x64</PlatformTarget>
     <RootNamespace>PowerMonitor</RootNamespace>
     <AssemblyName>PowerMonitor</AssemblyName>
-    <Version>1.0.0</Version>
+    <Version>1.3.0</Version>
+    <Product>PowerMonitor</Product>
+    <Authors>Brett Cherry</Authors>
+    <Company>Brett Cherry</Company>
+    <Copyright>© 2026 Brett Cherry</Copyright>
+    <Description>Live power telemetry for Windows — battery flow, CPU/iGPU watts, history charts, tray wattage ticker.</Description>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>

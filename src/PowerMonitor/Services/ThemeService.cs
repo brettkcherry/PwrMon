@@ -77,6 +77,19 @@ public static class ThemeService
             new FontFamily($"{family}, Segoe UI");
     }
 
+    public static void ApplyTextFont(string family)
+    {
+        Application.Current.Resources["TextFontFamily"] =
+            new FontFamily($"{family}, Segoe UI");
+    }
+
+    /// <summary>All installed font family names, for the settings pickers.</summary>
+    public static IEnumerable<string> InstalledFonts() =>
+        System.Windows.Media.Fonts.SystemFontFamilies
+            .Select(f => f.Source)
+            .Where(n => !n.StartsWith("Global", StringComparison.Ordinal))
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
+
     private static void SetBrush(string key, string hex)
     {
         if (Application.Current.Resources[key] is SolidColorBrush brush && !brush.IsFrozen)
