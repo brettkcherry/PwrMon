@@ -51,10 +51,10 @@
                 Margin="0,8,0,0" FontSize="11" Click="OpenHistory_Click"/>
 
         <TextBlock Style="{StaticResource CardTitle}" Text="ABOUT" Margin="0,16,0,6"/>
-        <TextBlock Foreground="{StaticResource TextDimBrush}" FontSize="11.5" TextWrapping="Wrap">
-            PowerMonitor 1.0 — live power telemetry for Windows.<LineBreak/>
-            Battery data: ACPI via WMI • Silicon data: LibreHardwareMonitor.<LineBreak/>
-            No network access, no telemetry, no ads. Your watts stay yours.
+        <TextBlock x:Name="AboutText" Foreground="{StaticResource TextDimBrush}" FontSize="11.5" TextWrapping="Wrap">
+            <Run x:Name="AboutVersion" Text="PowerMonitor"/> — live power telemetry for Windows.<LineBreak/>
+            Battery data: ACPI via WMI • Silicon data: Windows EMI + LibreHardwareMonitor.<LineBreak/>
+            No telemetry, no ads. Your watts stay yours.
         </TextBlock>
 
         <Button Content="Close" Style="{StaticResource FlatButton}" HorizontalAlignment="Right"

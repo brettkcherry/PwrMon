@@ -68,6 +68,9 @@ public partial class SettingsWindow : Window
 
         HistoryPathText.Text = $"CSV files: {HistoryStore.HistoryDir}";
 
+        var v = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+        AboutVersion.Text = $"PowerMonitor {v?.Major}.{v?.Minor}.{v?.Build}";
+
         ChkCloseToTray.Click += (_, _) => SaveBehavior();
         ChkStartMinimized.Click += (_, _) => SaveBehavior();
         ChkSlimMode.Click += (_, _) => SaveBehavior();

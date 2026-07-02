@@ -229,7 +229,7 @@ public partial class MainWindow : Window
         card.Opacity = 0.45;
         try
         {
-            DragDrop.DoDragDrop(card, card, DragDropEffects.Move);
+            DragDrop.DoDragDrop(card, new DataObject(CardDragFormat, card), DragDropEffects.Move);
         }
         finally
         {
@@ -238,13 +238,15 @@ public partial class MainWindow : Window
         }
     }
 
+    private const string CardDragFormat = "PowerMonitor.Card";
+
     /// <summary>Live reflow: as the drag passes over a card, the dragged card immediately
-    /// takes its new slot, so the layout previews the result the whole time.</summary>
+    /// takes its new slot and the others slide out of the way (FLIP animation).</summary>
     private void Card_DragOver(object sender, DragEventArgs e)
     {
         e.Effects = DragDropEffects.Move;
         e.Handled = true;
-        if (e.Data.GetData(typeof(Border)) is not Border dragged || sender is not Border target || dragged == target)
+        if (e.Data.GetData(CardDragFormat) is not Border dragged || sender is not Border target || dragged == target)
             return;
 
         var targetIndex = CardsPanel.Children.IndexOf(target);
@@ -256,8 +258,38 @@ public partial class MainWindow : Window
         if (draggedIndex < desired) desired--; // account for the removal shift
         if (desired == draggedIndex) return;
 
-        CardsPanel.Children.Remove(dragged);
-        CardsPanel.Children.Insert(Math.Clamp(desired, 0, CardsPanel.Children.Count), dragged);
+        AnimateReflow(() =>
+        {
+            CardsPanel.Children.Remove(dragged);
+            CardsPanel.Children.Insert(Math.Clamp(desired, 0, CardsPanel.Children.Count), dragged);
+        });
+    }
+
+    /// <summary>FLIP: record card positions, apply the layout change, then animate each card
+    /// from its old offset back to zero — the reflow visibly slides instead of teleporting.</summary>
+    private void AnimateReflow(Action mutateLayout)
+    {
+        var cards = CardsPanel.Children.OfType<Border>().ToList();
+        var before = cards.ToDictionary(c => c, c => c.TranslatePoint(new Point(0, 0), CardsPanel));
+
+        mutateLayout();
+        CardsPanel.UpdateLayout();
+
+        foreach (var card in cards)
+        {
+            var b = before[card];
+            var a = card.TranslatePoint(new Point(0, 0), CardsPanel);
+            double dx = b.X - a.X, dy = b.Y - a.Y;
+            if (Math.Abs(dx) < 1 && Math.Abs(dy) < 1) continue;
+
+            var transform = new System.Windows.Media.TranslateTransform(dx, dy);
+            card.RenderTransform = transform;
+            var ease = new System.Windows.Media.Animation.QuadraticEase();
+            transform.BeginAnimation(System.Windows.Media.TranslateTransform.XProperty,
+                new System.Windows.Media.Animation.DoubleAnimation(dx, 0, TimeSpan.FromMilliseconds(170)) { EasingFunction = ease });
+            transform.BeginAnimation(System.Windows.Media.TranslateTransform.YProperty,
+                new System.Windows.Media.Animation.DoubleAnimation(dy, 0, TimeSpan.FromMilliseconds(170)) { EasingFunction = ease });
+        }
     }
 
     private static bool HasButtonAncestor(DependencyObject? d)
