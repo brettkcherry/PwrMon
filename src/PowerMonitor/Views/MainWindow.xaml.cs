@@ -28,6 +28,19 @@ public partial class MainWindow : Window
 
     private bool _initializing = true;
     private bool _live = true;
+
+    // live samples arriving while the backfill is still loading park here: appending them
+    // first would put newer X ahead of older backfill rows, and DataLogger requires
+    // ascending X (this race was the only crash of the v1.3.1 soak). Null once flushed.
+    private List<PowerSample>? _pendingLive = new();
+
+    // TradingView-style interaction: time is the only free axis, Y always auto-fits.
+    private double _viewSpanDays;                       // visible time span (live view anchors it to now)
+    private bool _panning;
+    private Point _panStartPos;
+    private double _panStartLeft;
+    private const double MinSpanDays = 30.0 / 86400.0;  // can't zoom in past 30 s
+    private const double FutureFrac = 0.02;             // breathing margin right of the newest sample
     private SensorTier _lastTier = SensorTier.Probing;
     private BatteryStaticInfo? _staticInfo;
     private PowerSample? _lastSample;
@@ -48,10 +61,12 @@ public partial class MainWindow : Window
         BackfillHistoryAsync();
         LoadStaticInfoAsync();
 
+        _viewSpanDays = AppSettings.Current.ChartRangeMinutes / 1440.0;
         Chart.MouseMove += Chart_MouseMove;
         Chart.MouseLeave += (_, _) => { _hoverLine.IsVisible = false; HoverReadout.Text = " "; };
-        Chart.PreviewMouseDown += (_, _) => SetLive(false);
-        Chart.MouseWheel += (_, _) => SetLive(false);
+        Chart.MouseDown += Chart_MouseDown;
+        Chart.MouseUp += Chart_MouseUp;
+        Chart.MouseWheel += Chart_MouseWheel;
 
         Closing += MainWindow_Closing;
         _initializing = false;
@@ -63,6 +78,8 @@ public partial class MainWindow : Window
 
     private void SetupChart()
     {
+        Chart.UserInputProcessor.IsEnabled = false; // we own pan/zoom (time-only, clamped)
+
         var plot = Chart.Plot;
         plot.Legend.IsVisible = false;
         plot.Axes.DateTimeTicksBottom();
@@ -406,13 +423,29 @@ public partial class MainWindow : Window
         Task.Run(() =>
         {
             var app = App.Current;
-            var samples = app.History.LoadRecent(48);
-            var events = app.History.LoadRecentEvents(48);
+            var samples = new List<PowerSample>();
+            var events = new List<PowerEvent>();
+            try
+            {
+                samples = app.History.LoadRecent(48);
+                events = app.History.LoadRecentEvents(48);
+            }
+            catch (Exception ex) { Log.Error("backfill load", ex); }
             Dispatcher.BeginInvoke(() =>
             {
                 foreach (var s in samples) AppendToChart(s);
+
+                // flush the live samples parked during the load (they're newer than the
+                // backfill); skip any the disk read already covered via a periodic flush
+                var parked = _pendingLive ?? new();
+                _pendingLive = null;
+                var lastX = _times.Count > 0 ? _times[^1] : double.MinValue;
+                foreach (var s in parked)
+                    if (s.Time.LocalDateTime.ToOADate() > lastX)
+                        AppendToChart(s);
+
                 foreach (var ev in events) AddEventMarker(ev);
-                Log.Info($"backfilled {samples.Count} samples, {events.Count} events");
+                Log.Info($"backfilled {samples.Count} samples (+{parked.Count} parked live), {events.Count} events");
                 UpdateAxes();
                 Chart.Refresh();
             });
@@ -448,7 +481,8 @@ public partial class MainWindow : Window
         UpdateCards(s, stats, est);
         UpdateTier();
 
-        AppendToChart(s);
+        if (_pendingLive is not null) _pendingLive.Add(s);
+        else AppendToChart(s);
         if (IsVisible && _live)
         {
             UpdateAxes();
@@ -462,6 +496,7 @@ public partial class MainWindow : Window
         System.Windows.Media.Brush brush;
         if (!s.HasBattery) { state = "NO BATTERY — SILICON ONLY"; brush = (System.Windows.Media.Brush)FindResource("TextDimBrush"); }
         else if (s.Charging) { state = "CHARGING"; brush = (System.Windows.Media.Brush)FindResource("GreenBrush"); }
+        else if (s.Discharging && s.AcOnline) { state = "PLUGGED IN — DRAINING"; brush = (System.Windows.Media.Brush)FindResource("RedBrush"); }
         else if (s.Discharging) { state = "DISCHARGING"; brush = (System.Windows.Media.Brush)FindResource("OrangeBrush"); }
         else if (s.AcOnline) { state = s.BatteryPercent > 98 ? "PLUGGED IN — FULL" : "PLUGGED IN — IDLE"; brush = (System.Windows.Media.Brush)FindResource("BlueBrush"); }
         else { state = "IDLE"; brush = (System.Windows.Media.Brush)FindResource("TextDimBrush"); }
@@ -666,21 +701,28 @@ public partial class MainWindow : Window
         line.LinePattern = LinePattern.Dotted;
     }
 
+    /// <summary>Live view: current span anchored to now (the "go to realtime" window).</summary>
     private void UpdateAxes()
     {
         if (_times.Count == 0) return;
         var now = DateTime.Now.ToOADate();
-        var minutes = AppSettings.Current.ChartRangeMinutes;
-        var xMin = now - minutes / 1440.0;
-        Chart.Plot.Axes.SetLimitsX(xMin, now + minutes / 1440.0 * 0.02);
+        var xMin = now - _viewSpanDays;
+        var xMax = now + _viewSpanDays * FutureFrac;
+        Chart.Plot.Axes.SetLimitsX(xMin, xMax);
+        FitY(xMin, xMax);
+    }
 
-        // Y (left, watts): fit visible data of enabled watt series, always include 0
+    /// <summary>Y (left, watts): fit visible data of enabled watt series, always include 0.</summary>
+    private void FitY(double xMin, double xMax)
+    {
         var i0 = LowerBound(_times, xMin);
+        var i1 = LowerBound(_times, xMax);
         double min = 0, max = 1;
         void Scan(List<double> ys, bool enabled)
         {
             if (!enabled) return;
-            for (var i = i0; i < ys.Count; i++)
+            var end = Math.Min(i1, ys.Count);
+            for (var i = i0; i < end; i++)
             {
                 var v = ys[i];
                 if (double.IsNaN(v)) continue;
@@ -694,6 +736,64 @@ public partial class MainWindow : Window
         var pad = Math.Max((max - min) * 0.1, 0.5);
         Chart.Plot.Axes.SetLimitsY(min - pad, max + pad);
         Chart.Plot.Axes.SetLimitsY(0, 105, Chart.Plot.Axes.Right);
+    }
+
+    // ─────────────────────────── pan / zoom (time axis only) ───────────────────────────
+
+    /// <summary>Widest allowed view: all loaded data (at least 5 min for a fresh start).</summary>
+    private double MaxSpanDays()
+    {
+        var dataSpan = _times.Count > 0 ? DateTime.Now.ToOADate() - _times[0] : 0;
+        return Math.Max(dataSpan * (1 + FutureFrac), 5.0 / 1440.0);
+    }
+
+    /// <summary>Apply a paused view window, clamped so the data can never leave the screen.</summary>
+    private void ApplyView(double left, double span)
+    {
+        var now = DateTime.Now.ToOADate();
+        var maxRight = now + span * FutureFrac;
+        var minLeft = _times[0];
+        // right edge wins when the window is wider than the data (empty space stays on the left)
+        left = Math.Clamp(left, Math.Min(minLeft, maxRight - span), maxRight - span);
+        _viewSpanDays = span;
+        Chart.Plot.Axes.SetLimitsX(left, left + span);
+        FitY(left, left + span);
+        Chart.Refresh();
+    }
+
+    private void Chart_MouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (_times.Count == 0) return;
+        var limits = Chart.Plot.Axes.GetLimits();
+        var span = limits.Right - limits.Left;
+        if (span <= 0) return;
+
+        // zoom around the moment under the cursor
+        var pos = e.GetPosition(Chart);
+        var anchor = Chart.Plot.GetCoordinates(new Pixel(pos.X * Chart.DisplayScale, pos.Y * Chart.DisplayScale)).X;
+        var frac = (anchor - limits.Left) / span;
+
+        var newSpan = Math.Clamp(span * (e.Delta > 0 ? 1 / 1.2 : 1.2), MinSpanDays, MaxSpanDays());
+        SetLive(false);
+        ApplyView(anchor - frac * newSpan, newSpan);
+        e.Handled = true;
+    }
+
+    private void Chart_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Left || _times.Count == 0) return;
+        _panning = true;
+        _panStartPos = e.GetPosition(Chart);
+        _panStartLeft = Chart.Plot.Axes.GetLimits().Left;
+        SetLive(false);
+        Chart.CaptureMouse();
+    }
+
+    private void Chart_MouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_panning) return;
+        _panning = false;
+        Chart.ReleaseMouseCapture();
     }
 
     private static int LowerBound(List<double> xs, double value)
@@ -711,6 +811,18 @@ public partial class MainWindow : Window
     {
         if (_times.Count == 0) return;
         var pos = e.GetPosition(Chart);
+
+        if (_panning)
+        {
+            var plotWidthPx = Chart.Plot.RenderManager.LastRender.DataRect.Width;
+            if (plotWidthPx > 0)
+            {
+                var dxDays = (pos.X - _panStartPos.X) * Chart.DisplayScale / plotWidthPx * _viewSpanDays;
+                ApplyView(_panStartLeft - dxDays, _viewSpanDays);
+            }
+            return;
+        }
+
         var pixel = new Pixel(pos.X * Chart.DisplayScale, pos.Y * Chart.DisplayScale);
         var coord = Chart.Plot.GetCoordinates(pixel);
 
@@ -740,6 +852,7 @@ public partial class MainWindow : Window
         if (sender is RadioButton { Tag: string tag } && int.TryParse(tag, out var minutes))
         {
             AppSettings.Current.ChartRangeMinutes = minutes;
+            _viewSpanDays = minutes / 1440.0;
             if (!_initializing) AppSettings.Save();
             SetLive(true);
             UpdateAxes();

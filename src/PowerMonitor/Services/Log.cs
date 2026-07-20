@@ -12,7 +12,7 @@ public static class Log
     public static void Error(string msg) => Write("ERROR", msg);
 
     public static void Error(string context, Exception ex) =>
-        Write("ERROR", $"{context}: {ex.GetType().Name}: {ex.Message}");
+        Write("ERROR", $"{context}: {ex}"); // ToString includes type, message, inner + stack
 
     private static void Write(string level, string msg)
     {

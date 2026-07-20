@@ -85,14 +85,24 @@ public sealed class TrayService : IDisposable
                   : s.BatteryPercent < 20 ? System.Drawing.Color.OrangeRed
                   : System.Drawing.Color.White;
         }
+        else if (s.Discharging)
+        {
+            // on battery: discharge rate IS total system draw (measured)
+            text = FormatWatts(s.DischargeRateW);
+            color = s.DischargeRateW > 60 ? System.Drawing.Color.OrangeRed : System.Drawing.Color.Orange;
+        }
+        else if (s.AcOnline)
+        {
+            // on AC the battery flow is trickle noise — show estimated system draw instead
+            // (the power-budget number), falling back to CPU package watts pre-baseline
+            var w = est.EstSystemW ?? s.CpuPackageW;
+            text = w is double sys ? FormatWatts(sys) : "AC";
+            color = s.Charging ? System.Drawing.Color.LimeGreen : System.Drawing.Color.LightSkyBlue;
+        }
         else
         {
-            var w = Math.Abs(s.NetW);
-            text = FormatWatts(w);
-            color = s.Charging ? System.Drawing.Color.LimeGreen
-                  : s.Discharging && s.NetW < -60 ? System.Drawing.Color.OrangeRed
-                  : s.Discharging ? System.Drawing.Color.Orange
-                  : System.Drawing.Color.LightGray;
+            text = FormatWatts(Math.Abs(s.NetW));
+            color = System.Drawing.Color.LightGray;
         }
 
         var key = text + color.ToArgb();
@@ -102,8 +112,13 @@ public sealed class TrayService : IDisposable
             _lastRendered = key;
         }
 
-        var state = s.Charging ? "Charging" : s.Discharging ? "Discharging" : s.AcOnline ? "Plugged in" : "Idle";
-        var rate = s.Charging || s.Discharging ? $" {UnitFormatter.Power(s.NetW, signed: true)}" : "";
+        var state = s.Charging ? "Charging"
+                  : s.Discharging && s.AcOnline ? "DRAINING on AC!"
+                  : s.Discharging ? "Discharging"
+                  : s.AcOnline ? "Plugged in" : "Idle";
+        var rate = s.Charging || s.Discharging ? $" {UnitFormatter.Power(s.NetW, signed: true)}"
+                 : s.AcOnline && est.EstSystemW is double es ? $" sys ≈ {UnitFormatter.Power(es)}"
+                 : "";
         var eta = s.Charging && est.TimeToFull is not null ? $" • full in {UnitFormatter.Duration(est.TimeToFull)}"
                 : s.Discharging && est.TimeToEmpty is not null ? $" • {UnitFormatter.Duration(est.TimeToEmpty)} left"
                 : "";

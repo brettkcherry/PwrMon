@@ -71,6 +71,15 @@ public partial class App : Application
         AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
             Log.Error("fatal", (ex.ExceptionObject as Exception) ?? new Exception("unknown"));
 
+        // the WinForms tray icon pumps its own handlers; exceptions there bypass
+        // DispatcherUnhandledException and pop the ancient modal ThreadExceptionDialog —
+        // route them to the log and keep running, same policy as the WPF handler.
+        // (must be set before the first WinForms handle exists, i.e. before TrayService)
+        System.Windows.Forms.Application.SetUnhandledExceptionMode(
+            System.Windows.Forms.UnhandledExceptionMode.CatchException);
+        System.Windows.Forms.Application.ThreadException += (_, ex) =>
+            Log.Error("winforms ui exception", ex.Exception);
+
         // cross-instance signals
         _showSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ShowSignalName);
         _exitSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ExitSignalName);

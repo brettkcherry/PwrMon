@@ -19,6 +19,22 @@ public sealed class Sampler : IDisposable
     private double _emaCharge, _emaDischarge;
     private bool _wasCharging, _wasDischarging;
 
+    // fuel-gauge direction sanity: some firmware (seen on ASUS adapter-assist, i.e. the
+    // battery covering what the AC source can't) reports the drain in ChargeRate with
+    // Charging=true. RemainingCapacity never lies, so its trend arbitrates the direction.
+    private readonly Queue<(DateTimeOffset Time, double Wh)> _capTrend = new();
+    private (bool, bool, bool) _trendFlags;
+    private bool _directionOverridden;
+    private const double TrendWindowSeconds = 90;
+    private const double TrendMinSpanSeconds = 60;
+    private const double TrendContradictionW = 3;
+
+    // CPU package EMA (τ ≈ 15 s) used only in the wall estimate: the gauge publishes
+    // charge rate every ~15–30 s, so summing an instantaneous CPU spike with a stale
+    // charge reading double-counts. This term matches their freshness without going stale.
+    private const double WallTauSeconds = 15;
+    private double _emaPkgW = double.NaN;
+
     private DateTimeOffset _lastTick = DateTimeOffset.MinValue;
     private bool? _lastAc;
 
@@ -101,8 +117,13 @@ public sealed class Sampler : IDisposable
             var gap = dt > Math.Max(3 * interval, 10);
             _lastTick = now;
 
-            var b = _battery.Read();
+            var b = SanitizeDirection(_battery.Read(), now, gap);
             var h = _hardware.Read();
+
+            if (h.CpuPackageW is double pkgEma)
+                _emaPkgW = double.IsNaN(_emaPkgW)
+                    ? pkgEma
+                    : _emaPkgW + (1 - Math.Exp(-(gap ? interval : dt) / WallTauSeconds)) * (pkgEma - _emaPkgW);
 
             // --- EMA smoothing; snap to the instantaneous value when the charge state flips
             var dtClamped = gap ? interval : dt;
@@ -135,7 +156,9 @@ public sealed class Sampler : IDisposable
             _lastAc = b.AcOnline;
 
             // --- power-budget estimation
-            if (b.Discharging && !gap && h.CpuPackageW is double pkgW && b.DischargeRateW > 1)
+            // baseline learns only while discharging OFF AC: on AC the adapter contributes
+            // an unknown share (adapter assist), so discharge − pkg is not "rest of system"
+            if (b.Discharging && !b.AcOnline && !gap && h.CpuPackageW is double pkgW && b.DischargeRateW > 1)
             {
                 var rest = b.DischargeRateW - pkgW;
                 if (rest is > 0.5 and < 200)
@@ -145,13 +168,33 @@ public sealed class Sampler : IDisposable
                     PersistBaselineIfDue();
                 }
             }
-            double? estSystem = b.Discharging && b.DischargeRateW > 0.5
-                ? b.DischargeRateW
-                : h.CpuPackageW is double pw && !double.IsNaN(_baselineW) ? pw + _baselineW : null;
-            var isEstimate = !(b.Discharging && b.DischargeRateW > 0.5);
-            double? estWall = b.AcOnline && estSystem is double es
-                ? (es + b.ChargeRateW) / AdapterEfficiency
-                : null;
+
+            // system draw: exact from the pack off AC; otherwise CPU pkg + learned baseline.
+            // While draining ON AC the discharge is only a lower bound — take the larger.
+            double? baselineSys = h.CpuPackageW is double pw && !double.IsNaN(_baselineW) ? pw + _baselineW : null;
+            double? estSystem;
+            bool isEstimate;
+            if (b.Discharging && !b.AcOnline && b.DischargeRateW > 0.5)
+            {
+                estSystem = b.DischargeRateW;
+                isEstimate = false;
+            }
+            else
+            {
+                estSystem = b.Discharging && b.DischargeRateW > baselineSys.GetValueOrDefault()
+                    ? b.DischargeRateW
+                    : baselineSys;
+                isEstimate = true;
+            }
+
+            // wall input: smoothed system term + charge, over adapter efficiency.
+            // Unknowable while the battery is assisting the adapter, so blank it then.
+            double? estWall = null;
+            if (b.AcOnline && !b.Discharging && estSystem is double es)
+            {
+                var sysForWall = !double.IsNaN(_emaPkgW) && !double.IsNaN(_baselineW) ? _emaPkgW + _baselineW : es;
+                estWall = (sysForWall + b.ChargeRateW) / AdapterEfficiency;
+            }
 
             var sample = new PowerSample
             {
@@ -210,6 +253,47 @@ public sealed class Sampler : IDisposable
         {
             Log.Error("sampler tick", ex);
         }
+    }
+
+    /// <summary>Flip charge/discharge direction when the capacity trend contradicts the
+    /// firmware's flags. Magnitude comes from the reported rate (observed accurate even
+    /// when the direction is wrong), with the measured trend as a floor.</summary>
+    private BatteryReading SanitizeDirection(BatteryReading b, DateTimeOffset now, bool gap)
+    {
+        if (!b.HasBattery) { _capTrend.Clear(); return b; }
+
+        // the trend is only meaningful while the reported state is stable — reset on any
+        // flag change (a real plug/unplug makes capacity lag the flags briefly) or sleep gap
+        var flags = (b.Charging, b.Discharging, b.AcOnline);
+        if (gap || flags != _trendFlags) _capTrend.Clear();
+        _trendFlags = flags;
+
+        _capTrend.Enqueue((now, b.RemainingWh));
+        while ((now - _capTrend.Peek().Time).TotalSeconds > TrendWindowSeconds)
+            _capTrend.Dequeue();
+
+        var (t0, wh0) = _capTrend.Peek();
+        var spanSec = (now - t0).TotalSeconds;
+        var slopeW = spanSec >= TrendMinSpanSeconds ? (b.RemainingWh - wh0) / (spanSec / 3600.0) : 0;
+
+        var claimsChargingButDraining = b.Charging && slopeW < -TrendContradictionW;
+        var claimsDischargingButFilling = b.Discharging && slopeW > TrendContradictionW;
+        var flip = claimsChargingButDraining || claimsDischargingButFilling;
+        if (flip != _directionOverridden)
+        {
+            Log.Info(flip
+                ? $"fuel-gauge direction override: firmware says {(b.Charging ? "charging" : "discharging")} but capacity trend is {slopeW:F1} W"
+                : "fuel-gauge direction override cleared");
+            _directionOverridden = flip;
+        }
+
+        // reported magnitude is primary (observed accurate even with the direction wrong);
+        // the trend slope is quantization-noisy, so it's only the fallback when rate ≈ 0
+        if (claimsChargingButDraining)
+            return b with { Charging = false, Discharging = true, ChargeRateW = 0, DischargeRateW = b.ChargeRateW > 1 ? b.ChargeRateW : -slopeW };
+        if (claimsDischargingButFilling)
+            return b with { Charging = true, Discharging = false, ChargeRateW = b.DischargeRateW > 1 ? b.DischargeRateW : slopeW, DischargeRateW = 0 };
+        return b;
     }
 
     private void PersistBaselineIfDue()
