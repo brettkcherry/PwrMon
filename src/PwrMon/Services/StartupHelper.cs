@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Microsoft.Win32;
 
-namespace PowerMonitor.Services;
+namespace PwrMon.Services;
 
 /// <summary>
 /// "Start with Windows" wiring. Two mechanisms:
@@ -13,8 +13,8 @@ namespace PowerMonitor.Services;
 public static class StartupHelper
 {
     private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
-    private const string AppName = "PowerMonitor";
-    private const string TaskName = "PowerMonitor Autostart";
+    private const string AppName = "PwrMon";
+    private const string TaskName = "PwrMon Autostart";
 
     public static string ExePath => Environment.ProcessPath ?? "";
 

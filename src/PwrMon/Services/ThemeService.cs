@@ -1,8 +1,8 @@
 using System.Windows;
 using System.Windows.Media;
-using PowerMonitor.Models;
+using PwrMon.Models;
 
-namespace PowerMonitor.Services;
+namespace PwrMon.Services;
 
 public sealed record ThemePalette(
     string Name, bool IsDark,

@@ -5,12 +5,12 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
-using PowerMonitor.Models;
-using PowerMonitor.Services;
+using PwrMon.Models;
+using PwrMon.Services;
 using ScottPlot;
 using ScottPlot.Plottables;
 
-namespace PowerMonitor.Views;
+namespace PwrMon.Views;
 
 public partial class MainWindow : Window
 {
@@ -352,7 +352,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private const string CardDragFormat = "PowerMonitor.Card";
+    private const string CardDragFormat = "PwrMon.Card";
 
     /// <summary>Live reflow: as the drag passes over a card, the dragged card immediately
     /// takes its new slot and the others slide out of the way (FLIP animation).</summary>
@@ -974,7 +974,7 @@ public partial class MainWindow : Window
         var consent = MessageBox.Show(this,
             "PawnIO is a signed kernel driver that lets Windows read CPU/iGPU power sensors while " +
             "Memory Integrity is enabled.\n\n" +
-            $"PowerMonitor will download the official installer from:\n{PawnIoDownloadUrl}\n\n" +
+            $"PwrMon will download the official installer from:\n{PawnIoDownloadUrl}\n\n" +
             "and launch it. Continue?",
             "Install PawnIO", MessageBoxButton.OKCancel, MessageBoxImage.Information);
         if (consent != MessageBoxResult.OK) return;

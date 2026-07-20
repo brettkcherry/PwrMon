@@ -1,4 +1,4 @@
-namespace PowerMonitor.Models;
+namespace PwrMon.Models;
 
 /// <summary>One point-in-time reading of everything the machine reports about power.</summary>
 public sealed class PowerSample

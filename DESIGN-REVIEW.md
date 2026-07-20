@@ -1,4 +1,4 @@
-# PowerMonitor Design Review — "Bench instrument, not dashboard"
+# PwrMon Design Review — "Bench instrument, not dashboard"
 
 *2026-07-15 · reviewed against v1.3.1: MainWindow, SettingsWindow, MiniGraphWindow, Dark.xaml, ThemeService, TrayService*
 *Visual mockups: see [DESIGN-REVIEW.html](DESIGN-REVIEW.html) (open in a browser).*
@@ -132,7 +132,7 @@ ComboBoxes to theme.
 
 ## 03 · Direction: a bench instrument
 
-PowerMonitor's ethos — live watts first, no telemetry, portable exe — is the ethos of a
+PwrMon's ethos — live watts first, no telemetry, portable exe — is the ethos of a
 *tool that measures*, not an app that summarizes. The design language should come from the
 bench: multimeters, oscilloscopes, panel meters. Concretely:
 

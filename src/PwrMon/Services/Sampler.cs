@@ -1,6 +1,6 @@
-using PowerMonitor.Models;
+using PwrMon.Models;
 
-namespace PowerMonitor.Services;
+namespace PwrMon.Services;
 
 /// <summary>
 /// The heartbeat: polls battery + silicon sensors on a background loop, computes

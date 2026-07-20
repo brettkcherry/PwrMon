@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using System.Security.Principal;
 using LibreHardwareMonitor.Hardware;
-using PowerMonitor.Models;
+using PwrMon.Models;
 
-namespace PowerMonitor.Services;
+namespace PwrMon.Services;
 
 public sealed record HardwareReading(
     double? CpuPackageW,

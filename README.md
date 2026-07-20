@@ -1,4 +1,4 @@
-# ⚡ PowerMonitor
+# ⚡ PwrMon
 
 Live, real-time power telemetry for Windows laptops — because every battery app on the
 Microsoft Store shows you *health summaries* when what you actually want to know is
@@ -38,14 +38,14 @@ Requires the .NET 8 SDK.
 powershell -ExecutionPolicy Bypass -File tools/gen-icon.ps1
 
 # debug run
-dotnet run --project src/PowerMonitor
+dotnet run --project src/PwrMon
 
 # portable single-file publish (framework-dependent, ~small exe; needs .NET 8 Desktop Runtime)
-dotnet publish src/PowerMonitor -c Release -r win-x64 --self-contained false `
+dotnet publish src/PwrMon -c Release -r win-x64 --self-contained false `
   -p:PublishSingleFile=true -o publish/framework
 
 # fully self-contained single exe (no runtime needed, bigger file)
-dotnet publish src/PowerMonitor -c Release -r win-x64 --self-contained true `
+dotnet publish src/PwrMon -c Release -r win-x64 --self-contained true `
   -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o publish/portable
 ```
 
@@ -67,7 +67,7 @@ tells you your total system draw on battery — works at every tier.
 
 ## Data & files
 
-Everything lives in `%LocalAppData%\PowerMonitor\`:
+Everything lives in `%LocalAppData%\PwrMon\`:
 
 - `settings.json` — preferences
 - `history\history-YYYY-MM-DD.csv` — one file per day, pruned after the retention window
@@ -77,7 +77,7 @@ Everything lives in `%LocalAppData%\PowerMonitor\`:
 ## Architecture
 
 ```
-src/PowerMonitor/
+src/PwrMon/
   Services/
     BatteryReader.cs    WMI root\wmi ACPI battery classes (rates mW, capacities mWh)
     HardwareReader.cs   LibreHardwareMonitor wrapper + sensor-tier detection

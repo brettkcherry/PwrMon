@@ -1,8 +1,8 @@
-# Generates src/PowerMonitor/Assets/app.ico — amber lightning bolt on a dark rounded square.
+# Generates src/PwrMon/Assets/app.ico — amber lightning bolt on a dark rounded square.
 # ICO packs PNG-compressed entries at 16/24/32/48/64/128/256 px (PNG-in-ICO is fine on Vista+).
 Add-Type -AssemblyName System.Drawing
 
-$outDir = Join-Path $PSScriptRoot "..\src\PowerMonitor\Assets"
+$outDir = Join-Path $PSScriptRoot "..\src\PwrMon\Assets"
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 $outPath = Join-Path $outDir "app.ico"
 

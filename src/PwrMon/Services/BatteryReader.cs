@@ -1,7 +1,7 @@
 using System.Management;
-using PowerMonitor.Models;
+using PwrMon.Models;
 
-namespace PowerMonitor.Services;
+namespace PwrMon.Services;
 
 public sealed record BatteryReading(
     bool HasBattery,

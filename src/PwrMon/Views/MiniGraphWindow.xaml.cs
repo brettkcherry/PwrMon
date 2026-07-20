@@ -3,10 +3,10 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
-using PowerMonitor.Models;
-using PowerMonitor.Services;
+using PwrMon.Models;
+using PwrMon.Services;
 
-namespace PowerMonitor.Views;
+namespace PwrMon.Views;
 
 /// <summary>
 /// Borderless always-on-top sparkline of recent net battery power (CPU package power on

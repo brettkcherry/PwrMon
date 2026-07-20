@@ -1,4 +1,4 @@
-// SensorProbe — dumps every power-related data source PowerMonitor will use,
+// SensorProbe — dumps every power-related data source PwrMon will use,
 // so the app can be built against what this machine actually reports.
 using System.Management;
 using System.Security.Principal;

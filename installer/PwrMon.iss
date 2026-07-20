@@ -1,11 +1,11 @@
-; Inno Setup script for PowerMonitor
-; Build:  1) dotnet publish (see README — produces publish\portable\PowerMonitor.exe)
-;         2) iscc installer\PowerMonitor.iss
-; Output: installer\Output\PowerMonitor-Setup.exe
+; Inno Setup script for PwrMon
+; Build:  1) dotnet publish (see README — produces publish\portable\PwrMon.exe)
+;         2) iscc installer\PwrMon.iss
+; Output: installer\Output\PwrMon-Setup.exe
 
-#define AppName "PowerMonitor"
+#define AppName "PwrMon"
 #define AppVersion "1.3.0"
-#define AppExe "PowerMonitor.exe"
+#define AppExe "PwrMon.exe"
 #define AppPublisher "Brett Cherry"
 #define AppURL "https://github.com/"
 
@@ -21,9 +21,9 @@ LicenseFile=..\LICENSE
 UninstallDisplayIcon={app}\{#AppExe}
 ; app offers in-place elevation when the user wants CPU/iGPU sensors
 PrivilegesRequired=admin
-OutputBaseFilename=PowerMonitor-Setup
+OutputBaseFilename=PwrMon-Setup
 OutputDir=Output
-SetupIconFile=..\src\PowerMonitor\Assets\app.ico
+SetupIconFile=..\src\PwrMon\Assets\app.ico
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -56,9 +56,9 @@ Filename: "{app}\{#AppExe}"; Description: "Launch {#AppName}"; Flags: nowait pos
 
 [UninstallRun]
 ; remove the elevated autostart task if the user created one from Settings
-Filename: "schtasks"; Parameters: "/Delete /TN ""PowerMonitor Autostart"" /F"; \
+Filename: "schtasks"; Parameters: "/Delete /TN ""PwrMon Autostart"" /F"; \
     Flags: runhidden skipifdoesntexist; RunOnceId: "DelSchedTask"
 
 [UninstallDelete]
 ; user data stays by default (history/settings survive reinstall); uncomment to purge:
-; Type: filesandordirs; Name: "{localappdata}\PowerMonitor"
+; Type: filesandordirs; Name: "{localappdata}\PwrMon"

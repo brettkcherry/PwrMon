@@ -2,13 +2,13 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace PowerMonitor.Models;
+namespace PwrMon.Models;
 
 public enum PowerUnit { Watts, Milliwatts }
 public enum EnergyUnit { WattHours, MilliampHours }
 public enum TrayDisplay { Watts, Percent }
 
-/// <summary>Persisted user preferences. JSON in %LocalAppData%\PowerMonitor\settings.json.</summary>
+/// <summary>Persisted user preferences. JSON in %LocalAppData%\PwrMon\settings.json.</summary>
 public sealed class AppSettings
 {
     public double SamplingIntervalSeconds { get; set; } = 1.0;
@@ -55,7 +55,7 @@ public sealed class AppSettings
     // ---- persistence ----
 
     public static string Dir { get; } =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PowerMonitor");
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PwrMon");
 
     private static string FilePath => Path.Combine(Dir, "settings.json");
 

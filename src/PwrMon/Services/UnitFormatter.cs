@@ -1,6 +1,6 @@
-using PowerMonitor.Models;
+using PwrMon.Models;
 
-namespace PowerMonitor.Services;
+namespace PwrMon.Services;
 
 /// <summary>Formats power/energy/time values according to the user's unit preferences.</summary>
 public static class UnitFormatter

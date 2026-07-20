@@ -1,13 +1,13 @@
 using System.Globalization;
 using System.IO;
 using System.Text;
-using PowerMonitor.Models;
+using PwrMon.Models;
 
-namespace PowerMonitor.Services;
+namespace PwrMon.Services;
 
 /// <summary>
 /// Persists samples and power events to daily CSV files under
-/// %LocalAppData%\PowerMonitor\history and reloads recent history on startup so
+/// %LocalAppData%\PwrMon\history and reloads recent history on startup so
 /// the chart survives restarts. Writes are buffered and flushed every ~15 s.
 /// </summary>
 public sealed class HistoryStore : IDisposable

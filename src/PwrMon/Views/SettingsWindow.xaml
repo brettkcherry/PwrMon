@@ -1,7 +1,7 @@
-<Window x:Class="PowerMonitor.Views.SettingsWindow"
+<Window x:Class="PwrMon.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="PowerMonitor Settings"
+        Title="PwrMon Settings"
         Width="420" SizeToContent="Height" ResizeMode="NoResize"
         Background="{StaticResource BgBrush}"
         FontFamily="{DynamicResource TextFontFamily}"
@@ -32,7 +32,7 @@
                   ToolTip="The dashboard window is fully released when closed instead of hidden — the app keeps sampling from the tray with a much smaller footprint. Reopening rebuilds the chart from saved history."/>
 
         <TextBlock Style="{StaticResource CardTitle}" Text="START WITH WINDOWS" Margin="0,14,0,6"/>
-        <CheckBox x:Name="ChkAutostart" Content="Start PowerMonitor at logon"
+        <CheckBox x:Name="ChkAutostart" Content="Start PwrMon at logon"
                   Foreground="{StaticResource TextBrush}" Margin="0,4" Click="Autostart_Click"/>
         <CheckBox x:Name="ChkAutostartElevated" Content="…as administrator (scheduled task, no UAC prompt)"
                   Foreground="{StaticResource TextBrush}" Margin="22,4,0,0" Click="Autostart_Click"/>
@@ -52,7 +52,7 @@
 
         <TextBlock Style="{StaticResource CardTitle}" Text="ABOUT" Margin="0,16,0,6"/>
         <TextBlock x:Name="AboutText" Foreground="{StaticResource TextDimBrush}" FontSize="11.5" TextWrapping="Wrap">
-            <Run x:Name="AboutVersion" Text="PowerMonitor"/> — live power telemetry for Windows.<LineBreak/>
+            <Run x:Name="AboutVersion" Text="PwrMon"/> — live power telemetry for Windows.<LineBreak/>
             Battery data: ACPI via WMI • Silicon data: Windows EMI + LibreHardwareMonitor.<LineBreak/>
             No telemetry, no ads. Your watts stay yours.
         </TextBlock>

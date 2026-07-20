@@ -1,6 +1,6 @@
 using System.IO;
 
-namespace PowerMonitor.Services;
+namespace PwrMon.Services;
 
 /// <summary>Tiny append-only file logger; never throws.</summary>
 public static class Log

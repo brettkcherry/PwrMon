@@ -1,17 +1,17 @@
 using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Win32;
-using PowerMonitor.Models;
-using PowerMonitor.Services;
-using PowerMonitor.Views;
+using PwrMon.Models;
+using PwrMon.Services;
+using PwrMon.Views;
 
-namespace PowerMonitor;
+namespace PwrMon;
 
 public partial class App : Application
 {
-    private const string MutexName = "PowerMonitor_SingleInstance";
-    private const string ShowSignalName = "PowerMonitor_ShowSignal";
-    private const string ExitSignalName = "PowerMonitor_ExitSignal";
+    private const string MutexName = "PwrMon_SingleInstance";
+    private const string ShowSignalName = "PwrMon_ShowSignal";
+    private const string ExitSignalName = "PwrMon_ExitSignal";
 
     private Mutex? _mutex;
     private EventWaitHandle? _showSignal, _exitSignal;
@@ -46,7 +46,7 @@ public partial class App : Application
                 exit.Set();
                 if (!_mutex.WaitOne(TimeSpan.FromSeconds(8)))
                 {
-                    MessageBox.Show("PowerMonitor is already running and did not exit.", "PowerMonitor");
+                    MessageBox.Show("PwrMon is already running and did not exit.", "PwrMon");
                     Shutdown();
                     return;
                 }
@@ -65,7 +65,7 @@ public partial class App : Application
         ThemeService.Apply(AppSettings.Current.Theme);
         ThemeService.ApplyNumeralFont(AppSettings.Current.NumeralFont);
         ThemeService.ApplyTextFont(AppSettings.Current.TextFont);
-        Log.Info($"=== PowerMonitor starting (args: {string.Join(' ', e.Args)}) ===");
+        Log.Info($"=== PwrMon starting (args: {string.Join(' ', e.Args)}) ===");
 
         DispatcherUnhandledException += OnDispatcherException;
         AppDomain.CurrentDomain.UnhandledException += (_, ex) =>

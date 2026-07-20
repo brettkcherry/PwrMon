@@ -1,10 +1,10 @@
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
-using PowerMonitor.Models;
-using PowerMonitor.Services;
+using PwrMon.Models;
+using PwrMon.Services;
 
-namespace PowerMonitor.Views;
+namespace PwrMon.Views;
 
 public partial class SettingsWindow : Window
 {
@@ -59,7 +59,7 @@ public partial class SettingsWindow : Window
         ChkAutostartElevated.IsEnabled = _elevated;
         AutostartNote.Text = _elevated
             ? "Creates a Task Scheduler entry with highest privileges."
-            : "Run PowerMonitor as administrator to enable the elevated option.";
+            : "Run PwrMon as administrator to enable the elevated option.";
 
         foreach (var d in new[] { 1, 3, 7, 14, 30, 60 })
             CmbRetention.Items.Add(d);
@@ -69,7 +69,7 @@ public partial class SettingsWindow : Window
         HistoryPathText.Text = $"CSV files: {HistoryStore.HistoryDir}";
 
         var v = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-        AboutVersion.Text = $"PowerMonitor {v?.Major}.{v?.Minor}.{v?.Build}";
+        AboutVersion.Text = $"PwrMon {v?.Major}.{v?.Minor}.{v?.Build}";
 
         ChkCloseToTray.Click += (_, _) => SaveBehavior();
         ChkStartMinimized.Click += (_, _) => SaveBehavior();
@@ -105,7 +105,7 @@ public partial class SettingsWindow : Window
 
         if (!StartupHelper.Enable(elevated))
         {
-            MessageBox.Show(this, "Could not configure autostart — see logs.", "PowerMonitor");
+            MessageBox.Show(this, "Could not configure autostart — see logs.", "PwrMon");
             ChkAutostart.IsChecked = StartupHelper.IsRunKeyEnabled() || StartupHelper.IsElevatedTaskEnabled();
             ChkAutostartElevated.IsChecked = StartupHelper.IsElevatedTaskEnabled();
         }

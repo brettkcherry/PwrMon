@@ -2,9 +2,9 @@ using System.Drawing;
 using System.Drawing.Text;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using PowerMonitor.Models;
+using PwrMon.Models;
 
-namespace PowerMonitor.Services;
+namespace PwrMon.Services;
 
 /// <summary>
 /// System-tray presence: a dynamically rendered icon showing the live wattage (or battery %),
@@ -48,7 +48,7 @@ public sealed class TrayService : IDisposable
         {
             Visible = true,
             ContextMenuStrip = menu,
-            Text = "PowerMonitor",
+            Text = "PwrMon",
         };
         _icon.DoubleClick += (_, _) => OpenRequested?.Invoke();
 
@@ -122,7 +122,7 @@ public sealed class TrayService : IDisposable
         var eta = s.Charging && est.TimeToFull is not null ? $" • full in {UnitFormatter.Duration(est.TimeToFull)}"
                 : s.Discharging && est.TimeToEmpty is not null ? $" • {UnitFormatter.Duration(est.TimeToEmpty)} left"
                 : "";
-        var tip = $"PowerMonitor — {state}{rate} • {s.BatteryPercent:F0}%{eta}";
+        var tip = $"PwrMon — {state}{rate} • {s.BatteryPercent:F0}%{eta}";
         _icon.Text = tip.Length <= 63 ? tip : tip[..63];
     }
 
