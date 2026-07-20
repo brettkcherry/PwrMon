@@ -10,3 +10,9 @@ publish/
 
 # probe output
 tools/SensorProbe/probe-elevated.txt
+
+# release binaries — these belong on a GitHub Release, not in the tree
+installer/Output/
+
+# loose screenshots dropped in the repo root
+/*.png

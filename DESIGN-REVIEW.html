@@ -1,0 +1,678 @@
+<title>PowerMonitor Design Review</title>
+<style>
+  /* ── tokens ─────────────────────────────────────────────── */
+  :root {
+    /* doc chrome — light (mirrors the app's Paper theme) */
+    --bg: #F5F2EA;
+    --surface: #FFFFFF;
+    --line: #DDD6C7;
+    --ink: #3D3929;
+    --dim: #8A8471;
+    --accent: #B07818;
+    --good: #3B6D11;
+    --warn: #BA7517;
+    --bad: #A32D2D;
+    --info: #185FA5;
+    --code-bg: #EDE9DD;
+
+    /* mockup panels — always Volt (they depict the app itself) */
+    --m-bg: #0F1115;
+    --m-card: #171A21;
+    --m-border: #242A36;
+    --m-ink: #E8EAF0;
+    --m-dim: #8B93A7;
+    --m-accent: #F5B62E;
+    --m-good: #3FB950;
+    --m-warn: #F0883E;
+    --m-bad: #F85149;
+    --m-info: #58A6FF;
+    --m-gpu: #BC8CFF;
+
+    --display: Bahnschrift, 'Franklin Gothic Medium', 'Arial Narrow', sans-serif;
+    --body: 'Segoe UI', system-ui, sans-serif;
+    --mono: 'Cascadia Mono', Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0F1115;
+      --surface: #171A21;
+      --line: #242A36;
+      --ink: #E8EAF0;
+      --dim: #8B93A7;
+      --accent: #F5B62E;
+      --good: #3FB950;
+      --warn: #F0883E;
+      --bad: #F85149;
+      --info: #58A6FF;
+      --code-bg: #12151B;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0F1115; --surface: #171A21; --line: #242A36; --ink: #E8EAF0;
+    --dim: #8B93A7; --accent: #F5B62E; --good: #3FB950; --warn: #F0883E;
+    --bad: #F85149; --info: #58A6FF; --code-bg: #12151B;
+  }
+  :root[data-theme="light"] {
+    --bg: #F5F2EA; --surface: #FFFFFF; --line: #DDD6C7; --ink: #3D3929;
+    --dim: #8A8471; --accent: #B07818; --good: #3B6D11; --warn: #BA7517;
+    --bad: #A32D2D; --info: #185FA5; --code-bg: #EDE9DD;
+  }
+
+  /* ── base ───────────────────────────────────────────────── */
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 15.5px;
+    line-height: 1.6;
+    margin: 0;
+    padding: 48px 20px 96px;
+  }
+  main { max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+  section { display: flex; flex-direction: column; gap: 16px; }
+  p { margin: 0; max-width: 68ch; }
+  h1, h2, h3 { margin: 0; text-wrap: balance; font-family: var(--display); }
+  h1 { font-size: 42px; line-height: 1.1; letter-spacing: 0.01em; }
+  h2 { font-size: 24px; letter-spacing: 0.02em; }
+  h3 { font-size: 16px; }
+  code {
+    font-family: var(--mono); font-size: 0.85em;
+    background: var(--code-bg); border: 1px solid var(--line);
+    border-radius: 4px; padding: 1px 5px; white-space: nowrap;
+  }
+  .eyebrow {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--accent); font-weight: 600;
+  }
+  .dim { color: var(--dim); }
+  .kicker { color: var(--dim); font-size: 17px; max-width: 62ch; }
+
+  /* ── findings ───────────────────────────────────────────── */
+  .finding {
+    border: 1px solid var(--line); border-radius: 8px;
+    background: var(--surface); padding: 16px 20px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .finding-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .fnum { font-family: var(--mono); font-size: 12px; color: var(--dim); }
+  .finding h3 { flex: 1; min-width: 200px; }
+  .sev {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; font-weight: 700;
+    padding: 2px 9px; border-radius: 99px; white-space: nowrap;
+  }
+  .sev-high   { color: var(--bad);  border: 1px solid color-mix(in srgb, var(--bad) 45%, transparent); }
+  .sev-med    { color: var(--warn); border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent); }
+  .sev-polish { color: var(--info); border: 1px solid color-mix(in srgb, var(--info) 45%, transparent); }
+  .finding p { color: color-mix(in srgb, var(--ink) 88%, var(--dim)); font-size: 14.5px; }
+  .fix { font-size: 14px; color: var(--dim); }
+  .fix strong { color: var(--ink); font-weight: 600; }
+
+  /* ── working-well list ──────────────────────────────────── */
+  ul.works { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  ul.works li { padding-left: 26px; position: relative; max-width: 70ch; }
+  ul.works li::before {
+    content: "✓"; position: absolute; left: 2px; top: 0;
+    color: var(--good); font-weight: 700; font-family: var(--mono);
+  }
+  ul.works strong { font-weight: 600; }
+
+  /* ── mockup frame ───────────────────────────────────────── */
+  .mock-wrap { display: flex; flex-direction: column; gap: 8px; }
+  .mock-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); }
+  .mock {
+    background: var(--m-bg); border: 1px solid var(--m-border);
+    border-radius: 10px; padding: 20px 22px; overflow-x: auto;
+    color: var(--m-ink); font-family: var(--body);
+  }
+  .mock * { line-height: 1.35; }
+
+  /* current hero recreation */
+  .cur-hero { display: flex; justify-content: space-between; align-items: center; gap: 24px; min-width: 560px; }
+  .cur-state { font-size: 12px; font-weight: 700; color: var(--m-dim); letter-spacing: 0.03em; }
+  .cur-watts { font-family: var(--display); font-size: 46px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .cur-sub { font-size: 12.5px; color: var(--m-dim); }
+  .cur-pct { font-family: var(--display); font-size: 30px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+  .cur-eta { font-size: 12.5px; color: var(--m-dim); text-align: right; }
+
+  /* proposed instrument hero */
+  .inst { display: flex; flex-direction: column; gap: 14px; min-width: 620px; }
+  .inst-top { display: grid; grid-template-columns: auto 1fr auto; gap: 28px; align-items: center; }
+  .inst-readout { display: flex; flex-direction: column; gap: 2px; }
+  .inst-state { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.16em; color: var(--m-warn); font-weight: 700; }
+  .inst-watts { font-family: var(--display); font-size: 54px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--m-warn); line-height: 1; }
+  .inst-watts .unit { font-size: 26px; color: var(--m-dim); font-weight: 400; margin-left: 4px; }
+  .inst-split { font-size: 12.5px; color: var(--m-dim); font-variant-numeric: tabular-nums; }
+  .inst-split b { color: var(--m-ink); font-weight: 600; }
+  .flow { display: flex; align-items: center; justify-content: center; }
+  .inst-batt { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+  .batt-gauge {
+    width: 170px; height: 22px; border: 1.5px solid var(--m-border);
+    border-radius: 5px; position: relative; overflow: hidden; background: #0B0D11;
+  }
+  .batt-gauge::after {
+    content: ""; position: absolute; right: -6px; top: 6px; width: 4px; height: 10px;
+    background: var(--m-border); border-radius: 0 2px 2px 0;
+  }
+  .batt-fill {
+    position: absolute; inset: 0; width: 64%;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--m-warn) 55%, transparent), var(--m-warn));
+    border-radius: 3px 0 0 3px;
+  }
+  .batt-num {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-family: var(--display); font-weight: 700; font-size: 13px; color: #0F1115;
+    mix-blend-mode: normal; text-shadow: 0 0 6px color-mix(in srgb, var(--m-warn) 60%, transparent);
+  }
+  .batt-eta { font-size: 12px; color: var(--m-dim); font-variant-numeric: tabular-nums; }
+  .batt-eta b { color: var(--m-ink); }
+  .inst-spark { border-top: 1px solid var(--m-border); padding-top: 10px; display: flex; align-items: center; gap: 12px; }
+  .spark-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; color: var(--m-dim); white-space: nowrap; }
+  .peakline { font-family: var(--mono); font-size: 10px; color: var(--m-dim); white-space: nowrap; }
+  .peakline b { color: var(--m-accent); font-weight: 600; }
+
+  /* flow diagram nodes */
+  .fnode {
+    border: 1px solid var(--m-border); border-radius: 6px; padding: 6px 12px;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; color: var(--m-dim);
+    background: var(--m-card); text-align: center; white-space: nowrap;
+  }
+  .fnode b { display: block; font-family: var(--display); font-size: 15px; letter-spacing: 0; color: var(--m-ink); font-variant-numeric: tabular-nums; }
+  .fnode.active { border-color: color-mix(in srgb, var(--m-warn) 50%, var(--m-border)); }
+  .fnode.active b { color: var(--m-warn); }
+  .flowline { flex: 0 0 auto; }
+  @media (prefers-reduced-motion: no-preference) {
+    .flow-anim { stroke-dasharray: 4 6; animation: flowdash 0.9s linear infinite; }
+    @keyframes flowdash { to { stroke-dashoffset: -10; } }
+  }
+
+  /* live cards + reference strip */
+  .tier-cards { display: flex; gap: 12px; min-width: 620px; }
+  .lcard {
+    background: var(--m-card); border: 1px solid var(--m-border); border-radius: 10px;
+    padding: 12px 14px 10px; flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 150px;
+  }
+  .lcard-title { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.14em; color: var(--m-dim); text-transform: uppercase; }
+  .lcard-big { font-family: var(--display); font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+  .lcard-big .unit { font-size: 14px; color: var(--m-dim); font-weight: 400; }
+  .lcard-rows { font-size: 11.5px; color: var(--m-dim); display: flex; flex-direction: column; gap: 1px; font-variant-numeric: tabular-nums; }
+  .lcard-rows b { color: var(--m-ink); font-weight: 600; float: right; }
+  .lcard svg { margin-top: 2px; }
+  .ref-strip {
+    margin-top: 12px; min-width: 620px;
+    background: color-mix(in srgb, var(--m-card) 55%, var(--m-bg));
+    border: 1px solid var(--m-border); border-radius: 8px;
+    padding: 8px 16px; display: flex; gap: 22px; align-items: center;
+    font-size: 12px; color: var(--m-dim); font-variant-numeric: tabular-nums; flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .ref-strip b { color: var(--m-ink); font-weight: 600; }
+  .ref-strip .rk { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; margin-right: 4px; }
+  .ref-strip .sep { color: var(--m-border); }
+
+  /* chart toolbar mockup */
+  .ctb { display: flex; justify-content: space-between; align-items: center; gap: 16px; min-width: 620px; }
+  .ctb-group { display: flex; gap: 4px; align-items: center; }
+  .pill {
+    font-size: 11.5px; padding: 3px 11px; border-radius: 6px; color: var(--m-dim);
+    border: 1px solid transparent;
+  }
+  .pill.on { background: #2A313D; color: var(--m-ink); }
+  .chip {
+    display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--m-ink);
+    border: 1px solid var(--m-border); border-radius: 99px; padding: 2px 10px;
+  }
+  .chip.off { color: var(--m-dim); opacity: 0.55; }
+  .chip .dot { width: 7px; height: 7px; border-radius: 99px; }
+  .live-pill {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; font-weight: 700;
+    color: var(--m-good); border: 1px solid color-mix(in srgb, var(--m-good) 40%, transparent);
+    border-radius: 99px; padding: 3px 10px;
+  }
+
+  /* ── palette roles table ────────────────────────────────── */
+  .roles { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+  .roles table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .roles th {
+    text-align: left; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--dim); font-weight: 600;
+    padding: 10px 16px; border-bottom: 1px solid var(--line);
+  }
+  .roles td { padding: 9px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .roles tr:last-child td { border-bottom: none; }
+  .swatch { display: inline-block; width: 13px; height: 13px; border-radius: 3px; vertical-align: -2px; margin-right: 8px; border: 1px solid rgba(128,128,128,0.35); }
+
+  /* ── phase plan ─────────────────────────────────────────── */
+  .phase { border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; background: var(--surface); padding: 18px 22px; display: flex; flex-direction: column; gap: 10px; }
+  .phase-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .phase-head h3 { font-size: 17px; }
+  .effort { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; color: var(--dim); }
+  .phase ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 14.5px; }
+  .phase li::marker { color: var(--accent); }
+
+  .note {
+    border: 1px solid var(--line); border-radius: 8px; padding: 14px 18px;
+    background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+    font-size: 14.5px; max-width: none;
+  }
+
+  header { display: flex; flex-direction: column; gap: 14px; }
+  .meta { font-family: var(--mono); font-size: 11.5px; color: var(--dim); letter-spacing: 0.06em; }
+</style>
+
+<main>
+<header>
+  <span class="eyebrow">Design review · PowerMonitor v1.3.1</span>
+  <h1>Bench instrument, not dashboard</h1>
+  <p class="kicker">The bones are excellent — honest data, real density, tabular numerals, six live-switchable
+  themes. What's missing is <strong>hierarchy</strong> and <strong>identity</strong>: every pixel currently has
+  the same visual weight, and the app dresses like a generic dark dashboard when it is actually a measuring
+  instrument. This review proposes leaning all the way into the instrument identity — a direction the settled
+  name <strong>PwrMon</strong> wears naturally: terse, vowel-dropped, NirSoft-lineage, like a model number
+  stamped on a panel meter.</p>
+  <span class="meta">2026-07-15 · reviewed: MainWindow, SettingsWindow, MiniGraphWindow, Dark.xaml, ThemeService, TrayService</span>
+</header>
+
+<!-- ══════════════ what's working ══════════════ -->
+<section>
+  <span class="eyebrow">01 · Keep these</span>
+  <h2>What's already working</h2>
+  <ul class="works">
+    <li><strong>Typography discipline.</strong> Bahnschrift tabular numerals with <code>NumeralAlignment="Tabular"</code> so live values don't jitter — a detail most commercial apps miss. This is the app's strongest existing design asset.</li>
+    <li><strong>The theme engine.</strong> Live-mutating brushes + a <code>Changed</code> event pushing chart colors is real infrastructure. Six palettes with distinct personalities (Phosphor and Paper especially). Everything proposed below rides on it.</li>
+    <li><strong>Density without clutter.</strong> Eight cards × four stats is a lot of information that never feels crowded. Card padding, 11px small-caps titles, dim-label / bright-value rhythm — all correct.</li>
+    <li><strong>The tray ticker.</strong> Rendering the live wattage <em>as</em> the icon is the killer differentiator. No other tool does this.</li>
+    <li><strong>Honesty as an aesthetic.</strong> Tooltips that say "Estimate," the "(30s smoothed)" qualifier, the tier banner that explains <em>why</em> a sensor is locked. Keep this voice everywhere — it's the brand.</li>
+  </ul>
+</section>
+
+<!-- ══════════════ findings ══════════════ -->
+<section>
+  <span class="eyebrow">02 · Review</span>
+  <h2>Findings</h2>
+  <p class="dim">Numbered for reference. Severity is about experience impact, not code quality.</p>
+
+  <div class="finding">
+    <div class="finding-head"><span class="fnum">F1</span><h3>No visual hierarchy — everything shouts equally</h3><span class="sev sev-high">High</span></div>
+    <p>Eight identical cards, each a uniform 4-row grid. Battery chemistry (which never changes) gets exactly
+    the same visual weight as live system draw (which changes twice a second). The eye has no path: nothing
+    tells a first-time user "look here first." The hero helps, but below it the layout is flat.</p>
+    <p class="fix"><strong>Fix:</strong> split content into three tiers — <em>Now</em> (live, animated, sparklined),
+    <em>Trends</em> (the chart), <em>Reference</em> (battery specs and health demoted to a slim strip). Mocked below.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-head"><span class="fnum">F2</span><h3>Stock Windows chrome breaks the spell</h3><span class="sev sev-high">High</span></div>
+    <p>A light-gray system title bar sits on top of a #0F1115 app. It's the first pixel a user sees and it says
+    "unfinished." The Settings and Mini windows have the same problem.</p>
+    <p class="fix"><strong>Fix:</strong> minimum viable — <code>DwmSetWindowAttribute(DWMWA_USE_IMMERSIVE_DARK_MODE)</code>,
+    ~10 lines, dark title bar on every window. Full version — <code>WindowChrome</code> with the title bar merged
+    into the hero row: app name + tier badge left, caption buttons right. The mini-graph window already proves
+    you can do borderless well.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-head"><span class="fnum">F3</span><h3>The hero is a number without an instrument</h3><span class="sev sev-high">High</span></div>
+    <p>The single most important readout is plain text. It has no direction (is energy flowing in or out?), no
+    context (is 18 W a lot? what's the session baseline?), and no memory (what did the last minute look like?).
+    All that context exists in the data model already — it just isn't drawn.</p>
+    <p class="fix"><strong>Fix:</strong> the instrument hero (Section 04): state-colored readout, wall→system→battery
+    flow diagram with animated direction, battery gauge with ETA, and a 60-second sparkline with the session
+    peak marked.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-head"><span class="fnum">F4</span><h3>Hard-coded card widths fight the window</h3><span class="sev sev-med">Medium</span></div>
+    <p>Cards are fixed at 195–235 px each (<code>MainWindow.xaml</code>), so the WrapPanel breaks rows at
+    arbitrary points as the window resizes — sometimes 5+3, sometimes 6+2, with ragged right edges. The drag-to-rearrange
+    feature you just polished deserves a real grid to land in.</p>
+    <p class="fix"><strong>Fix:</strong> uniform card width via a shared resource (or a custom panel that divides
+    available width into equal columns). Cards should feel like modules in a rack, not sticky notes.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-head"><span class="fnum">F5</span><h3>Color roles are overloaded</h3><span class="sev sev-med">Medium</span></div>
+    <p>Amber is simultaneously the brand accent, the Net series, and System draw. Green is charging, the
+    Battery % series, and the LIVE indicator. When one hue means three things, none of them reads instantly.</p>
+    <p class="fix"><strong>Fix:</strong> a small semantic token table (Section 05) added to <code>ThemePalette</code> —
+    separate <em>brand accent</em> from <em>data series</em> from <em>state</em>. Mostly renaming + a few new
+    palette slots; the theme engine already supports it.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-head"><span class="fnum">F6</span><h3>The tier banner ignores the theme</h3><span class="sev sev-med">Medium</span></div>
+    <p>Hard-coded <code>#2A2416</code> / <code>#5C4A18</code> / <code>#E8D9A0</code> — a dark amber wash that
+    looks wrong on Paper and clashes with Glacier/Synth. Same class of issue: the drag-ghost chrome, the mini-graph
+    border <code>#333B49</code>, and FlatButton hover states <code>#2A313D</code> are all theme-blind.</p>
+    <p class="fix"><strong>Fix:</strong> derive them — banner = accent at ~12% over card color; button hover =
+    border color at 50%. Kill every literal hex in XAML that isn't in a palette.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-head"><span class="fnum">F7</span><h3>Stock ComboBox, the last unthemed control</h3><span class="sev sev-med">Medium</span></div>
+    <p><code>Foreground=Black</code> as a workaround (Dark.xaml:138) because the default WPF template ignores
+    dark backgrounds — so the status bar shows light-gray Windows-95-lineage dropdowns inside an otherwise
+    coherent dark app. It's the most visible seam in daily use.</p>
+    <p class="fix"><strong>Fix:</strong> one proper dark <code>ControlTemplate</code> for ComboBox (toggle +
+    popup + item container), styled like FlatButton. Tedious but one-time; reused by Settings too.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-head"><span class="fnum">F8</span><h3>Chart toolbar crowds eleven controls into one row</h3><span class="sev sev-polish">Polish</span></div>
+    <p>Six range pills + five series checkboxes + LIVE + export compete in a single strip. The series toggles
+    are stock checkboxes whose color-coding (text color = series color) is easy to miss.</p>
+    <p class="fix"><strong>Fix:</strong> ranges stay left; series toggles become dot-chips (colored dot + label,
+    dimmed when off — mocked below); LIVE becomes a pill that visibly changes state when you pan away.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-head"><span class="fnum">F9</span><h3>Live data doesn't feel alive</h3><span class="sev sev-polish">Polish</span></div>
+    <p>Values snap to new numbers every sample with zero transition, while the drag-and-drop got FLIP animation.
+    The <em>core content</em> is the least animated thing in the app.</p>
+    <p class="fix"><strong>Fix:</strong> tween the hero wattage toward its target (~250 ms, dispatcher timer —
+    cheap); a subtle 300 ms foreground flash on stat values when they change by &gt;5%. No layout animation,
+    just number life. Respect reduced-motion via <code>SystemParameters.ClientAreaAnimation</code>.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-head"><span class="fnum">F10</span><h3>Status bar mixes settings with navigation</h3><span class="sev sev-polish">Polish</span></div>
+    <p>Sampling interval and unit pickers (settings that change monthly) sit in the permanently visible status
+    bar next to Mini graph / Settings buttons (navigation). Prime real estate spent on rarely-touched controls.</p>
+    <p class="fix"><strong>Fix:</strong> move interval/units into Settings; status bar becomes a true status bar —
+    tier badge, sample age, history size — plus the two buttons. Cleaner and one less row of ComboBoxes to theme.</p>
+  </div>
+</section>
+
+<!-- ══════════════ direction ══════════════ -->
+<section>
+  <span class="eyebrow">03 · Direction</span>
+  <h2>The identity: a bench instrument</h2>
+  <p>PowerMonitor's ethos — live watts first, no telemetry, portable exe — is the ethos of a
+  <em>tool that measures</em>, not an app that summarizes. The design language should come from the bench:
+  multimeters, oscilloscopes, panel meters. Concretely that means: <strong>readouts have direction and
+  scale</strong>, not just magnitude; <strong>reference data is a label on the chassis</strong>, not a
+  competing display; <strong>the frame is part of the device</strong> (custom chrome, not borrowed Windows
+  furniture); and <strong>motion means signal</strong> — things animate because energy is flowing, never for
+  decoration.</p>
+  <p>The settled name — <strong>PwrMon</strong> — fits this direction exactly: it's the name of a device, not
+  an app, and it came full circle from the original rant transcript (<code>PwrMon.md</code>). The direction
+  also gives the icon revisit a brief — a panel-meter readout / meter needle rather than a generic bolt.</p>
+</section>
+
+<!-- ══════════════ mockups ══════════════ -->
+<section>
+  <span class="eyebrow">04 · Proposal</span>
+  <h2>The instrument hero</h2>
+  <p class="dim">Rendered in Volt; all six themes inherit via the existing palette slots. Numbers below are your
+  Zenbook's real figures.</p>
+
+  <div class="mock-wrap">
+    <div class="mock-label">Current — v1.3.1</div>
+    <div class="mock">
+      <div class="cur-hero">
+        <div>
+          <div class="cur-state">DISCHARGING</div>
+          <div class="cur-watts">18.4 W</div>
+          <div class="cur-sub">CPU 6.2 W &nbsp;·&nbsp; iGPU 0.8 W</div>
+        </div>
+        <div>
+          <div class="cur-pct">64%</div>
+          <div class="cur-eta">3 h 05 m to empty</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mock-wrap">
+    <div class="mock-label">Proposed — instrument hero</div>
+    <div class="mock">
+      <div class="inst">
+        <div class="inst-top">
+          <div class="inst-readout">
+            <span class="inst-state">▼ DISCHARGING</span>
+            <span class="inst-watts">18.4<span class="unit">W</span></span>
+            <span class="inst-split">CPU <b>6.2</b> · iGPU <b>0.8</b> · rest <b>11.4</b></span>
+          </div>
+          <div class="flow">
+            <div class="fnode">WALL<b>—</b></div>
+            <svg class="flowline" width="56" height="24" aria-hidden="true">
+              <line x1="4" y1="12" x2="52" y2="12" stroke="#242A36" stroke-width="2"/>
+            </svg>
+            <div class="fnode active">SYSTEM<b>18.4 W</b></div>
+            <svg class="flowline" width="56" height="24" aria-hidden="true">
+              <line x1="4" y1="12" x2="52" y2="12" stroke="#F0883E" stroke-width="2" class="flow-anim"/>
+              <path d="M 14 7 L 6 12 L 14 17" fill="none" stroke="#F0883E" stroke-width="2"/>
+            </svg>
+            <div class="fnode active">BATTERY<b>−18.4 W</b></div>
+          </div>
+          <div class="inst-batt">
+            <div class="batt-gauge">
+              <div class="batt-fill"></div>
+              <div class="batt-num">64%</div>
+            </div>
+            <span class="batt-eta"><b>3 h 05 m</b> to empty · 46.1 Wh left</span>
+          </div>
+        </div>
+        <div class="inst-spark">
+          <span class="spark-label">LAST 60 S</span>
+          <svg width="100%" height="34" viewBox="0 0 600 34" preserveAspectRatio="none" aria-hidden="true">
+            <line x1="0" y1="8" x2="600" y2="8" stroke="#242A36" stroke-width="1" stroke-dasharray="2 4"/>
+            <polyline fill="none" stroke="#F0883E" stroke-width="1.6"
+              points="0,22 40,21 80,23 120,20 160,24 200,18 240,8 280,10 320,16 360,22 400,21 440,23 480,20 520,22 560,19 600,17"/>
+            <polygon fill="rgba(240,136,62,0.10)"
+              points="0,22 40,21 80,23 120,20 160,24 200,18 240,8 280,10 320,16 360,22 400,21 440,23 480,20 520,22 560,19 600,17 600,34 0,34"/>
+            <circle cx="600" cy="17" r="3" fill="#F0883E"/>
+            <circle cx="240" cy="8" r="2.5" fill="none" stroke="#F5B62E" stroke-width="1.5"/>
+          </svg>
+          <span class="peakline">PEAK <b>42.0 W</b> 14:32</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p>What changed: the wattage is <strong>state-colored</strong> (orange discharging, green charging, blue on AC
+  idle — the tray icon already speaks this language, so the hero finally matches it). The <strong>flow diagram</strong>
+  shows direction: dashes physically move from battery to system while discharging, wall to both while charging;
+  on AC the wall node lights up with the estimated input from the Power Budget learner. The <strong>battery
+  gauge</strong> replaces the bare percentage. The <strong>60-second sparkline</strong> answers "what just
+  happened" without touching the big chart, and carries the session peak as a marked point — instant scale
+  context. All of it is data the Sampler already produces.</p>
+
+  <h2 style="margin-top:24px">Tiered cards + reference strip</h2>
+  <p class="dim">Live cards get one big number, two support rows, and a 5-minute sparkline. Battery specs and
+  health — data that changes monthly, not per-sample — collapse into a chassis-label strip.</p>
+
+  <div class="mock-wrap">
+    <div class="mock-label">Proposed — “Now” tier and reference strip</div>
+    <div class="mock">
+      <div class="tier-cards">
+        <div class="lcard">
+          <span class="lcard-title">System draw</span>
+          <span class="lcard-big" style="color:var(--m-accent)">18.4<span class="unit"> W</span></span>
+          <div class="lcard-rows">
+            <span>Wall input <b>—</b></span>
+            <span>Rest of system <b>11.4 W</b></span>
+          </div>
+          <svg width="100%" height="22" viewBox="0 0 160 22" preserveAspectRatio="none" aria-hidden="true">
+            <polyline fill="none" stroke="#F5B62E" stroke-width="1.3" opacity="0.8"
+              points="0,14 20,13 40,15 60,10 80,6 100,12 120,14 140,12 160,11"/>
+          </svg>
+        </div>
+        <div class="lcard">
+          <span class="lcard-title">Processor</span>
+          <span class="lcard-big" style="color:var(--m-info)">6.2<span class="unit"> W</span></span>
+          <div class="lcard-rows">
+            <span>Load <b>11%</b></span>
+            <span>Temp <b>52 °C</b></span>
+          </div>
+          <svg width="100%" height="22" viewBox="0 0 160 22" preserveAspectRatio="none" aria-hidden="true">
+            <polyline fill="none" stroke="#58A6FF" stroke-width="1.3" opacity="0.8"
+              points="0,16 20,15 40,17 60,8 80,5 100,14 120,16 140,15 160,14"/>
+          </svg>
+        </div>
+        <div class="lcard">
+          <span class="lcard-title">iGPU</span>
+          <span class="lcard-big" style="color:var(--m-gpu)">0.8<span class="unit"> W</span></span>
+          <div class="lcard-rows">
+            <span>3D load <b>2%</b></span>
+            <span>Clock <b>350 MHz</b></span>
+          </div>
+          <svg width="100%" height="22" viewBox="0 0 160 22" preserveAspectRatio="none" aria-hidden="true">
+            <polyline fill="none" stroke="#BC8CFF" stroke-width="1.3" opacity="0.8"
+              points="0,18 20,18 40,17 60,18 80,16 100,18 120,17 140,18 160,17"/>
+          </svg>
+        </div>
+        <div class="lcard">
+          <span class="lcard-title">Session</span>
+          <span class="lcard-big">9.6<span class="unit"> Wh</span></span>
+          <div class="lcard-rows">
+            <span>Avg draw <b>16.2 W</b></span>
+            <span>On battery <b>2 h 41 m</b></span>
+          </div>
+          <svg width="100%" height="22" viewBox="0 0 160 22" preserveAspectRatio="none" aria-hidden="true">
+            <polyline fill="none" stroke="#8B93A7" stroke-width="1.3" opacity="0.6"
+              points="0,20 40,17 80,13 120,9 160,5"/>
+          </svg>
+        </div>
+      </div>
+      <div class="ref-strip">
+        <span><span class="rk">Battery</span> <b>56.2 Wh</b> full · <b>11.61 V</b> · Li-ion</span>
+        <span class="sep">│</span>
+        <span><span class="rk">Health</span> <b>19.7%</b> wear · <b>494</b> cycles · 70.03 Wh design</span>
+        <span class="sep">│</span>
+        <span><span class="rk">Estimates</span> avg discharge <b>16.8 W</b> · avg charge <b>—</b></span>
+      </div>
+    </div>
+  </div>
+
+  <p>The eight-card wall becomes four live modules plus one quiet strip. Power Flow and Power Budget merge into
+  <strong>System draw</strong> (they describe the same watts from two sides — on battery show measured draw, on
+  AC show the estimate + wall input, exactly the logic the Budget card already runs). Estimates fold into the
+  reference strip and the hero ETA. Nothing is deleted — Reference details keep living in tooltips and the strip;
+  drag-to-rearrange still applies to the live tier.</p>
+
+  <h2 style="margin-top:24px">Chart toolbar</h2>
+  <div class="mock-wrap">
+    <div class="mock-label">Proposed — ranges, dot-chip series toggles, stateful live pill</div>
+    <div class="mock">
+      <div class="ctb">
+        <div class="ctb-group">
+          <span class="pill">5m</span><span class="pill on">15m</span><span class="pill">1h</span>
+          <span class="pill">6h</span><span class="pill">24h</span><span class="pill">48h</span>
+        </div>
+        <div class="ctb-group" style="gap:6px">
+          <span class="chip"><span class="dot" style="background:#F5B62E"></span>Net</span>
+          <span class="chip"><span class="dot" style="background:#58A6FF"></span>CPU</span>
+          <span class="chip off"><span class="dot" style="background:#BC8CFF"></span>iGPU</span>
+          <span class="chip"><span class="dot" style="background:#3FB950"></span>Batt %</span>
+          <span class="chip off"><span class="dot" style="background:#8B93A7"></span>Load</span>
+        </div>
+        <span class="live-pill">● LIVE</span>
+      </div>
+    </div>
+  </div>
+  <p class="dim" style="font-size:14px">Bonus, nearly free: a <strong>scope mode</strong> — double-click the
+  chart (or press F11) to collapse the card tier and let the chart fill the window for watching draw during a
+  test run. It's one Visibility toggle plus the FLIP animation you already built.</p>
+</section>
+
+<!-- ══════════════ color roles ══════════════ -->
+<section>
+  <span class="eyebrow">05 · Tokens</span>
+  <h2>Semantic color roles</h2>
+  <p class="dim">One hue, one job. Volt values shown; each theme fills the same slots. This is an extension of
+  <code>ThemePalette</code>, not a rewrite.</p>
+  <div class="roles">
+    <table>
+      <tr><th>Role</th><th>Volt value</th><th>Used for</th><th>Never used for</th></tr>
+      <tr>
+        <td><b>Brand accent</b></td>
+        <td><span class="swatch" style="background:#F5B62E"></span><code>#F5B62E</code></td>
+        <td>Icon, title-bar identity, focus rings, selected pills</td>
+        <td>Any data series or live value</td>
+      </tr>
+      <tr>
+        <td><b>Charging / gain</b></td>
+        <td><span class="swatch" style="background:#3FB950"></span><code>#3FB950</code></td>
+        <td>Hero + tray while charging, In row, flow-to-battery</td>
+        <td>The LIVE pill (gets its own quiet treatment)</td>
+      </tr>
+      <tr>
+        <td><b>Discharging / draw</b></td>
+        <td><span class="swatch" style="background:#F0883E"></span><code>#F0883E</code></td>
+        <td>Hero + tray on battery, Out row, hero sparkline</td>
+        <td>Warnings (that's Red's job)</td>
+      </tr>
+      <tr>
+        <td><b>Alert</b></td>
+        <td><span class="swatch" style="background:#F85149"></span><code>#F85149</code></td>
+        <td>Heavy draw threshold, wear &gt; 30%, errors</td>
+        <td>Ordinary discharge states</td>
+      </tr>
+      <tr>
+        <td><b>Series: system</b></td>
+        <td><span class="swatch" style="background:#E8C55A"></span><code>#E8C55A</code></td>
+        <td>Net/system-draw chart series + card sparkline</td>
+        <td rowspan="2">UI chrome — series hues live only in data ink. Splitting series-net from brand accent (slightly desaturated, lighter) is what lets amber stay special.</td>
+      </tr>
+      <tr>
+        <td><b>Series: CPU / iGPU / %</b></td>
+        <td>
+          <span class="swatch" style="background:#58A6FF"></span><code>#58A6FF</code>&ensp;
+          <span class="swatch" style="background:#BC8CFF"></span><code>#BC8CFF</code>&ensp;
+          <span class="swatch" style="background:#3FB950"></span><code>#3FB950</code>
+        </td>
+        <td>Chart series, dot-chips, card sparklines</td>
+      </tr>
+    </table>
+  </div>
+</section>
+
+<!-- ══════════════ plan ══════════════ -->
+<section>
+  <span class="eyebrow">06 · Plan</span>
+  <h2>Phased, soak-week compatible</h2>
+  <p class="dim">Phase 1 is pure polish — safe during the feature freeze. Phases 2–3 are the redesign proper,
+  for after the soak verdict.</p>
+
+  <div class="phase">
+    <div class="phase-head"><h3>Phase 1 — Chassis polish</h3><span class="effort">SMALL · no layout changes</span></div>
+    <ul>
+      <li>Dark title bars on all three windows via DWM attribute (F2, minimum version)</li>
+      <li>Theme the banner, button hovers, mini-graph border — derive from palette, kill stray hexes (F6)</li>
+      <li>Dark ComboBox template (F7) — biggest daily-visibility win per hour spent</li>
+      <li>Uniform card width so rows wrap cleanly (F4)</li>
+      <li>Semantic color slots in <code>ThemePalette</code> — plumbing for everything later (F5)</li>
+    </ul>
+  </div>
+
+  <div class="phase">
+    <div class="phase-head"><h3>Phase 2 — The instrument</h3><span class="effort">MEDIUM · the visible redesign</span></div>
+    <ul>
+      <li>Instrument hero: state-colored readout, flow diagram, battery gauge, 60 s sparkline + peak (F3)</li>
+      <li>Tiered layout: 4 live cards with sparklines + reference strip; merge Flow/Budget into System draw (F1)</li>
+      <li>Chart toolbar: dot-chips, stateful LIVE pill; move interval/units into Settings (F8, F10)</li>
+      <li>Full custom <code>WindowChrome</code> with tier badge in the title bar (F2, full version)</li>
+    </ul>
+  </div>
+
+  <div class="phase">
+    <div class="phase-head"><h3>Phase 3 — Signal &amp; motion</h3><span class="effort">SMALL–MEDIUM · personality</span></div>
+    <ul>
+      <li>Number tween on the hero + change-flash on stats, reduced-motion aware (F9)</li>
+      <li>Animated flow dashes tied to actual direction and magnitude</li>
+      <li>Scope mode (chart fills window)</li>
+      <li>Icon revisit to match: panel-meter readout / meter needle, amber-on-dark — pairs with the PwrMon wordmark</li>
+    </ul>
+  </div>
+
+  <p class="note"><strong>Recommendation:</strong> do Phase 1 now — it's invisible to the soak experiment
+  (no behavior or layout changes) and removes every "unfinished" tell. Live with it a few days, then decide
+  Phase 2 alongside the rename-to-PwrMon and icon revisit, since hero + wordmark + icon form one identity move.</p>
+</section>
+
+<footer class="dim" style="font-family:var(--mono); font-size:11px; letter-spacing:0.06em;">
+  PowerMonitor design review · mockups rendered in Volt theme · all figures from the Zenbook UX3404VA
+</footer>
+</main>
