@@ -901,7 +901,7 @@ public partial class MainWindow : Window
         var dlg = new Microsoft.Win32.SaveFileDialog
         {
             Filter = "CSV files|*.csv",
-            FileName = $"powermonitor-{DateTime.Now:yyyyMMdd-HHmm}.csv",
+            FileName = $"pwrmon-{DateTime.Now:yyyyMMdd-HHmm}.csv",
         };
         if (dlg.ShowDialog(this) != true) return;
         try
