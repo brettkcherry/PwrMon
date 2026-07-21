@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PwrMon — Panel Meter Study, visual companion</title>
+<style>
+  :root{
+    --bg:#0B0D11; --panel:#12151B; --edge:#212734;
+    --ink:#E6E9F0; --dim:#8A93A6; --faint:#5A6376;
+    --accent:#F5B62E;
+    --mono:"Cascadia Mono","JetBrains Mono",Consolas,ui-monospace,monospace;
+    --sans:"Inter","Segoe UI",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+       line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:56px 24px 96px}
+  header{border-bottom:1px solid var(--edge);padding-bottom:28px;margin-bottom:48px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+           color:var(--accent);margin:0 0 12px}
+  h1{font-size:clamp(28px,4.5vw,40px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+  .lede{color:var(--dim);font-size:17px;max-width:62ch;margin:0}
+  section{margin:0 0 64px}
+  h2{font-size:13px;font-family:var(--mono);letter-spacing:.14em;text-transform:uppercase;
+     color:var(--accent);margin:0 0 6px;font-weight:600}
+  h3{font-size:22px;margin:0 0 10px;letter-spacing:-.01em}
+  p{max-width:68ch;color:var(--dim);margin:0 0 16px}
+  p strong{color:var(--ink);font-weight:600}
+  code{font-family:var(--mono);font-size:.9em;background:#1A1F29;padding:2px 6px;
+       border-radius:4px;color:#C8D2E4}
+  .card{background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:20px;margin:24px 0}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px}
+  .grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+  canvas{display:block;width:100%;height:auto;border-radius:8px}
+  .cap{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:10px;
+       letter-spacing:.04em;line-height:1.5}
+  .cap b{color:var(--dim);font-weight:600}
+  .verdict{border-left:2px solid var(--accent);padding:2px 0 2px 16px;margin:20px 0;
+           color:var(--ink);max-width:66ch}
+  .verdict b{color:var(--accent)}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin:16px 0}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--edge)}
+  th{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+     color:var(--faint);font-weight:600}
+  td{color:var(--dim)} td:first-child{color:var(--ink);font-family:var(--mono);font-size:12.5px}
+  footer{border-top:1px solid var(--edge);padding-top:24px;color:var(--faint);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">PwrMon · design research · 2026-07-21</p>
+  <h1>Panel meter study</h1>
+  <p class="lede">Visual companion to PANEL-METER-STUDY.md. A scope is watched. A multimeter is
+  read. <em>A panel meter is glanced at.</em> Every needle below is a real simulated
+  second-order system — the physics runs live.</p>
+</header>
+
+<!-- 01 BALLISTICS -->
+<section>
+  <h2>Finding 01 · the headline</h2>
+  <h3>Ballistics — a needle does not show you the signal</h3>
+  <p>It shows you the signal through a <strong>defined mechanical response</strong>, and that
+  response is standardised because the raw signal is unreadable. All three meters below are fed
+  the <strong>identical</strong> live power signal at the same instant.</p>
+
+  <div class="grid3">
+    <div class="card">
+      <canvas id="m-raw" width="520" height="400"></canvas>
+      <p class="cap"><b>RAW.</b> Every sample, no filtering. Technically the most current data
+      on screen — and completely unreadable.</p>
+    </div>
+    <div class="card">
+      <canvas id="m-vu" width="520" height="400"></canvas>
+      <p class="cap"><b>VU — 300 ms, symmetric.</b> Average-responding, minor overshoot.
+      Calm and musical, but transients are smoothed away entirely.</p>
+    </div>
+    <div class="card">
+      <canvas id="m-ppm" width="520" height="400"></canvas>
+      <p class="cap"><b>PPM — 5 ms attack, ~1.7 s decay.</b> Deliberately asymmetric: catches
+      the peak instantly, then releases slowly enough to actually read it.</p>
+    </div>
+  </div>
+
+  <div class="verdict"><b>This is the answer to PwrMon's jittery readout.</b> Not "smooth it
+  more" (loses the spike) and not "show raw" (unreadable). A 90 W spike lasting 200 ms should
+  jump instantly to full height and then ease down over a second or two — visible, readable,
+  and honest about the peak. <b>If PwrMon adopts one thing from all three studies, it is this.</b></div>
+</section>
+
+<!-- 02 DAMPING -->
+<section>
+  <h2>Finding 02</h2>
+  <h3>Damping — there is exactly one correct amount</h3>
+  <p>A moving-coil movement is a coil on a spring: a mechanical resonator. Real meters add
+  <strong>eddy-current damping</strong> so the pointer settles quickly without oscillating.
+  Below, the same repeating step input through three damping ratios.</p>
+
+  <div class="grid3">
+    <div class="card">
+      <canvas id="d-under" width="520" height="300"></canvas>
+      <p class="cap"><b>ζ = 0.25 — underdamped.</b> Overshoots and rings. Jittery and
+      exhausting; you wait for it to settle before trusting it.</p>
+    </div>
+    <div class="card">
+      <canvas id="d-crit" width="520" height="300"></canvas>
+      <p class="cap"><b>ζ = 1.0 — critically damped.</b> Fastest possible approach with no
+      overshoot. <b>The target.</b></p>
+    </div>
+    <div class="card">
+      <canvas id="d-over" width="520" height="300"></canvas>
+      <p class="cap"><b>ζ = 3.0 — overdamped.</b> Never overshoots but crawls. Reads as laggy
+      and unresponsive.</p>
+    </div>
+  </div>
+  <p>Any animated readout in PwrMon — needle, bar, or number — should be a critically damped
+  second-order response, <strong>not a linear tween and not a naive EMA</strong>. It is barely
+  more code and it is the whole difference between "animated" and "instrument".</p>
+</section>
+
+<!-- 03 ZONES + PEAK HOLD -->
+<section>
+  <h2>Finding 03</h2>
+  <h3>Zones before numbers, and a needle with a memory</h3>
+  <p>Coloured bands let you read <strong>state</strong> before <strong>value</strong> — a glance
+  answers "is this OK?" without processing a number at all. This is the highest-bandwidth thing
+  a panel meter does, and at 16 px in a system tray it is the <em>only</em> channel that works.
+  The faint trailing pointer is a <strong>peak-hold ghost</strong>: dragged along and left at
+  the maximum so the peak stays visible after the main needle falls back.</p>
+
+  <div class="card">
+    <canvas id="m-zones" width="1400" height="480"></canvas>
+    <p class="cap"><b>Live, with derived zones and peak-hold.</b> Green = idle band around the
+    learned baseline · amber = active · red = heavy draw. Ghost pointer holds session peak;
+    zones could derive from the learned baseline per machine rather than being configured.</p>
+  </div>
+</section>
+
+<!-- 04 CONVERGENCE -->
+<section>
+  <h2>Finding 04</h2>
+  <h3>Three studies, one conclusion</h3>
+  <p>Researched independently, the three instrument families agree — which is about as strong a
+  signal as design research ever gives you. These are not aesthetic preferences; they are the
+  correct answers to problems every measuring instrument has.</p>
+  <table>
+    <tr><th>Idea</th><th>Scope</th><th>Multimeter</th><th>Panel meter</th></tr>
+    <tr><td>Catch what you missed</td><td>Trigger</td><td>Peak MIN/MAX</td><td>Peak-hold pointer</td></tr>
+    <tr><td>Deviation, not absolute</td><td>AC coupling</td><td>REL / Δ</td><td>Suppressed-zero scale</td></tr>
+    <tr><td>Pick the scale for me</td><td>AUTOSET</td><td>Autorange</td><td>(fixed by design)</td></tr>
+    <tr><td>State before value</td><td>Graticule divisions</td><td>Bargraph</td><td><strong>Coloured zones</strong></td></tr>
+    <tr><td>Don't overstate precision</td><td>Dwell weighting</td><td>±(% + counts)</td><td>Mirror strip</td></tr>
+    <tr><td>Tame the raw signal</td><td>Persistence</td><td>True RMS</td><td><strong>Ballistics</strong></td></tr>
+  </table>
+  <div class="verdict"><b>One skeuomorphic element the research endorses:</b> a needle. Every
+  study said don't render fake knobs — knobs are <em>inputs</em>, and a mouse is a bad rotary
+  switch. A needle is an <em>output</em>. There is no interaction to betray, and it is genuinely
+  superb at rate-of-change and zone-at-a-glance.</div>
+</section>
+
+<footer>
+  Companion to <strong>PANEL-METER-STUDY.md</strong> — sources and full reasoning there.<br>
+  All needles are live second-order simulations driven by a synthetic power signal.
+</footer>
+</div>
+
+<script>
+// ── infra ──
+function setup(id){
+  const c=document.getElementById(id); if(!c) return null;
+  const dpr=Math.min(window.devicePixelRatio||1,2), w=c.width, h=c.height;
+  c.width=w*dpr; c.height=h*dpr; c.style.aspectRatio=w+'/'+h;
+  const x=c.getContext('2d'); x.scale(dpr,dpr); return {ctx:x,w,h};
+}
+let _s=4242; const rnd=()=>{_s=(_s*1103515245+12345)&0x7fffffff; return _s/0x7fffffff;};
+
+// ── gauge renderer ──
+function gauge(ctx,w,h,o){
+  const {value=0, max=100, label='', sub='', zones=null, ghost=null,
+         face='#EDE7D6', ink='#22262A', accent='#8C2F2F', big=true} = o||{};
+  const cx=w/2, cy=h*(big?1.02:0.98), R=h*(big?0.90:0.86);
+  const A0=-Math.PI/2-0.62, A1=-Math.PI/2+0.62;
+  const ang=t=>A0+(A1-A0)*Math.max(0,Math.min(1,t));
+  const pt=(t,r)=>[cx+Math.cos(ang(t))*r, cy+Math.sin(ang(t))*r];
+
+  ctx.fillStyle=face; ctx.fillRect(0,0,w,h);
+
+  // zones
+  if(zones){
+    for(const z of zones){
+      ctx.beginPath();
+      ctx.arc(cx,cy,R-10,ang(z.from/max),ang(z.to/max));
+      ctx.arc(cx,cy,R-24,ang(z.to/max),ang(z.from/max),true);
+      ctx.closePath(); ctx.fillStyle=z.color; ctx.fill();
+    }
+  }
+  // arc + ticks
+  ctx.strokeStyle=ink; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(cx,cy,R-28,A0,A1); ctx.stroke();
+  ctx.fillStyle=ink; ctx.textAlign='center'; ctx.font='600 13px "Inter",sans-serif';
+  const DIV=10;
+  for(let i=0;i<=DIV*2;i++){
+    const t=i/(DIV*2), major=i%2===0;
+    const [x1,y1]=pt(t,R-28), [x2,y2]=pt(t,R-28-(major?14:7));
+    ctx.lineWidth=major?2:1;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    if(major && i%4===0){ const [lx,ly]=pt(t,R-62);
+      ctx.fillText(String(Math.round(t*max)), lx, ly+4); }
+  }
+  // ghost peak
+  if(ghost!==null && ghost!==undefined){
+    const [gx,gy]=pt(ghost/max,R-34);
+    ctx.strokeStyle='rgba(34,38,42,.30)'; ctx.lineWidth=2.4;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(gx,gy); ctx.stroke();
+  }
+  // needle
+  const [nx,ny]=pt(value/max,R-34);
+  ctx.strokeStyle=accent; ctx.lineWidth=2.8; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(nx,ny); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,7,0,7); ctx.fillStyle=ink; ctx.fill();
+  // labels
+  ctx.fillStyle=ink; ctx.font='700 13px "Inter",sans-serif';
+  ctx.fillText(label, cx, h-34);
+  ctx.fillStyle='#6B7268'; ctx.font='10.5px "Cascadia Mono",monospace';
+  ctx.fillText(sub, cx, h-16);
+}
+
+// ── shared live signal ──
+let T=0, SIGNAL=14;
+(function drive(){
+  let prev=performance.now();
+  function step(now){
+    const dt=Math.min(0.08,(now-prev)/1000); prev=now; T+=dt;
+    let v=14+Math.sin(T*0.85)*2.4+(rnd()-0.5)*4.5;
+    if(Math.sin(T*0.28)>0.96) v+=62;                 // periodic burst
+    if(rnd()>0.994) v+=30;                            // brief transient
+    SIGNAL=Math.max(0,v);
+    requestAnimationFrame(step);
+  }
+  step(performance.now());   // seed synchronously: rAF may be throttled (background tab)
+})();
+
+// ── 01: three ballistics ──
+(()=>{
+  const raw=setup('m-raw'), vu=setup('m-vu'), ppm=setup('m-ppm');
+  if(!raw||!vu||!ppm) return;
+  let vuPos=14, vuVel=0, ppmV=14;
+  const W_VU=22;                                     // critically damped, ~300 ms settle
+  let prev=performance.now();
+  function frame(now){
+    const dt=Math.min(0.05,(now-prev)/1000); prev=now;
+    const x=SIGNAL;
+    // VU: critically damped 2nd order
+    const a=W_VU*W_VU*(x-vuPos)-2*W_VU*vuVel;
+    vuVel+=a*dt; vuPos+=vuVel*dt;
+    // PPM: fast attack, slow release
+    const tau = x>ppmV ? 0.02 : 0.62;
+    ppmV += (x-ppmV)*(1-Math.exp(-dt/tau));
+
+    gauge(raw.ctx,raw.w,raw.h,{value:SIGNAL,max:100,label:'RAW',sub:'no filtering'});
+    gauge(vu.ctx,vu.w,vu.h,{value:Math.max(0,vuPos),max:100,label:'VU',sub:'300 ms symmetric'});
+    gauge(ppm.ctx,ppm.w,ppm.h,{value:ppmV,max:100,label:'PPM',sub:'fast attack · slow decay'});
+    requestAnimationFrame(frame);
+  }
+  frame(performance.now());  // draw immediately, then animate
+})();
+
+// ── 02: damping regimes on a repeating step ──
+(()=>{
+  const cfg=[['d-under',0.25,'ζ = 0.25'],['d-crit',1.0,'ζ = 1.0'],['d-over',3.0,'ζ = 3.0']];
+  const st=cfg.map(([id,z,l])=>{
+    const s=setup(id); return s?{s,z,l,pos:20,vel:0}:null;
+  }).filter(Boolean);
+  if(!st.length) return;
+  const W=16; let prev=performance.now(), t=0;
+  function frame(now){
+    const dt=Math.min(0.05,(now-prev)/1000); prev=now; t+=dt;
+    const target=(t%4)<2?20:78;                       // repeating step
+    for(const o of st){
+      const a=W*W*(target-o.pos)-2*o.z*W*o.vel;
+      o.vel+=a*dt; o.pos+=o.vel*dt;
+      gauge(o.s.ctx,o.s.w,o.s.h,{value:Math.max(0,Math.min(100,o.pos)),max:100,
+        label:o.l,sub:'step response',big:false});
+    }
+    requestAnimationFrame(frame);
+  }
+  frame(performance.now());
+})();
+
+// ── 03: zones + peak hold ──
+(()=>{
+  const s=setup('m-zones'); if(!s) return;
+  let v=14, vel=0, peak=14, peakAt=0;
+  const W=20;
+  const zones=[
+    {from:0,  to:26, color:'rgba(60,140,70,.30)'},
+    {from:26, to:62, color:'rgba(214,158,46,.30)'},
+    {from:62, to:100,color:'rgba(160,50,45,.32)'},
+  ];
+  let prev=performance.now();
+  function frame(now){
+    const dt=Math.min(0.05,(now-prev)/1000); prev=now;
+    const a=W*W*(SIGNAL-v)-2*W*vel; vel+=a*dt; v+=vel*dt;
+    if(v>peak){ peak=v; peakAt=now; }
+    else if(now-peakAt>4200) peak+= (v-peak)*(1-Math.exp(-dt/1.5));  // slow ghost release
+    gauge(s.ctx,s.w,s.h,{value:Math.max(0,v),max:100,ghost:peak,zones,
+      label:'SYSTEM DRAW — WATTS', sub:'zones derived from learned baseline · ghost holds peak'});
+    requestAnimationFrame(frame);
+  }
+  frame(performance.now());
+})();
+</script>
+</body>
+</html>
