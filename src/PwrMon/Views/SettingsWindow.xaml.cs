@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using System.Windows.Input;
 using PwrMon.Models;
 using PwrMon.Services;
 
@@ -25,30 +26,26 @@ public partial class SettingsWindow : Window
             AppSettings.Save();
             ThemeService.Apply(themeName);
         };
+        // ComboBox only fires SelectionChanged on commit (Enter/click), not while arrowing
+        // through an open dropdown — advance the selection ourselves so each arrow press
+        // previews live through the handler above, same as a click would.
+        WireArrowPreview(CmbTheme);
 
-        var fonts = ThemeService.InstalledFonts().ToList();
-        foreach (var f in fonts) CmbFont.Items.Add(f);
-        foreach (var f in fonts) CmbTextFont.Items.Add(f);
+        var allFonts = ThemeService.InstalledFonts().ToList();
 
-        CmbFont.SelectedItem = fonts.FirstOrDefault(f => f.Equals(AppSettings.Current.NumeralFont, StringComparison.OrdinalIgnoreCase))
-                               ?? fonts.FirstOrDefault(f => f == "Segoe UI");
-        CmbFont.SelectionChanged += (_, _) =>
+        SetupFontCombo(CmbFont, ThemeService.CuratedNumeralFonts().ToList(), allFonts, AppSettings.Current.NumeralFont, fontName =>
         {
-            if (_initializing || CmbFont.SelectedItem is not string fontName) return;
             AppSettings.Current.NumeralFont = fontName;
             AppSettings.Save();
             ThemeService.ApplyNumeralFont(fontName);
-        };
+        });
 
-        CmbTextFont.SelectedItem = fonts.FirstOrDefault(f => f.Equals(AppSettings.Current.TextFont, StringComparison.OrdinalIgnoreCase))
-                                   ?? fonts.FirstOrDefault(f => f == "Segoe UI");
-        CmbTextFont.SelectionChanged += (_, _) =>
+        SetupFontCombo(CmbTextFont, ThemeService.CuratedTextFonts().ToList(), allFonts, AppSettings.Current.TextFont, fontName =>
         {
-            if (_initializing || CmbTextFont.SelectedItem is not string fontName) return;
             AppSettings.Current.TextFont = fontName;
             AppSettings.Save();
             ThemeService.ApplyTextFont(fontName);
-        };
+        });
 
         ChkCloseToTray.IsChecked = AppSettings.Current.CloseToTray;
         ChkStartMinimized.IsChecked = AppSettings.Current.StartMinimized;
@@ -77,6 +74,55 @@ public partial class SettingsWindow : Window
         CmbRetention.SelectionChanged += (_, _) => SaveBehavior();
 
         _initializing = false;
+    }
+
+    private const string ShowAllFontsSentinel = "All installed fonts…";
+
+    /// <summary>Populates a font ComboBox with the curated list (plus the saved choice, if it
+    /// happens to be outside the curated set) and an escape hatch to every installed font.</summary>
+    private void SetupFontCombo(System.Windows.Controls.ComboBox combo, List<string> curated, List<string> allFonts, string savedFont, Action<string> onCommit)
+    {
+        var items = new List<string>(curated);
+        if (!items.Any(f => f.Equals(savedFont, StringComparison.OrdinalIgnoreCase)) &&
+            allFonts.Any(f => f.Equals(savedFont, StringComparison.OrdinalIgnoreCase)))
+            items.Insert(0, savedFont);
+        items.Add(ShowAllFontsSentinel);
+
+        foreach (var f in items) combo.Items.Add(f);
+        combo.SelectedItem = items.FirstOrDefault(f => f.Equals(savedFont, StringComparison.OrdinalIgnoreCase))
+                            ?? items.FirstOrDefault(f => f == "Segoe UI") ?? items[0];
+
+        combo.SelectionChanged += (_, _) =>
+        {
+            if (_initializing || combo.SelectedItem is not string chosen) return;
+            if (chosen == ShowAllFontsSentinel)
+            {
+                combo.Items.Clear();
+                foreach (var f in allFonts) combo.Items.Add(f);
+                combo.SelectedItem = allFonts.FirstOrDefault(f => f.Equals(savedFont, StringComparison.OrdinalIgnoreCase));
+                combo.IsDropDownOpen = true;
+                return;
+            }
+            onCommit(chosen);
+        };
+        WireArrowPreview(combo);
+    }
+
+    /// <summary>ComboBox only fires SelectionChanged on commit; while the dropdown is open,
+    /// arrow keys just move the highlight. Advance SelectedIndex ourselves so each arrow
+    /// press previews live through whatever SelectionChanged handler is already wired.</summary>
+    private static void WireArrowPreview(System.Windows.Controls.ComboBox combo)
+    {
+        combo.PreviewKeyDown += (_, e) =>
+        {
+            if (!combo.IsDropDownOpen) return;
+            var delta = e.Key switch { Key.Down => 1, Key.Up => -1, _ => 0 };
+            if (delta == 0) return;
+            var next = combo.SelectedIndex + delta;
+            if (next < 0 || next >= combo.Items.Count) return;
+            combo.SelectedIndex = next;
+            e.Handled = true;
+        };
     }
 
     private void SaveBehavior()

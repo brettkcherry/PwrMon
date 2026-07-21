@@ -83,7 +83,46 @@ public static class ThemeService
             new FontFamily($"{family}, Segoe UI");
     }
 
-    /// <summary>All installed font family names, for the settings pickers.</summary>
+    // Hand-picked, techie/monospace-leaning candidates for the settings pickers — a machine
+    // with 300+ installed fonts shouldn't force scrolling through all of them by default.
+    // Only names actually installed on this machine make it into the visible list; the
+    // full set stays one click away via the "All installed fonts…" sentinel.
+    private static readonly string[] CuratedNumeralCandidates =
+    {
+        "Cascadia Mono", "Cascadia Code", "Consolas", "Courier New", "Lucida Console",
+        "JetBrains Mono", "JetBrainsMono NF", "Fira Code", "Fira Mono", "Source Code Pro",
+        "SauceCodePro NF", "IBM Plex Mono", "Roboto Mono", "Space Mono", "Ubuntu Mono",
+        "Inconsolata", "Hack", "Anonymous Pro", "AnonymicePro Nerd Font Mono",
+        "DejaVu Sans Mono", "Liberation Mono", "Menlo", "Monaco", "SF Mono",
+        "OCR A Extended", "Victor Mono", "VictorMono NF", "CommitMono",
+        "CommitMono Nerd Font", "Input Mono", "PT Mono", "Overpass Mono", "Red Hat Mono",
+        "Noto Sans Mono", "Droid Sans Mono Slashed", "Terminus", "Monofur", "Bahnschrift",
+        "Cousine", "Share Tech Mono",
+    };
+
+    private static readonly string[] CuratedTextCandidates =
+    {
+        "Segoe UI", "Cascadia Mono", "Cascadia Code", "Consolas", "JetBrains Mono",
+        "JetBrainsMono NF", "Fira Code", "Source Code Pro", "SauceCodePro NF",
+        "IBM Plex Mono", "IBM Plex Sans", "Roboto Mono", "Space Mono", "Space Grotesk",
+        "Inconsolata", "Hack", "Share Tech Mono", "Orbitron", "Rajdhani", "Chakra Petch",
+        "Audiowide", "Exo 2", "Titillium Web", "Inter", "Roboto", "Open Sans", "Noto Sans",
+        "Ubuntu Mono", "Overpass Mono", "Red Hat Mono", "Victor Mono", "VictorMono NF",
+    };
+
+    /// <summary>Curated numeral-font picks that are actually installed on this machine.</summary>
+    public static IEnumerable<string> CuratedNumeralFonts() => Curated(CuratedNumeralCandidates);
+
+    /// <summary>Curated interface-font picks that are actually installed on this machine.</summary>
+    public static IEnumerable<string> CuratedTextFonts() => Curated(CuratedTextCandidates);
+
+    private static IEnumerable<string> Curated(string[] candidates)
+    {
+        var installed = new HashSet<string>(InstalledFonts(), StringComparer.OrdinalIgnoreCase);
+        return candidates.Where(installed.Contains).OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>All installed font family names — the escape hatch behind the curated lists.</summary>
     public static IEnumerable<string> InstalledFonts() =>
         System.Windows.Media.Fonts.SystemFontFamilies
             .Select(f => f.Source)
