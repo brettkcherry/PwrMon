@@ -504,16 +504,25 @@ public partial class MainWindow : Window
         HeroState.Text = state;
         HeroState.Foreground = brush;
 
+        // HeroWatts/State get their brush fresh above; HeroSub/Percent/Eta are only ever
+        // wired via a XAML StaticResource, which can go stale across a theme switch if the
+        // window has lived through several — refresh them here too so nothing gets left behind.
+        var textBrush = (System.Windows.Media.Brush)FindResource("TextBrush");
+        var dimBrush = (System.Windows.Media.Brush)FindResource("TextDimBrush");
+
         if (s.HasBattery)
         {
             HeroWatts.Text = UnitFormatter.Power(s.NetW, signed: true);
             HeroWatts.Foreground = brush;
             var sysNote = s.AcOnline && est.EstSystemW is double es2 ? $" • system ≈ {UnitFormatter.Power(es2)}" : "";
             HeroSub.Text = $"{UnitFormatter.Energy(s.RemainingWh, s.VoltageV)} of {UnitFormatter.Energy(s.FullChargeWh, s.VoltageV)} • {s.VoltageV:F2} V • {(s.AcOnline ? "on AC power" : "on battery")}{sysNote}";
+            HeroSub.Foreground = dimBrush;
             HeroPercent.Text = $"{s.BatteryPercent:F1}%";
+            HeroPercent.Foreground = textBrush;
             HeroEta.Text = s.Charging ? $"full in {UnitFormatter.Duration(est.TimeToFull)}"
                          : s.Discharging ? $"{UnitFormatter.Duration(est.TimeToEmpty)} remaining"
                          : " ";
+            HeroEta.Foreground = dimBrush;
         }
         else
         {
