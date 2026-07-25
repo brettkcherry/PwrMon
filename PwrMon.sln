@@ -11,6 +11,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{0884D1C4
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SensorProbe", "tools\SensorProbe\SensorProbe.csproj", "{FA41C206-795A-4284-A70C-36C8C823DB22}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PwrMon.Tests", "src\PwrMon.Tests\PwrMon.Tests.csproj", "{79FFD3BF-C872-4192-A6FD-3D75144FEF01}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,9 +30,14 @@ Global
 		{FA41C206-795A-4284-A70C-36C8C823DB22}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FA41C206-795A-4284-A70C-36C8C823DB22}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FA41C206-795A-4284-A70C-36C8C823DB22}.Release|Any CPU.Build.0 = Release|Any CPU
+		{79FFD3BF-C872-4192-A6FD-3D75144FEF01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{79FFD3BF-C872-4192-A6FD-3D75144FEF01}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{79FFD3BF-C872-4192-A6FD-3D75144FEF01}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{79FFD3BF-C872-4192-A6FD-3D75144FEF01}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{C63CD3BF-BFD1-4B3C-808B-32B51BBA3126} = {D0069A35-8473-4011-A052-B0E3A55CB292}
 		{FA41C206-795A-4284-A70C-36C8C823DB22} = {0884D1C4-6D92-4306-A70B-37B72516E9EF}
+		{79FFD3BF-C872-4192-A6FD-3D75144FEF01} = {D0069A35-8473-4011-A052-B0E3A55CB292}
 	EndGlobalSection
 EndGlobal

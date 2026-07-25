@@ -114,7 +114,7 @@ public sealed class Sampler : IDisposable
             var now = DateTimeOffset.Now;
             var interval = AppSettings.Current.SamplingIntervalSeconds;
             var dt = _lastTick == DateTimeOffset.MinValue ? interval : (now - _lastTick).TotalSeconds;
-            var gap = dt > Math.Max(3 * interval, 10);
+            var gap = PowerMath.IsGap(dt, interval);
             _lastTick = now;
 
             var b = SanitizeDirection(_battery.Read(), now, gap);
@@ -127,11 +127,11 @@ public sealed class Sampler : IDisposable
 
             // --- EMA smoothing; snap to the instantaneous value when the charge state flips
             var dtClamped = gap ? interval : dt;
-            var alpha = 1 - Math.Exp(-dtClamped / EmaTauSeconds);
+            var alpha = PowerMath.EmaAlpha(dtClamped, EmaTauSeconds);
             if (b.Charging && !_wasCharging) _emaCharge = b.ChargeRateW;
             if (b.Discharging && !_wasDischarging) _emaDischarge = b.DischargeRateW;
-            if (b.Charging) _emaCharge += alpha * (b.ChargeRateW - _emaCharge);
-            if (b.Discharging) _emaDischarge += alpha * (b.DischargeRateW - _emaDischarge);
+            if (b.Charging) _emaCharge = PowerMath.EmaStep(_emaCharge, b.ChargeRateW, alpha);
+            if (b.Discharging) _emaDischarge = PowerMath.EmaStep(_emaDischarge, b.DischargeRateW, alpha);
             _wasCharging = b.Charging;
             _wasDischarging = b.Discharging;
 
@@ -193,7 +193,7 @@ public sealed class Sampler : IDisposable
             if (b.AcOnline && !b.Discharging && estSystem is double es)
             {
                 var sysForWall = !double.IsNaN(_emaPkgW) && !double.IsNaN(_baselineW) ? _emaPkgW + _baselineW : es;
-                estWall = (sysForWall + b.ChargeRateW) / AdapterEfficiency;
+                estWall = PowerMath.WallInputW(sysForWall, b.ChargeRateW, AdapterEfficiency);
             }
 
             var sample = new PowerSample
@@ -235,12 +235,8 @@ public sealed class Sampler : IDisposable
             {
                 SmoothedChargeW = _emaCharge,
                 SmoothedDischargeW = _emaDischarge,
-                TimeToFull = b.Charging && _emaCharge > 0.5 && b.FullChargeWh > 0
-                    ? TimeSpan.FromHours((b.FullChargeWh - b.RemainingWh) / _emaCharge)
-                    : null,
-                TimeToEmpty = b.Discharging && _emaDischarge > 0.5
-                    ? TimeSpan.FromHours(b.RemainingWh / _emaDischarge)
-                    : null,
+                TimeToFull = PowerMath.TimeToFull(b.RemainingWh, b.FullChargeWh, _emaCharge, b.Charging),
+                TimeToEmpty = PowerMath.TimeToEmpty(b.RemainingWh, _emaDischarge, b.Discharging),
                 EstSystemW = estSystem,
                 EstWallW = estWall,
                 IsSystemEstimate = isEstimate,
@@ -274,10 +270,10 @@ public sealed class Sampler : IDisposable
 
         var (t0, wh0) = _capTrend.Peek();
         var spanSec = (now - t0).TotalSeconds;
-        var slopeW = spanSec >= TrendMinSpanSeconds ? (b.RemainingWh - wh0) / (spanSec / 3600.0) : 0;
+        var slopeW = PowerMath.DirectionSlopeW(b.RemainingWh, wh0, spanSec, TrendMinSpanSeconds);
 
-        var claimsChargingButDraining = b.Charging && slopeW < -TrendContradictionW;
-        var claimsDischargingButFilling = b.Discharging && slopeW > TrendContradictionW;
+        var claimsChargingButDraining = PowerMath.ClaimsChargingButDraining(b.Charging, slopeW, TrendContradictionW);
+        var claimsDischargingButFilling = PowerMath.ClaimsDischargingButFilling(b.Discharging, slopeW, TrendContradictionW);
         var flip = claimsChargingButDraining || claimsDischargingButFilling;
         if (flip != _directionOverridden)
         {

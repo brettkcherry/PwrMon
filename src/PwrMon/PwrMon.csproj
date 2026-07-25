@@ -41,4 +41,8 @@
     <Resource Include="Assets\app.ico" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="PwrMon.Tests" />
+  </ItemGroup>
+
 </Project>

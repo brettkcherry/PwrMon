@@ -23,10 +23,14 @@ public sealed class HistoryStore : IDisposable
     public static string HistoryDir => Path.Combine(AppSettings.Dir, "history");
     private static string EventsFile => Path.Combine(HistoryDir, "events.csv");
 
+    /// <summary>Builds one CSV line for a sample, matching <see cref="Header"/>'s column order.</summary>
+    internal static string FormatLine(PowerSample s) =>
+        string.Create(Inv,
+            $"{s.Time:yyyy-MM-ddTHH:mm:ss.fffzzz},{s.ChargeRateW:F3},{s.DischargeRateW:F3},{Opt(s.CpuPackageW)},{Opt(s.IGpuW)},{Opt(s.CpuLoadPct)},{s.BatteryPercent:F2},{s.RemainingWh:F3},{s.VoltageV:F3},{(s.AcOnline ? 1 : 0)},{(s.GapBefore ? 1 : 0)},{Opt(s.CpuPlatformW)}");
+
     public void Append(PowerSample s)
     {
-        var line = string.Create(Inv,
-            $"{s.Time:yyyy-MM-ddTHH:mm:ss.fffzzz},{s.ChargeRateW:F3},{s.DischargeRateW:F3},{Opt(s.CpuPackageW)},{Opt(s.IGpuW)},{Opt(s.CpuLoadPct)},{s.BatteryPercent:F2},{s.RemainingWh:F3},{s.VoltageV:F3},{(s.AcOnline ? 1 : 0)},{(s.GapBefore ? 1 : 0)},{Opt(s.CpuPlatformW)}");
+        var line = FormatLine(s);
         lock (_gate)
         {
             _buffer.AppendLine(line);
@@ -121,7 +125,7 @@ public sealed class HistoryStore : IDisposable
         return result;
     }
 
-    private static PowerSample? ParseLine(string line)
+    internal static PowerSample? ParseLine(string line)
     {
         try
         {
