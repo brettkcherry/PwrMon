@@ -96,3 +96,21 @@ tools/
 
 Dependencies: [LibreHardwareMonitorLib](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) (MPL-2.0),
 [ScottPlot](https://scottplot.net/) (MIT), System.Management. That's it.
+
+Notes from Brett - - 
+
+- the checkboxes for neither CPU, iGPU, Battery % nor Load % persist after minimize to tray and restore.
+
+- Paper theme still has many dark elements, please assess and correct, not a true "light" theme as is. Please let's too make and add 3 more light themed styles and 3 middle.. I almost never see middle range themes done well, let's show 'em something good.
+
+- I do love the color choices overall , of each theme and the different line waves colors and text colors, it looks really slick
+
+- we need to curate the font lists down HARD. So many fewer options and ONLY choosing he best for the design philosphy and instinct of this build
+
+- a way to restore changed settings before Close
+
+- We have never spoken of it or looked at it before , but.. the mini graph is absolutely completely broken and need a full gaze put on it , basically shows nothing, does nothing .. time to fix it
+
+- What IS the tray icon showing? other than color now, the data does not feel intuitive ... 
+
+- Let's make the mini graph resizable, and it's minimum size smaller, especially horizonally 
