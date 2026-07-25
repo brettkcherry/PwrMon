@@ -4,7 +4,7 @@
         xmlns:sp="clr-namespace:ScottPlot.WPF;assembly=ScottPlot.WPF"
         Title="PwrMon"
         Width="1100" Height="780" MinWidth="960" MinHeight="680"
-        Background="{StaticResource BgBrush}"
+        Background="{DynamicResource BgBrush}"
         FontFamily="{DynamicResource TextFontFamily}"
         WindowStartupLocation="CenterScreen">
     <Grid Margin="16,12,6,8">
@@ -25,24 +25,24 @@
             <StackPanel Grid.Column="0" Orientation="Vertical">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock x:Name="HeroState" Text="MEASURING…" FontSize="13" FontWeight="Bold"
-                               Foreground="{StaticResource TextDimBrush}" VerticalAlignment="Bottom" Margin="2,0,0,7"/>
+                               Foreground="{DynamicResource TextDimBrush}" VerticalAlignment="Bottom" Margin="2,0,0,7"/>
                 </StackPanel>
                 <TextBlock x:Name="HeroWatts" Text="— W" FontSize="52" FontWeight="Bold"
                            FontFamily="{DynamicResource NumeralFontFamily}" Typography.NumeralAlignment="Tabular"
-                           Foreground="{StaticResource TextBrush}" Margin="0,-6,0,0"/>
-                <TextBlock x:Name="HeroSub" Text="" FontSize="13" Foreground="{StaticResource TextDimBrush}" Margin="2,0,0,0"/>
+                           Foreground="{DynamicResource TextBrush}" Margin="0,-6,0,0"/>
+                <TextBlock x:Name="HeroSub" Text="" FontSize="13" Foreground="{DynamicResource TextDimBrush}" Margin="2,0,0,0"/>
             </StackPanel>
             <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
                 <TextBlock x:Name="HeroPercent" Text="—%" FontSize="34" FontWeight="SemiBold"
                            FontFamily="{DynamicResource NumeralFontFamily}" Typography.NumeralAlignment="Tabular"
-                           Foreground="{StaticResource TextBrush}" TextAlignment="Right"/>
-                <TextBlock x:Name="HeroEta" Text="" FontSize="13" Foreground="{StaticResource TextDimBrush}" TextAlignment="Right"/>
+                           Foreground="{DynamicResource TextBrush}" TextAlignment="Right"/>
+                <TextBlock x:Name="HeroEta" Text="" FontSize="13" Foreground="{DynamicResource TextDimBrush}" TextAlignment="Right"/>
             </StackPanel>
         </Grid>
 
         <!-- ═══ sensor-tier banner ═══ -->
         <Border x:Name="Banner" Grid.Row="1" Visibility="Collapsed"
-                Background="#2A2416" BorderBrush="#5C4A18" BorderThickness="1" CornerRadius="8"
+                Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource OrangeBrush}" BorderThickness="1" CornerRadius="8"
                 Padding="12,8" Margin="0,0,10,10">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -51,7 +51,7 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock x:Name="BannerText" Grid.Column="0" TextWrapping="Wrap" VerticalAlignment="Center"
-                           Foreground="#E8D9A0" FontSize="12.5"/>
+                           Foreground="{DynamicResource TextBrush}" FontSize="12.5"/>
                 <Button x:Name="BannerBtn1" Grid.Column="1" Style="{StaticResource FlatButton}" Margin="10,0,0,0"
                         Click="BannerBtn1_Click"/>
                 <Button x:Name="BannerBtn2" Grid.Column="2" Style="{StaticResource FlatButton}" Margin="8,0,0,0"
@@ -73,9 +73,9 @@
                             <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" Style="{StaticResource StatLabel}" Text="In (charging)"/>
-                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="FlowIn" Style="{StaticResource StatValue}" Foreground="{StaticResource GreenBrush}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="FlowIn" Style="{StaticResource StatValue}" Foreground="{DynamicResource GreenBrush}"/>
                         <TextBlock Grid.Row="1" Style="{StaticResource StatLabel}" Text="Out (discharge)"/>
-                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="FlowOut" Style="{StaticResource StatValue}" Foreground="{StaticResource OrangeBrush}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="FlowOut" Style="{StaticResource StatValue}" Foreground="{DynamicResource OrangeBrush}"/>
                         <TextBlock Grid.Row="2" Style="{StaticResource StatLabel}" Text="Net battery"/>
                         <TextBlock Grid.Row="2" Grid.Column="1" x:Name="FlowNet" Style="{StaticResource StatValue}"/>
                         <TextBlock Grid.Row="3" Style="{StaticResource StatLabel}" Text="Current"/>
@@ -117,7 +117,7 @@
                             <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" Style="{StaticResource StatLabel}" Text="Package"/>
-                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="CpuPkg" Style="{StaticResource StatValue}" Foreground="{StaticResource BlueBrush}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="CpuPkg" Style="{StaticResource StatValue}" Foreground="{DynamicResource BlueBrush}"/>
                         <TextBlock Grid.Row="1" Style="{StaticResource StatLabel}" Text="Cores / Platform"/>
                         <TextBlock Grid.Row="1" Grid.Column="1" x:Name="CpuCoresPlatform" Style="{StaticResource StatValue}"/>
                         <TextBlock Grid.Row="2" Style="{StaticResource StatLabel}" Text="Load"/>
@@ -139,7 +139,7 @@
                             <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" Style="{StaticResource StatLabel}" Text="Power"/>
-                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="GpuPower" Style="{StaticResource StatValue}" Foreground="#BC8CFF"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="GpuPower" Style="{StaticResource StatValue}" Foreground="{DynamicResource GpuBrush}"/>
                         <TextBlock Grid.Row="1" Style="{StaticResource StatLabel}" Text="3D load"/>
                         <TextBlock Grid.Row="1" Grid.Column="1" x:Name="GpuLoad" Style="{StaticResource StatValue}"/>
                         <TextBlock Grid.Row="2" Style="{StaticResource StatLabel}" Text="Clock"/>
@@ -161,7 +161,7 @@
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" Style="{StaticResource StatLabel}" Text="System draw"
                                    ToolTip="Exact while on battery (measured at the battery). On AC it's estimated: CPU package + the baseline learned from your battery sessions."/>
-                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="BudSystem" Style="{StaticResource StatValue}" Foreground="{StaticResource AccentBrush}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="BudSystem" Style="{StaticResource StatValue}" Foreground="{DynamicResource AccentBrush}"/>
                         <TextBlock Grid.Row="1" Style="{StaticResource StatLabel}" Text="Wall input"
                                    ToolTip="System draw + battery charging, assuming ~90% adapter efficiency. Estimate."/>
                         <TextBlock Grid.Row="1" Grid.Column="1" x:Name="BudWall" Style="{StaticResource StatValue}"/>
@@ -257,23 +257,23 @@
                         <RadioButton Style="{StaticResource RangePill}" Content="6h" Tag="360" GroupName="Range" Checked="Range_Checked"/>
                         <RadioButton Style="{StaticResource RangePill}" Content="24h" Tag="1440" GroupName="Range" Checked="Range_Checked"/>
                         <RadioButton Style="{StaticResource RangePill}" Content="48h" Tag="2880" GroupName="Range" Checked="Range_Checked"/>
-                        <Rectangle Width="1" Fill="{StaticResource CardBorderBrush}" Margin="8,2"/>
-                        <CheckBox x:Name="ChkNet" Style="{StaticResource SeriesCheck}" Content="Net" Foreground="{StaticResource AccentBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
-                        <CheckBox x:Name="ChkCpu" Style="{StaticResource SeriesCheck}" Content="CPU" Foreground="{StaticResource BlueBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
-                        <CheckBox x:Name="ChkGpu" Style="{StaticResource SeriesCheck}" Content="iGPU" Foreground="#BC8CFF" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
-                        <CheckBox x:Name="ChkPct" Style="{StaticResource SeriesCheck}" Content="Battery %" Foreground="{StaticResource GreenBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
-                        <CheckBox x:Name="ChkLoad" Style="{StaticResource SeriesCheck}" Content="Load %" Foreground="{StaticResource TextDimBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
+                        <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="8,2"/>
+                        <CheckBox x:Name="ChkNet" Style="{StaticResource SeriesCheck}" Content="Net" Foreground="{DynamicResource AccentBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
+                        <CheckBox x:Name="ChkCpu" Style="{StaticResource SeriesCheck}" Content="CPU" Foreground="{DynamicResource BlueBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
+                        <CheckBox x:Name="ChkGpu" Style="{StaticResource SeriesCheck}" Content="iGPU" Foreground="{DynamicResource GpuBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
+                        <CheckBox x:Name="ChkPct" Style="{StaticResource SeriesCheck}" Content="Battery %" Foreground="{DynamicResource GreenBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
+                        <CheckBox x:Name="ChkLoad" Style="{StaticResource SeriesCheck}" Content="Load %" Foreground="{DynamicResource TextDimBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <ToggleButton x:Name="LiveToggle" Content="● LIVE" IsChecked="True" FontSize="11" FontWeight="Bold"
-                                      Checked="Live_Checked" Foreground="{StaticResource GreenBrush}"
+                                      Checked="Live_Checked" Foreground="{DynamicResource GreenBrush}"
                                       Background="Transparent" BorderThickness="0" Cursor="Hand"/>
                         <Button Content="Export CSV…" Style="{StaticResource FlatButton}" Margin="12,0,0,0" FontSize="11"
                                 Click="Export_Click"/>
                     </StackPanel>
                 </DockPanel>
                 <TextBlock DockPanel.Dock="Bottom" x:Name="HoverReadout" FontSize="11.5"
-                           Foreground="{StaticResource TextDimBrush}" Margin="4,6,0,0" Text=" "/>
+                           Foreground="{DynamicResource TextDimBrush}" Margin="4,6,0,0" Text=" "/>
                 <sp:WpfPlot x:Name="Chart"/>
             </DockPanel>
         </Border>

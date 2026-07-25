@@ -92,16 +92,28 @@ public partial class MiniGraphWindow : Window
         var now = DateTimeOffset.Now;
         var t0 = now.AddSeconds(-windowSec);
 
-        double min = 0, max = 1;
+        // seed from the first in-window point, not a fixed (0, 1) sentinel — the old sentinel
+        // meant a steady discharge (always < 1) never moved `max` off 1, and a steady charge
+        // (always > 0) never moved `min` off 0, so the plot was scaled against an arbitrary
+        // fixed baseline instead of the data: real fluctuations got squashed into a sliver of
+        // the graph instead of using its full height. This is why the line "meant nothing."
+        double? minSeen = null, maxSeen = null;
         foreach (var (t, v) in _points)
         {
             if (t < t0) continue;
-            if (v < min) min = v;
-            if (v > max) max = v;
+            if (minSeen is null || v < minSeen) minSeen = v;
+            if (maxSeen is null || v > maxSeen) maxSeen = v;
         }
-        var span = Math.Max(max - min, 1);
-        min -= span * 0.08;
-        max += span * 0.08;
+        if (minSeen is null || maxSeen is null) return;
+        var rawMin = minSeen.Value;
+        var rawMax = maxSeen.Value;
+
+        MaxLabel.Text = UnitFormatter.Power(rawMax, signed: true);
+        MinLabel.Text = UnitFormatter.Power(rawMin, signed: true);
+
+        var span = Math.Max(rawMax - rawMin, 1);
+        var min = rawMin - span * 0.08;
+        var max = rawMax + span * 0.08;
         span = max - min;
 
         var pts = new PointCollection();
@@ -161,6 +173,8 @@ public partial class MiniGraphWindow : Window
     }
 
     private void Hide_Click(object sender, RoutedEventArgs e) => App.Current.ToggleMiniGraph();
+
+    private void Exit_Click(object sender, RoutedEventArgs e) => App.Current.ExitApp();
 
     /// <summary>WS_EX_TRANSPARENT: clicks pass through to whatever is underneath. Once enabled the
     /// window can't be right-clicked anymore — the tray menu's mini-graph toggle is the way back.</summary>

@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="PwrMon Settings"
         Width="420" SizeToContent="Height" ResizeMode="NoResize"
-        Background="{StaticResource BgBrush}"
+        Background="{DynamicResource BgBrush}"
         FontFamily="{DynamicResource TextFontFamily}"
         WindowStartupLocation="CenterOwner">
     <StackPanel Margin="20,16">
@@ -15,28 +15,28 @@
         </DockPanel>
         <DockPanel Margin="0,4">
             <TextBlock Text="Numeral font" Style="{StaticResource StatLabel}" DockPanel.Dock="Left" Width="110"/>
-            <ComboBox x:Name="CmbFont" Width="180" HorizontalAlignment="Left"/>
+            <ComboBox x:Name="CmbFont" Width="180" HorizontalAlignment="Left" ItemContainerStyle="{StaticResource FontPreviewComboBoxItem}"/>
         </DockPanel>
         <DockPanel Margin="0,4,0,12">
             <TextBlock Text="Interface font" Style="{StaticResource StatLabel}" DockPanel.Dock="Left" Width="110"/>
-            <ComboBox x:Name="CmbTextFont" Width="180" HorizontalAlignment="Left"/>
+            <ComboBox x:Name="CmbTextFont" Width="180" HorizontalAlignment="Left" ItemContainerStyle="{StaticResource FontPreviewComboBoxItem}"/>
         </DockPanel>
 
         <TextBlock Style="{StaticResource CardTitle}" Text="BEHAVIOR"/>
         <CheckBox x:Name="ChkCloseToTray" Content="Close button minimizes to tray"
-                  Foreground="{StaticResource TextBrush}" Margin="0,4"/>
+                  Foreground="{DynamicResource TextBrush}" Margin="0,4"/>
         <CheckBox x:Name="ChkStartMinimized" Content="Start minimized to tray"
-                  Foreground="{StaticResource TextBrush}" Margin="0,4"/>
+                  Foreground="{DynamicResource TextBrush}" Margin="0,4"/>
         <CheckBox x:Name="ChkSlimMode" Content="Slim mode (free dashboard memory when closed)"
-                  Foreground="{StaticResource TextBrush}" Margin="0,4"
+                  Foreground="{DynamicResource TextBrush}" Margin="0,4"
                   ToolTip="The dashboard window is fully released when closed instead of hidden — the app keeps sampling from the tray with a much smaller footprint. Reopening rebuilds the chart from saved history."/>
 
         <TextBlock Style="{StaticResource CardTitle}" Text="START WITH WINDOWS" Margin="0,14,0,6"/>
         <CheckBox x:Name="ChkAutostart" Content="Start PwrMon at logon"
-                  Foreground="{StaticResource TextBrush}" Margin="0,4" Click="Autostart_Click"/>
+                  Foreground="{DynamicResource TextBrush}" Margin="0,4" Click="Autostart_Click"/>
         <CheckBox x:Name="ChkAutostartElevated" Content="…as administrator (scheduled task, no UAC prompt)"
-                  Foreground="{StaticResource TextBrush}" Margin="22,4,0,0" Click="Autostart_Click"/>
-        <TextBlock x:Name="AutostartNote" Foreground="{StaticResource TextDimBrush}" FontSize="11"
+                  Foreground="{DynamicResource TextBrush}" Margin="22,4,0,0" Click="Autostart_Click"/>
+        <TextBlock x:Name="AutostartNote" Foreground="{DynamicResource TextDimBrush}" FontSize="11"
                    Margin="22,2,0,0" TextWrapping="Wrap"/>
 
         <TextBlock Style="{StaticResource CardTitle}" Text="HISTORY" Margin="0,14,0,6"/>
@@ -45,19 +45,23 @@
             <TextBlock Text="days" Style="{StaticResource StatLabel}" DockPanel.Dock="Right" Margin="6,0,0,0"/>
             <ComboBox x:Name="CmbRetention" Width="70" Margin="8,0" HorizontalAlignment="Left"/>
         </DockPanel>
-        <TextBlock x:Name="HistoryPathText" Foreground="{StaticResource TextDimBrush}" FontSize="11"
+        <TextBlock x:Name="HistoryPathText" Foreground="{DynamicResource TextDimBrush}" FontSize="11"
                    TextWrapping="Wrap" Margin="0,4,0,0"/>
         <Button Content="Open history folder" Style="{StaticResource FlatButton}" HorizontalAlignment="Left"
                 Margin="0,8,0,0" FontSize="11" Click="OpenHistory_Click"/>
 
         <TextBlock Style="{StaticResource CardTitle}" Text="ABOUT" Margin="0,16,0,6"/>
-        <TextBlock x:Name="AboutText" Foreground="{StaticResource TextDimBrush}" FontSize="11.5" TextWrapping="Wrap">
+        <TextBlock x:Name="AboutText" Foreground="{DynamicResource TextDimBrush}" FontSize="11.5" TextWrapping="Wrap">
             <Run x:Name="AboutVersion" Text="PwrMon"/> — live power telemetry for Windows.<LineBreak/>
             Battery data: ACPI via WMI • Silicon data: Windows EMI + LibreHardwareMonitor.<LineBreak/>
             No telemetry, no ads. Your watts stay yours.
         </TextBlock>
 
-        <Button Content="Close" Style="{StaticResource FlatButton}" HorizontalAlignment="Right"
-                Margin="0,16,0,0" MinWidth="80" Click="Close_Click"/>
+        <DockPanel Margin="0,16,0,0">
+            <Button x:Name="BtnRevert" Content="Revert changes" Style="{StaticResource FlatButton}"
+                    DockPanel.Dock="Left" MinWidth="110" IsEnabled="False" Click="Revert_Click"/>
+            <Button Content="Close" Style="{StaticResource FlatButton}" HorizontalAlignment="Right"
+                    MinWidth="80" Click="Close_Click"/>
+        </DockPanel>
     </StackPanel>
 </Window>

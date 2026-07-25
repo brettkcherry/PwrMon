@@ -24,6 +24,8 @@
                 <Separator/>
                 <MenuItem Header="Click-through (disable via tray menu)" Click="ClickThrough_Click"/>
                 <MenuItem Header="Hide mini graph" Click="Hide_Click"/>
+                <Separator/>
+                <MenuItem Header="Exit PwrMon" Click="Exit_Click"/>
             </ContextMenu>
         </Border.ContextMenu>
         <Grid>
@@ -34,15 +36,26 @@
             <DockPanel Grid.Row="0">
                 <TextBlock x:Name="MiniWatts" Text="— W" FontSize="24" FontWeight="Bold"
                            FontFamily="{DynamicResource NumeralFontFamily}" Typography.NumeralAlignment="Tabular"
-                           Foreground="{StaticResource TextBrush}" DockPanel.Dock="Left"/>
-                <TextBlock x:Name="MiniSub" Text="" FontSize="11" Foreground="{StaticResource TextDimBrush}"
+                           Foreground="{DynamicResource TextBrush}" DockPanel.Dock="Left"/>
+                <TextBlock x:Name="MiniSub" Text="" FontSize="11" Foreground="{DynamicResource TextDimBrush}"
                            VerticalAlignment="Bottom" Margin="8,0,0,4" DockPanel.Dock="Left"/>
                 <TextBlock x:Name="MiniPct" Text="" FontSize="13" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextDimBrush}" HorizontalAlignment="Right" VerticalAlignment="Top"/>
+                           Foreground="{DynamicResource TextDimBrush}" HorizontalAlignment="Right" VerticalAlignment="Top"/>
             </DockPanel>
-            <Grid Grid.Row="1" x:Name="GraphArea" Margin="0,6,0,0" ClipToBounds="True">
-                <Line x:Name="ZeroLine" Stroke="#333B49" StrokeThickness="1" StrokeDashArray="3 3"/>
-                <Polyline x:Name="Spark" StrokeThickness="1.8" StrokeLineJoin="Round"/>
+            <Grid Grid.Row="1" Margin="0,6,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="32"/>
+                </Grid.ColumnDefinitions>
+                <Grid x:Name="GraphArea" Grid.Column="0" ClipToBounds="True">
+                    <Line x:Name="ZeroLine" Stroke="#333B49" StrokeThickness="1" StrokeDashArray="3 3"/>
+                    <Polyline x:Name="Spark" StrokeThickness="1.8" StrokeLineJoin="Round"/>
+                </Grid>
+                <!-- min/max of the visible window, so the line's shape has a scale to read against -->
+                <TextBlock x:Name="MaxLabel" Grid.Column="1" Text="" FontSize="9" Margin="4,0,0,0"
+                           Foreground="{DynamicResource TextDimBrush}" VerticalAlignment="Top" HorizontalAlignment="Left"/>
+                <TextBlock x:Name="MinLabel" Grid.Column="1" Text="" FontSize="9" Margin="4,0,0,0"
+                           Foreground="{DynamicResource TextDimBrush}" VerticalAlignment="Bottom" HorizontalAlignment="Left"/>
             </Grid>
         </Grid>
     </Border>

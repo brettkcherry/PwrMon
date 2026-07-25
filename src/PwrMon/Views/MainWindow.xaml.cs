@@ -69,6 +69,11 @@ public partial class MainWindow : Window
         Chart.MouseWheel += Chart_MouseWheel;
 
         Closing += MainWindow_Closing;
+        // Ctrl+, — the cross-app convention for "open settings" (VS Code, Slack, Chrome, Discord)
+        PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key == Key.OemComma && Keyboard.Modifiers == ModifierKeys.Control) OpenSettings();
+        };
         _initializing = false;
     }
 
@@ -125,7 +130,6 @@ public partial class MainWindow : Window
         _loadLog.Color = ScottPlot.Color.FromHex(t.SeriesLoad);
         _zeroLine.Color = ScottPlot.Color.FromHex(t.ChartGrid).Lighten(0.2);
         _hoverLine.Color = ScottPlot.Color.FromHex(t.TextDim).WithAlpha(150);
-        ChkGpu.Foreground = new System.Windows.Media.SolidColorBrush(ThemeService.ParseColor(t.SeriesGpu));
     }
 
     private static DataLogger NewLogger(Plot plot, ScottPlot.Color color, float width)
@@ -154,11 +158,15 @@ public partial class MainWindow : Window
         StatusEnergyUnit.Items.Add("mAh");
         StatusEnergyUnit.SelectedIndex = AppSettings.Current.EnergyUnit == EnergyUnit.WattHours ? 0 : 1;
 
+        // Checked/Unchecked fires Series_Toggled synchronously on each assignment below; that
+        // handler is guarded on _initializing (still true here) so it can't read the other four
+        // checkboxes' not-yet-set state and clobber AppSettings with it (that was the bug).
         ChkNet.IsChecked = AppSettings.Current.ChartShowNet;
         ChkCpu.IsChecked = AppSettings.Current.ChartShowCpu;
         ChkGpu.IsChecked = AppSettings.Current.ChartShowGpu;
         ChkPct.IsChecked = AppSettings.Current.ChartShowPercent;
         ChkLoad.IsChecked = AppSettings.Current.ChartShowCpuLoad;
+        ApplySeriesVisibility();
 
         // the visual tree doesn't exist until Loaded, so the saved range pill is checked there
         Loaded += (_, _) =>
@@ -871,21 +879,28 @@ public partial class MainWindow : Window
 
     private void Series_Toggled(object sender, RoutedEventArgs e)
     {
-        if (_netLog is null) return;
-        _netLog.IsVisible = ChkNet.IsChecked == true;
-        _cpuLog.IsVisible = ChkCpu.IsChecked == true;
-        _gpuLog.IsVisible = ChkGpu.IsChecked == true;
-        _pctLog.IsVisible = ChkPct.IsChecked == true;
-        _loadLog.IsVisible = ChkLoad.IsChecked == true;
+        // during SetupToolbar the five checkboxes are set one at a time, each firing this
+        // handler; bail so it can't read the others' not-yet-applied state (see SetupToolbar).
+        if (_initializing) return;
+        ApplySeriesVisibility();
         var s = AppSettings.Current;
         s.ChartShowNet = _netLog.IsVisible;
         s.ChartShowCpu = _cpuLog.IsVisible;
         s.ChartShowGpu = _gpuLog.IsVisible;
         s.ChartShowPercent = _pctLog.IsVisible;
         s.ChartShowCpuLoad = _loadLog.IsVisible;
-        if (!_initializing) AppSettings.Save();
+        AppSettings.Save();
         UpdateAxes();
         Chart.Refresh();
+    }
+
+    private void ApplySeriesVisibility()
+    {
+        _netLog.IsVisible = ChkNet.IsChecked == true;
+        _cpuLog.IsVisible = ChkCpu.IsChecked == true;
+        _gpuLog.IsVisible = ChkGpu.IsChecked == true;
+        _pctLog.IsVisible = ChkPct.IsChecked == true;
+        _loadLog.IsVisible = ChkLoad.IsChecked == true;
     }
 
     private void Live_Checked(object sender, RoutedEventArgs e) => SetLive(true);

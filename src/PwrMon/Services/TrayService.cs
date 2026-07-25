@@ -52,7 +52,7 @@ public sealed class TrayService : IDisposable
         };
         _icon.DoubleClick += (_, _) => OpenRequested?.Invoke();
 
-        RenderIcon("…", System.Drawing.Color.White);
+        RenderIcon("…", "", System.Drawing.Color.White);
     }
 
     private static void SetTrayDisplay(TrayDisplay d)
@@ -70,17 +70,20 @@ public sealed class TrayService : IDisposable
 
     public void Update(PowerSample s, Estimates est)
     {
-        string text;
+        string text, unit;
         System.Drawing.Color color;
 
+        // unit glyph ("w"/"%") rendered small beside every numeric value so the icon reads on
+        // its own, without hovering for the tooltip — a bare "3" could be watts, percent, anything.
         if (!s.HasBattery)
         {
-            text = s.CpuPackageW is double cpu ? FormatWatts(cpu) : "PC";
+            (text, unit) = s.CpuPackageW is double cpu ? (FormatWatts(cpu), "w") : ("PC", "");
             color = System.Drawing.Color.White;
         }
         else if (AppSettings.Current.TrayDisplay == TrayDisplay.Percent)
         {
             text = Math.Round(s.BatteryPercent).ToString("0");
+            unit = "%";
             color = s.Charging ? System.Drawing.Color.LimeGreen
                   : s.BatteryPercent < 20 ? System.Drawing.Color.OrangeRed
                   : System.Drawing.Color.White;
@@ -89,6 +92,7 @@ public sealed class TrayService : IDisposable
         {
             // on battery: discharge rate IS total system draw (measured)
             text = FormatWatts(s.DischargeRateW);
+            unit = "w";
             color = s.DischargeRateW > 60 ? System.Drawing.Color.OrangeRed : System.Drawing.Color.Orange;
         }
         else if (s.AcOnline)
@@ -96,19 +100,20 @@ public sealed class TrayService : IDisposable
             // on AC the battery flow is trickle noise — show estimated system draw instead
             // (the power-budget number), falling back to CPU package watts pre-baseline
             var w = est.EstSystemW ?? s.CpuPackageW;
-            text = w is double sys ? FormatWatts(sys) : "AC";
+            (text, unit) = w is double sys ? (FormatWatts(sys), "w") : ("AC", "");
             color = s.Charging ? System.Drawing.Color.LimeGreen : System.Drawing.Color.LightSkyBlue;
         }
         else
         {
             text = FormatWatts(Math.Abs(s.NetW));
+            unit = "w";
             color = System.Drawing.Color.LightGray;
         }
 
-        var key = text + color.ToArgb();
+        var key = text + unit + color.ToArgb();
         if (key != _lastRendered)
         {
-            RenderIcon(text, color);
+            RenderIcon(text, unit, color);
             _lastRendered = key;
         }
 
@@ -129,24 +134,39 @@ public sealed class TrayService : IDisposable
     private static string FormatWatts(double w) =>
         w < 9.95 ? w.ToString("0.#") : Math.Round(w).ToString("0");
 
-    private void RenderIcon(string text, System.Drawing.Color color)
+    /// <summary>Renders <paramref name="text"/> with <paramref name="unit"/> appended (e.g.
+    /// "21w") as one string in one font, sized as big as will fit — no length-based tiers, no
+    /// guessing: measure once at an arbitrary probe size, then scale linearly to whichever of
+    /// width/height is the binding constraint. DrawString also wraps text that overflows its
+    /// layout rect by default, which is what turned "35w" into "35" over "w" before — NoWrap
+    /// below prevents that regardless of how tight the fit is.</summary>
+    private void RenderIcon(string text, string unit, System.Drawing.Color color)
     {
+        var combined = text + unit;
         var size = 32; // shell scales down; rendering large keeps digits crisp on high DPI
         using var bmp = new Bitmap(size, size);
         using (var g = Graphics.FromImage(bmp))
         {
             g.Clear(System.Drawing.Color.Transparent);
             g.TextRenderingHint = TextRenderingHint.AntiAlias;
-            var fontSize = text.Length switch
+
+            const float probeSize = 64f; // any value works — we solve for the linear scale factor
+            var margin = size - 0.5f; // as tight as it gets without risking edge clipping
+            float fontSize;
+            using (var probe = new Font("Segoe UI", probeSize, System.Drawing.FontStyle.Bold, GraphicsUnit.Pixel))
             {
-                <= 2 => size * 0.72f,
-                3 => size * 0.52f,
-                _ => size * 0.44f,
-            };
+                var measured = g.MeasureString(combined, probe, PointF.Empty, StringFormat.GenericTypographic);
+                var scale = Math.Min(margin / measured.Width, margin / measured.Height);
+                fontSize = probeSize * scale;
+            }
+
             using var font = new Font("Segoe UI", fontSize, System.Drawing.FontStyle.Bold, GraphicsUnit.Pixel);
             using var brush = new SolidBrush(color);
-            var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-            g.DrawString(text, font, brush, new RectangleF(0, 0, size, size + 1), sf);
+            var sf = (StringFormat)StringFormat.GenericTypographic.Clone();
+            sf.Alignment = StringAlignment.Center;
+            sf.LineAlignment = StringAlignment.Center;
+            sf.FormatFlags |= StringFormatFlags.NoWrap;
+            g.DrawString(combined, font, brush, new RectangleF(0, 0, size, size), sf);
         }
 
         var hIcon = bmp.GetHicon();

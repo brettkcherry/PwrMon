@@ -45,6 +45,34 @@ public static class ThemeService
             "#C15F3C", "#3B6D11", "#BA7517", "#A32D2D", "#185FA5",
             "#FFFFFF", "#FBF9F3", "#E8E2D4",
             "#C15F3C", "#185FA5", "#7F77DD", "#3B6D11", "#888780", "#F2FFFFFF"),
+
+        // ─── 3 light siblings, riffing on existing dark families rather than new directions ───
+        new("Chalk", false, "#F3F3EF", "#FFFFFF", "#E2E0D4", "#2B2B26", "#8D8C82",
+            "#B8860B", "#2E7D32", "#BF5B22", "#B33A3A", "#2568B0",
+            "#FFFFFF", "#FAFAF6", "#E4E2D6",
+            "#B8860B", "#2568B0", "#7B5FBF", "#2E7D32", "#8D8C82", "#F2FFFFFF"),
+        new("Frost", false, "#EFF3F7", "#FFFFFF", "#D7E1EA", "#223140", "#7C8B99",
+            "#2472A4", "#4C9B76", "#B4652C", "#B23B3B", "#3E7CB1",
+            "#FFFFFF", "#F7FAFC", "#DEE7EE",
+            "#2472A4", "#9B7CA8", "#4FA8AE", "#4C9B76", "#7C8B99", "#F2FFFFFF"),
+        new("Meadow", false, "#F1F6EE", "#FFFFFF", "#DCE7D5", "#263A22", "#7E8F76",
+            "#2F7A32", "#2F7A32", "#B36A1E", "#B23A34", "#2E6FA8",
+            "#FFFFFF", "#F8FBF6", "#E1EAD9",
+            "#2F7A32", "#2C7C93", "#6E9B2E", "#1F5C28", "#7E8F76", "#F2FFFFFF"),
+
+        // ─── 3 mid-tone themes: genuine middle luminance, not a dimmed dark or tinted light ───
+        new("Dusk", true, "#574C63", "#665A73", "#7A6D87", "#F3EDF7", "#C8BBD2",
+            "#F291CC", "#7FE0A8", "#F0A868", "#F27878", "#8FB8F0",
+            "#665A73", "#5C5069", "#8A7D97",
+            "#F291CC", "#8FB8F0", "#B79AE8", "#7FE0A8", "#C8BBD2", "#EE665A73"),
+        new("Slate", true, "#5B6169", "#666D76", "#7A828C", "#F2F4F6", "#C7CDD4",
+            "#6FB2E8", "#7ED09A", "#E8A468", "#E8807A", "#4E8FC7",
+            "#666D76", "#5F656D", "#7A828C",
+            "#6FB2E8", "#A98FBD", "#6FCBD6", "#7ED09A", "#C7CDD4", "#EE666D76"),
+        new("Canyon", true, "#6B5D52", "#786A5D", "#8C7D6E", "#FBF3EA", "#D4C4B4",
+            "#F0B255", "#8FC98A", "#E8935A", "#E27D6E", "#7FAAD6",
+            "#786A5D", "#6F6155", "#8C7D6E",
+            "#F0B255", "#7FAAD6", "#B79AC4", "#8FC98A", "#D4C4B4", "#EE786A5D"),
     };
 
     public static ThemePalette Current { get; private set; } = All[0];
@@ -67,6 +95,7 @@ public static class ThemeService
         SetBrush("OrangeBrush", palette.Orange);
         SetBrush("RedBrush", palette.Red);
         SetBrush("BlueBrush", palette.Blue);
+        SetBrush("GpuBrush", palette.SeriesGpu);
 
         Changed?.Invoke(palette);
     }
@@ -83,31 +112,60 @@ public static class ThemeService
             new FontFamily($"{family}, Segoe UI");
     }
 
-    // Hand-picked, techie/monospace-leaning candidates for the settings pickers — a machine
-    // with 300+ installed fonts shouldn't force scrolling through all of them by default.
-    // Only names actually installed on this machine make it into the visible list; the
-    // full set stays one click away via the "All installed fonts…" sentinel.
+    // Researched, not guessed: ranked by actual 2026 usage/ranking data for this app's
+    // audience (Windows power users who already have dev tooling installed). Top tier is
+    // the 2026 "everyone actually uses this" set — JetBrains Mono and Fira Code are the
+    // #1/#2 most-used programming fonts industry-wide, Cascadia Mono/Code ships with Windows
+    // Terminal and is bundled in Windows 11, Geist Mono is Vercel's fast-rising 2026 pick.
+    // Next tier is Windows-native (Consolas ships with Windows/Office, Bahnschrift ships
+    // with Windows itself — kept as the app default, Courier New is on every Windows
+    // install ever). The rest are long-established, widely-distributed staples (Source Code
+    // Pro, IBM Plex Mono, Roboto Mono, Ubuntu Mono, Space Mono, Inconsolata, Hack, Noto Sans
+    // Mono, PT Mono, Overpass Mono, Red Hat Mono, DejaVu Sans Mono, Liberation Mono,
+    // Anonymous Pro, Cousine, Input Mono, Victor Mono). No Nerd Font glyph-patched variants
+    // (irrelevant outside a terminal), no macOS-only faces (Menlo/Monaco/SF Mono — never
+    // installed on this Windows app's machines), no novelty/display faces, and — structurally,
+    // not just by omission — no symbol/icon/dingbat fonts: see the blocklist in
+    // <see cref="InstalledFonts"/>, which every list and the font search both draw from, so
+    // a symbol font can't surface here even by typing its name.
     private static readonly string[] CuratedNumeralCandidates =
     {
-        "Cascadia Mono", "Cascadia Code", "Consolas", "Courier New", "Lucida Console",
-        "JetBrains Mono", "JetBrainsMono NF", "Fira Code", "Fira Mono", "Source Code Pro",
-        "SauceCodePro NF", "IBM Plex Mono", "Roboto Mono", "Space Mono", "Ubuntu Mono",
-        "Inconsolata", "Hack", "Anonymous Pro", "AnonymicePro Nerd Font Mono",
-        "DejaVu Sans Mono", "Liberation Mono", "Menlo", "Monaco", "SF Mono",
-        "OCR A Extended", "Victor Mono", "VictorMono NF", "CommitMono",
-        "CommitMono Nerd Font", "Input Mono", "PT Mono", "Overpass Mono", "Red Hat Mono",
-        "Noto Sans Mono", "Droid Sans Mono Slashed", "Terminus", "Monofur", "Bahnschrift",
-        "Cousine", "Share Tech Mono",
+        "JetBrains Mono", "Fira Code", "Cascadia Code", "Cascadia Mono", "Geist Mono",
+        "Consolas", "Bahnschrift", "Courier New",
+        "Source Code Pro", "IBM Plex Mono", "Roboto Mono", "Ubuntu Mono", "Space Mono",
+        "Inconsolata", "Hack", "Noto Sans Mono", "PT Mono", "Overpass Mono", "Red Hat Mono",
+        "DejaVu Sans Mono", "Liberation Mono", "Anonymous Pro", "Cousine", "Input Mono",
+        "Victor Mono",
     };
 
+    // Interface text: top tier is the 2026 "most-cited for SaaS/dashboard UI" set — Inter is
+    // the current #1 UI/dashboard sans industry-wide, followed by Roboto, DM Sans, Manrope,
+    // Plus Jakarta Sans, Geist (Vercel's UI sans) and Instrument Sans. Next tier is Windows-
+    // native (Segoe UI ships with Windows itself — kept as the app default; Calibri, Corbel
+    // and Candara are Microsoft's ClearType Font Collection, designed specifically for screen
+    // legibility and on virtually every Windows machine). The rest are long-established,
+    // near-ubiquitous web/UI staples (Open Sans, Noto Sans, IBM Plex Sans, Work Sans, Space
+    // Grotesk, Source Sans Pro, Lato, Nunito Sans, Rubik, Karla, Mulish), plus Cascadia Code
+    // and JetBrains Mono kept so a mono-everywhere look stays selectable in both pickers. No
+    // serif faces (off this app's sans-only HUD aesthetic), no novelty/display faces, and —
+    // structurally — no symbol/icon fonts; see the blocklist in <see cref="InstalledFonts"/>.
     private static readonly string[] CuratedTextCandidates =
     {
-        "Segoe UI", "Cascadia Mono", "Cascadia Code", "Consolas", "JetBrains Mono",
-        "JetBrainsMono NF", "Fira Code", "Source Code Pro", "SauceCodePro NF",
-        "IBM Plex Mono", "IBM Plex Sans", "Roboto Mono", "Space Mono", "Space Grotesk",
-        "Inconsolata", "Hack", "Share Tech Mono", "Orbitron", "Rajdhani", "Chakra Petch",
-        "Audiowide", "Exo 2", "Titillium Web", "Inter", "Roboto", "Open Sans", "Noto Sans",
-        "Ubuntu Mono", "Overpass Mono", "Red Hat Mono", "Victor Mono", "VictorMono NF",
+        "Inter", "Roboto", "DM Sans", "Manrope", "Plus Jakarta Sans", "Geist", "Instrument Sans",
+        "Segoe UI", "Calibri", "Corbel", "Candara",
+        "Open Sans", "Noto Sans", "IBM Plex Sans", "Work Sans", "Space Grotesk",
+        "Source Sans Pro", "Lato", "Nunito Sans", "Rubik", "Karla", "Mulish",
+        "Cascadia Code", "JetBrains Mono",
+    };
+
+    // Symbol/icon/dingbat fonts should never be a choice a user can land on — not in the
+    // curated list, and not via search either, since search draws from the same source.
+    // Matched as a case-insensitive substring against the family name.
+    private static readonly string[] BlockedFontSubstrings =
+    {
+        "Wingdings", "Webdings", "Symbol", "Marlett", "MT Extra", "Bookshelf Symbol",
+        "MDL2 Assets", "Fluent Icons", "Emoji", "Dingbats", "MS Outlook",
+        "MS Reference Specialty", "OpenSymbol",
     };
 
     /// <summary>Curated numeral-font picks that are actually installed on this machine.</summary>
@@ -122,20 +180,27 @@ public static class ThemeService
         return candidates.Where(installed.Contains).OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
     }
 
-    /// <summary>All installed font family names — the escape hatch behind the curated lists.</summary>
+    /// <summary>Every installed font family name a user is allowed to reach — via the curated
+    /// list or via search. Symbol/icon/dingbat fonts are filtered out here, structurally,
+    /// rather than just left out of the curated picks, so there's no path (typed search
+    /// included) that can land on one.</summary>
     public static IEnumerable<string> InstalledFonts() =>
         System.Windows.Media.Fonts.SystemFontFamilies
             .Select(f => f.Source)
             .Where(n => !n.StartsWith("Global", StringComparison.Ordinal))
+            .Where(n => !BlockedFontSubstrings.Any(b => n.Contains(b, StringComparison.OrdinalIgnoreCase)))
             .OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
 
-    private static void SetBrush(string key, string hex)
-    {
-        if (Application.Current.Resources[key] is SolidColorBrush brush && !brush.IsFrozen)
-            brush.Color = (Color)ColorConverter.ConvertFromString(hex);
-        else
-            Application.Current.Resources[key] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
-    }
+    // Every consumer now binds via DynamicResource (not StaticResource), so a plain replace
+    // is enough — WPF re-resolves DynamicResource lookups by key on any change. The old
+    // "mutate the existing brush in place, unless frozen" approach was the actual bug behind
+    // "themes only change the chart, never the cards": WPF freezes a Style's Setter values
+    // (Freezable objects) once that Style is sealed — which happens the first time it's
+    // applied to an element — so after the Card/StatValue/etc. styles were sealed, this used
+    // to silently fall into the "replace" branch every time, but every StaticResource that
+    // had already resolved to the original (now-orphaned) brush instance never saw it.
+    private static void SetBrush(string key, string hex) =>
+        Application.Current.Resources[key] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
 
     public static Color ParseColor(string hex) => (Color)ColorConverter.ConvertFromString(hex);
 }
