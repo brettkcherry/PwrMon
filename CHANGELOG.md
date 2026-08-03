@@ -4,6 +4,27 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+### Added
+
+- **Temperature readings.** A THERMAL card showing drive temperature, CPU package, hottest
+  core and throttle headroom (degrees remaining before the hottest core throttles), plus
+  `CPU °C` and `Drive °C` chart series and two new history columns (`cpu_temp_c`,
+  `drive_temp_c`). Columns are append-only, so existing history keeps loading.
+  - **Drive temperature works in the default tier** — no administrator and no driver. It's
+    read with `IOCTL_STORAGE_QUERY_PROPERTY` on a query-only volume handle, on a 10-second
+    cadence of its own rather than the sampler's, since the drive moves slowly and each read
+    is a device round-trip. LibreHardwareMonitor's storage sensors were not used: they open
+    `\\.\PhysicalDriveN`, which needs administrator, and hung indefinitely when tested
+    elevated on the reference machine.
+  - CPU-side temperatures ride the same driver as CPU watts, so they need admin + PawnIO and
+    show a lock glyph otherwise.
+  - **iGPU temperature is not available** on Intel integrated graphics through any route that
+    doesn't load a kernel driver. See "Temperature coverage" in the README for the four
+    approaches tested and why each fails.
+- `tools/SensorProbe` now reports ACPI thermal zones, drive temperatures, and the Intel GPU
+  routes above, times each LibreHardwareMonitor hardware update, and runs LHM's storage
+  detection behind a 20-second watchdog so a hang is reported instead of producing no dump.
+
 ### Security
 
 - **Elevated autostart is now refused from user-writable locations.** The scheduled task runs

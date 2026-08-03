@@ -19,12 +19,16 @@ public partial class MainWindow : Window
     private static readonly ScottPlot.Color GpuColor = ScottPlot.Color.FromHex("#BC8CFF");
     private static readonly ScottPlot.Color PctColor = ScottPlot.Color.FromHex("#3FB950");
     private static readonly ScottPlot.Color LoadColor = ScottPlot.Color.FromHex("#8B93A7");
+    private static readonly ScottPlot.Color CpuTempColor = ScottPlot.Color.FromHex("#F85149");
+    private static readonly ScottPlot.Color DriveTempColor = ScottPlot.Color.FromHex("#F0883E");
 
     private DataLogger _netLog = null!, _cpuLog = null!, _gpuLog = null!, _pctLog = null!, _loadLog = null!;
+    private DataLogger _cpuTempLog = null!, _driveTempLog = null!;
     private VerticalLine _hoverLine = null!;
 
     // parallel history kept locally for hover readout + Y autoscale (single owner: UI thread)
     private readonly List<double> _times = new(), _net = new(), _cpu = new(), _gpu = new(), _pct = new(), _load = new();
+    private readonly List<double> _cpuTemp = new(), _driveTemp = new();
 
     private bool _initializing = true;
     private bool _live = true;
@@ -94,8 +98,14 @@ public partial class MainWindow : Window
         _gpuLog = NewLogger(plot, GpuColor, 1.4f);
         _pctLog = NewLogger(plot, PctColor, 1.4f);
         _loadLog = NewLogger(plot, LoadColor, 1.0f);
+        _cpuTempLog = NewLogger(plot, CpuTempColor, 1.2f);
+        _driveTempLog = NewLogger(plot, DriveTempColor, 1.2f);
         _pctLog.Axes.YAxis = plot.Axes.Right;
         _loadLog.Axes.YAxis = plot.Axes.Right;
+        // °C shares the right axis with the percentage series: both live in 0–105, so a third
+        // axis would cost layout without earning anything. The checkbox labels carry the unit.
+        _cpuTempLog.Axes.YAxis = plot.Axes.Right;
+        _driveTempLog.Axes.YAxis = plot.Axes.Right;
 
         _zeroLine = plot.Add.HorizontalLine(0);
         _zeroLine.LineWidth = 1;
@@ -128,6 +138,10 @@ public partial class MainWindow : Window
         _gpuLog.Color = ScottPlot.Color.FromHex(t.SeriesGpu);
         _pctLog.Color = ScottPlot.Color.FromHex(t.SeriesPct);
         _loadLog.Color = ScottPlot.Color.FromHex(t.SeriesLoad);
+        // Heat reuses each palette's existing red/orange rather than adding two more series
+        // slots to all twelve themes — and they're already tuned per theme.
+        _cpuTempLog.Color = ScottPlot.Color.FromHex(t.Red);
+        _driveTempLog.Color = ScottPlot.Color.FromHex(t.Orange);
         _zeroLine.Color = ScottPlot.Color.FromHex(t.ChartGrid).Lighten(0.2);
         _hoverLine.Color = ScottPlot.Color.FromHex(t.TextDim).WithAlpha(150);
     }
@@ -166,6 +180,8 @@ public partial class MainWindow : Window
         ChkGpu.IsChecked = AppSettings.Current.ChartShowGpu;
         ChkPct.IsChecked = AppSettings.Current.ChartShowPercent;
         ChkLoad.IsChecked = AppSettings.Current.ChartShowCpuLoad;
+        ChkCpuTemp.IsChecked = AppSettings.Current.ChartShowCpuTemp;
+        ChkDriveTemp.IsChecked = AppSettings.Current.ChartShowDriveTemp;
         ApplySeriesVisibility();
 
         // the visual tree doesn't exist until Loaded, so the saved range pill is checked there
@@ -560,6 +576,14 @@ public partial class MainWindow : Window
         CpuLoad.Text = s.CpuLoadPct is double l ? $"{l:F0}%" : "—";
         CpuTemp.Text = s.CpuTempC is double t ? $"{t:F0} °C" : "—";
 
+        // The lock glyph means "your tier can't reach this", not "no data" — CPU-side temps
+        // ride the same driver as CPU watts, while the drive is readable in every tier.
+        ThermCpu.Text = s.CpuTempC is double tc ? $"{tc:F0} °C" : "🔒";
+        ThermCoreMax.Text = s.CpuTempMaxC is double tm ? $"{tm:F0} °C" : "—";
+        ThermTjMax.Text = s.CpuTjMaxDeltaC is double td ? $"{td:F0} °C" : "—";
+        ThermDrive.Text = s.DriveTempC is double dt ? $"{dt:F0} °C" : "—";
+        ThermDriveLabel.Text = App.Current.Sampler.DriveVolume is string vol ? $"Drive ({vol})" : "Drive";
+
         GpuPower.Text = s.IGpuW is double g ? UnitFormatter.Power(g) : "🔒";
         GpuLoad.Text = s.GpuLoadPct is double gl ? $"{gl:F0}%" : "—";
         GpuClock.Text = s.GpuClockMhz is double gc ? $"{gc:F0} MHz" : "—";
@@ -655,6 +679,8 @@ public partial class MainWindow : Window
             _cpuLog.Add(gapX, double.NaN);
             _gpuLog.Add(gapX, double.NaN);
             _loadLog.Add(gapX, double.NaN);
+            _cpuTempLog.Add(gapX, double.NaN);
+            _driveTempLog.Add(gapX, double.NaN);
         }
 
         _times.Add(x);
@@ -663,12 +689,16 @@ public partial class MainWindow : Window
         _gpu.Add(s.IGpuW ?? double.NaN);
         _pct.Add(s.BatteryPercent);
         _load.Add(s.CpuLoadPct ?? double.NaN);
+        _cpuTemp.Add(s.CpuTempC ?? double.NaN);
+        _driveTemp.Add(s.DriveTempC ?? double.NaN);
 
         _netLog.Add(x, s.NetW);
         _pctLog.Add(x, s.BatteryPercent);
         if (s.CpuPackageW is double cw) _cpuLog.Add(x, cw);
         if (s.IGpuW is double gw) _gpuLog.Add(x, gw);
         if (s.CpuLoadPct is double lw) _loadLog.Add(x, lw);
+        if (s.CpuTempC is double ct) _cpuTempLog.Add(x, ct);
+        if (s.DriveTempC is double dtv) _driveTempLog.Add(x, dtv);
 
         if (_times.Count > MaxChartPoints) TrimChart();
     }
@@ -682,12 +712,16 @@ public partial class MainWindow : Window
         _gpu.RemoveRange(0, remove);
         _pct.RemoveRange(0, remove);
         _load.RemoveRange(0, remove);
+        _cpuTemp.RemoveRange(0, remove);
+        _driveTemp.RemoveRange(0, remove);
 
         _netLog.Clear();
         _cpuLog.Clear();
         _gpuLog.Clear();
         _pctLog.Clear();
         _loadLog.Clear();
+        _cpuTempLog.Clear();
+        _driveTempLog.Clear();
         for (var i = 0; i < _times.Count; i++)
         {
             _netLog.Add(_times[i], _net[i]);
@@ -695,6 +729,8 @@ public partial class MainWindow : Window
             if (!double.IsNaN(_cpu[i])) _cpuLog.Add(_times[i], _cpu[i]);
             if (!double.IsNaN(_gpu[i])) _gpuLog.Add(_times[i], _gpu[i]);
             if (!double.IsNaN(_load[i])) _loadLog.Add(_times[i], _load[i]);
+            if (!double.IsNaN(_cpuTemp[i])) _cpuTempLog.Add(_times[i], _cpuTemp[i]);
+            if (!double.IsNaN(_driveTemp[i])) _driveTempLog.Add(_times[i], _driveTemp[i]);
         }
         Log.Info($"chart trimmed to {_times.Count} points");
     }
@@ -857,6 +893,8 @@ public partial class MainWindow : Window
         if (!double.IsNaN(_gpu[i])) parts.Add($"iGPU {UnitFormatter.Power(_gpu[i])}");
         if (!double.IsNaN(_pct[i])) parts.Add($"{_pct[i]:F1}%");
         if (!double.IsNaN(_load[i])) parts.Add($"load {_load[i]:F0}%");
+        if (!double.IsNaN(_cpuTemp[i])) parts.Add($"CPU {_cpuTemp[i]:F0} °C");
+        if (!double.IsNaN(_driveTemp[i])) parts.Add($"drive {_driveTemp[i]:F0} °C");
         HoverReadout.Text = string.Join("  •  ", parts);
 
         if (!_live) Chart.Refresh();
@@ -889,6 +927,8 @@ public partial class MainWindow : Window
         s.ChartShowGpu = _gpuLog.IsVisible;
         s.ChartShowPercent = _pctLog.IsVisible;
         s.ChartShowCpuLoad = _loadLog.IsVisible;
+        s.ChartShowCpuTemp = _cpuTempLog.IsVisible;
+        s.ChartShowDriveTemp = _driveTempLog.IsVisible;
         AppSettings.Save();
         UpdateAxes();
         Chart.Refresh();
@@ -901,6 +941,8 @@ public partial class MainWindow : Window
         _gpuLog.IsVisible = ChkGpu.IsChecked == true;
         _pctLog.IsVisible = ChkPct.IsChecked == true;
         _loadLog.IsVisible = ChkLoad.IsChecked == true;
+        _cpuTempLog.IsVisible = ChkCpuTemp.IsChecked == true;
+        _driveTempLog.IsVisible = ChkDriveTemp.IsChecked == true;
     }
 
     private void Live_Checked(object sender, RoutedEventArgs e) => SetLive(true);

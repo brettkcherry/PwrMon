@@ -10,6 +10,7 @@ public sealed class Sampler : IDisposable
 {
     private readonly BatteryReader _battery;
     private readonly HardwareReader _hardware;
+    private readonly DriveTemperatureReader _driveTemp = new();
     private readonly CancellationTokenSource _cts = new();
     private PeriodicTimer? _timer;
     private Task? _loop;
@@ -50,6 +51,9 @@ public sealed class Sampler : IDisposable
     private double _energyOutWh, _energyInWh, _peakDischargeW, _peakCpuW;
     private DateTimeOffset? _peakDischargeTime;
     private TimeSpan _timeOnBattery;
+
+    /// <summary>Volume the drive temperature is being read from, e.g. "C:". Null until read.</summary>
+    public string? DriveVolume => _driveTemp.HottestVolume;
 
     public event Action<PowerSample, SessionStats, Estimates>? SampleReady;
     public event Action<PowerEvent>? PowerEventRaised;
@@ -217,6 +221,9 @@ public sealed class Sampler : IDisposable
                 CpuTempC = h.CpuTempC,
                 GpuLoadPct = h.GpuLoadPct,
                 GpuClockMhz = h.GpuClockMhz,
+                CpuTempMaxC = h.CpuTempMaxC,
+                CpuTjMaxDeltaC = h.CpuTjMaxDeltaC,
+                DriveTempC = _driveTemp.Read(),
                 GapBefore = gap,
             };
 

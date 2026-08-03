@@ -37,6 +37,17 @@ confirmed on real hardware, not speculative polish.
 - **Window open/close behaviour**, from the tray and app-wide: what opens where, and what
   closing actually does.
 
+## Known limitations
+
+- **No iGPU temperature on Intel integrated graphics.** Four routes tested and ruled out
+  (LibreHardwareMonitor, Level Zero Sysman, Intel IGCL, D3DKMT) — see "Temperature coverage"
+  in the README. Reading it requires a kernel driver PwrMon deliberately doesn't ship.
+- **No battery temperature** where WMI `BatteryTemperature` has no instances, which is the
+  case on the reference machine. Worth re-checking on other hardware via `SensorProbe`.
+- **Temperature series share the chart's right-hand axis with the percentage series.** Both
+  occupy 0–105, so the scale works, but the axis carries two units. The checkbox labels are
+  what disambiguate.
+
 ## Hardware coverage
 
 - Verified on a Zenbook UX3404VA (i7-13700H, Iris Xe). **No AMD or second-machine testing
