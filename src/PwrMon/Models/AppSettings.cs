@@ -34,6 +34,10 @@ public sealed class AppSettings
     public bool ChartShowGpu { get; set; } = true;
     public bool ChartShowPercent { get; set; } = true;
     public bool ChartShowCpuLoad { get; set; }
+    // Off by default: temperature is a secondary story to watts, and the CPU series only has
+    // data in the full sensor tier.
+    public bool ChartShowCpuTemp { get; set; }
+    public bool ChartShowDriveTemp { get; set; }
     public int ChartRangeMinutes { get; set; } = 15;
 
     public double WindowWidth { get; set; } = 1100;

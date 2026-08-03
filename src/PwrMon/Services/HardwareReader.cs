@@ -11,6 +11,8 @@ public sealed record HardwareReading(
     double? CpuPlatformW,
     double? CpuLoadPct,
     double? CpuTempC,
+    double? CpuTempMaxC,
+    double? CpuTjMaxDeltaC,
     double? IGpuW,
     double? GpuLoadPct,
     double? GpuClockMhz);
@@ -24,8 +26,10 @@ public sealed record HardwareReading(
 public sealed class HardwareReader : IDisposable
 {
     private Computer? _computer;
-    private ISensor? _cpuPackage, _cpuCores, _cpuPlatform, _cpuLoad, _cpuTemp;
+    private ISensor? _cpuPackage, _cpuCores, _cpuPlatform, _cpuLoad, _cpuTemp, _cpuTempMax;
     private ISensor? _gpuPower, _gpuLoad, _gpuClock;
+    // Per-core "Distance to TjMax"; LHM offers no aggregate, so the hottest core is the min.
+    private readonly List<ISensor> _tjMaxDistances = new();
     private int _updates;
     private float _maxPowerSeen;
 
@@ -103,7 +107,8 @@ public sealed class HardwareReader : IDisposable
     {
         try { _computer?.Close(); } catch { }
         _computer = null;
-        _cpuPackage = _cpuCores = _cpuPlatform = _cpuLoad = _cpuTemp = _gpuPower = _gpuLoad = _gpuClock = null;
+        _cpuPackage = _cpuCores = _cpuPlatform = _cpuLoad = _cpuTemp = _cpuTempMax = _gpuPower = _gpuLoad = _gpuClock = null;
+        _tjMaxDistances.Clear();
         _emiPkg?.Dispose();
         _emiCores?.Dispose();
         _emiGpu?.Dispose();
@@ -137,8 +142,10 @@ public sealed class HardwareReader : IDisposable
                             _cpuLoad = s;
                             break;
                         case SensorType.Temperature:
-                            if (s.Name == "CPU Package") _cpuTemp = s;
+                            if (s.Name.EndsWith("Distance to TjMax", StringComparison.Ordinal)) _tjMaxDistances.Add(s);
+                            else if (s.Name == "CPU Package") _cpuTemp = s;
                             else if (s.Name == "Core Average") _cpuTemp ??= s;
+                            else if (s.Name == "Core Max") _cpuTempMax = s;
                             break;
                     }
                 }
@@ -177,7 +184,7 @@ public sealed class HardwareReader : IDisposable
     public HardwareReading Read()
     {
         double? lhmPkg = null, lhmCores = null, lhmPlatform = null, lhmGpu = null;
-        double? load = null, temp = null, gpuLoad = null, gpuClock = null;
+        double? load = null, temp = null, tempMax = null, tjMaxDelta = null, gpuLoad = null, gpuClock = null;
 
         if (_computer is not null && LhmInitialized)
         {
@@ -197,6 +204,10 @@ public sealed class HardwareReader : IDisposable
             lhmGpu = Val(_gpuPower);
             load = Val(_cpuLoad);
             temp = Val(_cpuTemp);
+            tempMax = Val(_cpuTempMax);
+            // Smallest headroom across cores = the hottest core, which is what throttles first.
+            foreach (var s in _tjMaxDistances)
+                if (Val(s) is double d && (tjMaxDelta is null || d < tjMaxDelta)) tjMaxDelta = d;
             gpuLoad = Val(_gpuLoad);
             gpuClock = Val(_gpuClock);
 
@@ -221,6 +232,8 @@ public sealed class HardwareReader : IDisposable
             CpuPlatformW: lhmLive ? lhmPlatform : null,
             CpuLoadPct: load,
             CpuTempC: temp,
+            CpuTempMaxC: tempMax,
+            CpuTjMaxDeltaC: tjMaxDelta,
             IGpuW: lhmLive && lhmGpu is > 0.05 ? lhmGpu : emiGpu ?? (lhmLive ? lhmGpu : null),
             GpuLoadPct: gpuLoad,
             GpuClockMhz: gpuClock);

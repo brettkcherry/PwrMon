@@ -26,6 +26,8 @@ public class HistoryStoreTests
         IGpuW = 1.222,
         CpuLoadPct = 33.5,
         CpuPlatformW = 15.999,
+        CpuTempC = 64.5,
+        DriveTempC = 45,
         GapBefore = true,
     };
 
@@ -58,6 +60,8 @@ public class HistoryStoreTests
         Assert.Equal(s.IGpuW!.Value, parsed.IGpuW!.Value, 3);
         Assert.Equal(s.CpuLoadPct!.Value, parsed.CpuLoadPct!.Value, 3);
         Assert.Equal(s.CpuPlatformW!.Value, parsed.CpuPlatformW!.Value, 3);
+        Assert.Equal(s.CpuTempC!.Value, parsed.CpuTempC!.Value, 3);
+        Assert.Equal(s.DriveTempC!.Value, parsed.DriveTempC!.Value, 3);
     }
 
     [Fact]
@@ -78,15 +82,20 @@ public class HistoryStoreTests
             IGpuW = null,
             CpuLoadPct = null,
             CpuPlatformW = null,
+            CpuTempC = null,
+            DriveTempC = null,
         };
 
         var line = HistoryStore.FormatLine(noOptionals);
         var fields = line.Split(',');
-        // cpu_w, igpu_w, cpu_load, platform_w are columns 3,4,5,11 (0-indexed)
+        // cpu_w, igpu_w, cpu_load, platform_w, cpu_temp_c, drive_temp_c are columns
+        // 3,4,5,11,12,13 (0-indexed)
         Assert.Equal("", fields[3]);
         Assert.Equal("", fields[4]);
         Assert.Equal("", fields[5]);
         Assert.Equal("", fields[11]);
+        Assert.Equal("", fields[12]);
+        Assert.Equal("", fields[13]);
 
         var parsed = HistoryStore.ParseLine(line);
         Assert.NotNull(parsed);
@@ -94,6 +103,24 @@ public class HistoryStoreTests
         Assert.Null(parsed.IGpuW);
         Assert.Null(parsed.CpuLoadPct);
         Assert.Null(parsed.CpuPlatformW);
+        Assert.Null(parsed.CpuTempC);
+        Assert.Null(parsed.DriveTempC);
+    }
+
+    [Fact]
+    public void Legacy_12_column_line_without_temperatures_still_parses()
+    {
+        // Back-compat: history written before the temperature columns existed stops at
+        // platform_w. Same append-only guarantee the platform_w column relies on.
+        var s = MakeSample();
+        var legacy = string.Join(',', HistoryStore.FormatLine(s).Split(',').Take(12));
+
+        var parsed = HistoryStore.ParseLine(legacy);
+
+        Assert.NotNull(parsed);
+        Assert.Equal(s.CpuPlatformW!.Value, parsed!.CpuPlatformW!.Value, 3);
+        Assert.Null(parsed.CpuTempC);
+        Assert.Null(parsed.DriveTempC);
     }
 
     [Fact]

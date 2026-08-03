@@ -55,7 +55,13 @@ Only the latest release gets fixes. There are no maintained branches.
 **Sensor tiers.** The default tier uses Windows' Energy Meter performance counters, opened
 read-only. No driver, no elevation. The optional tier uses LibreHardwareMonitor with PawnIO;
 PwrMon opens LHM with only CPU and GPU enabled, so the SMBus, EC and LPC PawnIO modules are
-never loaded.
+never loaded. LHM's storage sensors stay disabled too — they require administrator and hung
+indefinitely when tested elevated on the reference machine.
+
+**Drive temperature.** Read with `IOCTL_STORAGE_QUERY_PROPERTY` against a volume handle opened
+with *zero* desired access — a query-only handle that grants no read or write access to the
+volume's contents and needs no elevation. Nothing is written, and no other storage property is
+queried.
 
 **No WinRing0.** PwrMon does not ship or load WinRing0, the MSR driver on Microsoft's
 vulnerable-driver blocklist that most tools in this category rely on.
