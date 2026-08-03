@@ -72,7 +72,7 @@ Everything lives in `%LocalAppData%\PwrMon\`:
 - `settings.json` — preferences
 - `history\history-YYYY-MM-DD.csv` — one file per day, pruned after the retention window
 - `history\events.csv` — AC/resume event marks
-- `logs\` — rotating daily logs
+- `logs\` — one file per day, pruned on the same retention window as history
 
 ## Architecture
 
@@ -95,22 +95,25 @@ tools/
 ```
 
 Dependencies: [LibreHardwareMonitorLib](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) (MPL-2.0),
-[ScottPlot](https://scottplot.net/) (MIT), System.Management. That's it.
+[ScottPlot](https://scottplot.net/) (MIT), System.Management. Everything that ships is listed
+in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
-Notes from Brett - - 
+## Privacy & security
 
-- the checkboxes for neither CPU, iGPU, Battery % nor Load % persist after minimize to tray and restore.
+- **No telemetry, no analytics, no auto-update, no crash reporting.** There is exactly one
+  outbound URL in the entire codebase: the optional PawnIO installer download, behind an
+  explicit consent dialog.
+- **No WinRing0.** Most tools in this category read CPU power through WinRing0, a driver on
+  Microsoft's vulnerable-driver blocklist. PwrMon doesn't ship it and never loads it — the
+  default path uses Windows' own Energy Meter counters (no driver, no elevation), and the
+  optional upgrade path is PawnIO, which is HVCI-compatible and signed.
+- **Elevation is optional and never silent.** Battery telemetry needs none. The PawnIO
+  download is signature-verified and its signer shown to you before anything runs.
+- **Your data stays local.** Everything is under `%LocalAppData%\PwrMon\` and pruned on the
+  retention window you set. Battery/CPU telemetry only — no identifiers are recorded.
 
-- Paper theme still has many dark elements, please assess and correct, not a true "light" theme as is. Please let's too make and add 3 more light themed styles and 3 middle.. I almost never see middle range themes done well, let's show 'em something good.
+Found something? See [SECURITY.md](SECURITY.md).
 
-- I do love the color choices overall , of each theme and the different line waves colors and text colors, it looks really slick
+## Known issues
 
-- we need to curate the font lists down HARD. So many fewer options and ONLY choosing he best for the design philosphy and instinct of this build
-
-- a way to restore changed settings before Close
-
-- We have never spoken of it or looked at it before , but.. the mini graph is absolutely completely broken and need a full gaze put on it , basically shows nothing, does nothing .. time to fix it
-
-- What IS the tray icon showing? other than color now, the data does not feel intuitive ... 
-
-- Let's make the mini graph resizable, and it's minimum size smaller, especially horizonally 
+Open bugs and the punch list live in [ISSUES.md](ISSUES.md).

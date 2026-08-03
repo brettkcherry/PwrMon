@@ -1,3 +1,5 @@
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Win32;
@@ -42,8 +44,7 @@ public partial class App : Application
             if (replace)
             {
                 // an elevated restart is taking over: ask the old instance to die, wait for the mutex
-                using var exit = new EventWaitHandle(false, EventResetMode.AutoReset, ExitSignalName);
-                exit.Set();
+                TrySignal(ExitSignalName);
                 if (!_mutex.WaitOne(TimeSpan.FromSeconds(8)))
                 {
                     MessageBox.Show("PwrMon is already running and did not exit.", "PwrMon");
@@ -54,8 +55,7 @@ public partial class App : Application
             else
             {
                 // just poke the running instance to show itself
-                using var show = new EventWaitHandle(false, EventResetMode.AutoReset, ShowSignalName);
-                show.Set();
+                TrySignal(ShowSignalName);
                 Shutdown();
                 return;
             }
@@ -81,12 +81,17 @@ public partial class App : Application
             Log.Error("winforms ui exception", ex.Exception);
 
         // cross-instance signals
-        _showSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ShowSignalName);
-        _exitSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ExitSignalName);
+        _showSignal = CreateUserScopedEvent(ShowSignalName);
+        _exitSignal = CreateUserScopedEvent(ExitSignalName);
         _showWait = ThreadPool.RegisterWaitForSingleObject(_showSignal,
             (_, _) => Dispatcher.BeginInvoke(ShowDashboard), null, -1, false);
-        _exitWait = ThreadPool.RegisterWaitForSingleObject(_exitSignal,
-            (_, _) => Dispatcher.BeginInvoke(() => ExitApp()), null, -1, false);
+        _exitWait = ThreadPool.RegisterWaitForSingleObject(_exitSignal, (_, _) =>
+            Dispatcher.BeginInvoke(() =>
+            {
+                // worth a log line: otherwise a takeover looks like an unexplained shutdown
+                Log.Info("exit requested over the cross-instance signal (--replace takeover)");
+                ExitApp();
+            }), null, -1, false);
 
         Battery = new BatteryReader();
         Hardware = new HardwareReader();
@@ -119,6 +124,7 @@ public partial class App : Application
         SystemEvents.PowerModeChanged += OnPowerModeChanged;
 
         History.CleanupOldFiles();
+        Log.CleanupOldFiles(AppSettings.Current.HistoryRetentionDays);
 
         // dashboard is created lazily (ShowDashboard) so slim/minimized starts stay light
         if (!minimized && !AppSettings.Current.SlimMode)
@@ -128,6 +134,37 @@ public partial class App : Application
             ToggleMiniGraph(forceOn: true);
 
         Sampler.Start();
+    }
+
+    /// <summary>
+    /// Creates a cross-instance signal with an explicit DACL granting only the current user,
+    /// instead of inheriting whatever default DACL the process token happens to carry.
+    /// A same-user process can still open these — but it could already call TerminateProcess
+    /// on us, so that isn't a boundary this can enforce. What it does buy: no access from
+    /// other accounts on a shared machine, and a stated intent rather than an inherited default.
+    /// </summary>
+    private static EventWaitHandle CreateUserScopedEvent(string name)
+    {
+        var security = new EventWaitHandleSecurity();
+        security.AddAccessRule(new EventWaitHandleAccessRule(
+            WindowsIdentity.GetCurrent().User!,
+            EventWaitHandleRights.FullControl,
+            AccessControlType.Allow));
+        return EventWaitHandleAcl.Create(false, EventResetMode.AutoReset, name, out _, security);
+    }
+
+    /// <summary>Pokes a running instance. Uses OpenExisting so a stray call can never create
+    /// the event itself — creating it here would leave an unsecured handle behind.</summary>
+    private static bool TrySignal(string name)
+    {
+        try
+        {
+            using var h = EventWaitHandle.OpenExisting(name); // asks for Modify | Synchronize
+            h.Set();
+            return true;
+        }
+        catch (WaitHandleCannotBeOpenedException) { return false; } // nobody listening
+        catch (UnauthorizedAccessException) { return false; }       // not ours to signal
     }
 
     private void OnPowerModeChanged(object sender, PowerModeChangedEventArgs e)

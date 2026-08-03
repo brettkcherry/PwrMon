@@ -990,24 +990,36 @@ public partial class MainWindow : Window
 
     private const string PawnIoDownloadUrl =
         "https://github.com/namazso/PawnIO.Setup/releases/latest/download/PawnIO_setup.exe";
+    private const string PawnIoHomeUrl = "https://pawnio.eu/";
 
     /// <summary>Downloads the official PawnIO installer (with explicit consent — it's a kernel
-    /// driver) and runs it; its own wizard + UAC handle the actual install.</summary>
+    /// driver), verifies its Authenticode signature, and runs it; its own wizard + UAC handle
+    /// the actual install.</summary>
     private async Task InstallPawnIoAsync()
     {
         var consent = MessageBox.Show(this,
             "PawnIO is a signed kernel driver that lets Windows read CPU/iGPU power sensors while " +
             "Memory Integrity is enabled.\n\n" +
             $"PwrMon will download the official installer from:\n{PawnIoDownloadUrl}\n\n" +
-            "and launch it. Continue?",
+            "check its digital signature, then show you who signed it before running anything. " +
+            "Continue?",
             "Install PawnIO", MessageBoxButton.OKCancel, MessageBoxImage.Information);
         if (consent != MessageBoxResult.OK) return;
 
         BannerBtn1.IsEnabled = false;
         BannerBtn1.Content = "Downloading…";
+
+        // Stage into a freshly created, randomly named directory. A fixed path under %TEMP%
+        // is predictable and pre-creatable, which would let another process running as this
+        // user swap the installer between the write and the launch — and the launch is the
+        // step that raises UAC, so that swap would be an elevation.
+        var stage = System.IO.Path.Combine(
+            System.IO.Path.GetTempPath(), "PwrMon-pawnio-" + Guid.NewGuid().ToString("N"));
         try
         {
-            var dest = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "PawnIO_setup.exe");
+            System.IO.Directory.CreateDirectory(stage);
+            var dest = System.IO.Path.Combine(stage, "PawnIO_setup.exe");
+
             using (var http = new System.Net.Http.HttpClient())
             {
                 http.Timeout = TimeSpan.FromMinutes(2);
@@ -1017,6 +1029,28 @@ public partial class MainWindow : Window
                 await System.IO.File.WriteAllBytesAsync(dest, bytes);
             }
 
+            BannerBtn1.Content = "Verifying…";
+            if (!Authenticode.TryVerify(dest, out var signer, out var why))
+            {
+                Log.Error($"pawnio signature check failed: {why}");
+                MessageBox.Show(this,
+                    $"The downloaded installer failed its signature check — {why}.\n\n" +
+                    "PwrMon will not run it. Opening the PawnIO website so you can download it " +
+                    "yourself if you want to.",
+                    "Install PawnIO", MessageBoxButton.OK, MessageBoxImage.Error);
+                OpenPawnIoSite();
+                return;
+            }
+
+            // A valid signature is not the same as the *expected* signer. Show who actually
+            // signed it and let the user make that call — PwrMon is about to hand this binary
+            // an elevation prompt.
+            var proceed = MessageBox.Show(this,
+                $"Downloaded and signature-verified.\n\nSigned by:\n    {signer}\n\n" +
+                "Run the installer? It will ask for administrator rights itself.",
+                "Install PawnIO", MessageBoxButton.OKCancel, MessageBoxImage.Question);
+            if (proceed != MessageBoxResult.OK) return;
+
             BannerBtn1.Content = "Installing…";
             var proc = Process.Start(new ProcessStartInfo(dest) { UseShellExecute = true });
             if (proc is not null)
@@ -1025,18 +1059,25 @@ public partial class MainWindow : Window
                 RequestRedetect();
             }
         }
+        catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
+        {
+            Log.Info("pawnio install: UAC declined"); // user's choice, not an error
+        }
         catch (Exception ex)
         {
             Log.Error("pawnio install", ex);
-            // fall back to the website so the user can grab it manually
-            Process.Start(new ProcessStartInfo("https://pawnio.eu/") { UseShellExecute = true });
+            OpenPawnIoSite(); // fall back to the website so the user can grab it manually
         }
         finally
         {
+            try { System.IO.Directory.Delete(stage, recursive: true); } catch { /* installer may still hold it */ }
             BannerBtn1.IsEnabled = true;
             BannerBtn1.Content = "Get PawnIO";
         }
     }
+
+    private static void OpenPawnIoSite() =>
+        Process.Start(new ProcessStartInfo(PawnIoHomeUrl) { UseShellExecute = true });
 
     private void BannerBtn2_Click(object sender, RoutedEventArgs e) => RequestRedetect();
 

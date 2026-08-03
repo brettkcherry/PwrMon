@@ -21,6 +21,9 @@
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <DebugType>embedded</DebugType>
+    <!-- embedded PDBs put source paths in the binary, so logged stack traces would otherwise
+         hand every user the build machine's directory layout. Normalise them. -->
+    <PathMap>$(MSBuildProjectDirectory)=/PwrMon/</PathMap>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,6 +38,8 @@
     <PackageReference Include="ScottPlot.WPF" Version="5.1.59" />
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="10.0.9" />
     <PackageReference Include="System.Management" Version="10.0.9" />
+    <!-- EventWaitHandleAcl: explicit DACLs on the cross-instance signals -->
+    <PackageReference Include="System.Threading.AccessControl" Version="10.0.9" />
   </ItemGroup>
 
   <ItemGroup>

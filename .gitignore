@@ -14,5 +14,18 @@ tools/SensorProbe/probe-elevated.txt
 # release binaries — these belong on a GitHub Release, not in the tree
 installer/Output/
 
-# loose screenshots dropped in the repo root
-/*.png
+# Screenshots are work-in-progress captures, not release material, and they routinely
+# catch other windows. Ignored anywhere in the tree, not just the root — a screenshot
+# dropped in docs/ or assets/ would otherwise sail straight into a public repo.
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.webp
+*.mp4
+# real source assets under Assets/ stay tracked (.ico was never matched above)
+!src/PwrMon/Assets/*.png
+
+# internal working notes — not for publication
+HANDOFF.md

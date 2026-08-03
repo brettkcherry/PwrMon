@@ -258,6 +258,24 @@ public partial class SettingsWindow : Window
             return;
         }
 
+        // An elevated logon task runs whatever sits at this path with admin and no UAC prompt.
+        // If the path is user-writable, anything running as the user could swap the exe and
+        // inherit that. Refuse, and say why rather than failing into the generic message.
+        if (elevated && StartupHelper.IsExePathUserWritable())
+        {
+            MessageBox.Show(this,
+                "Elevated autostart isn't available for this copy of PwrMon.\n\n" +
+                $"It's running from:\n{StartupHelper.ExePath}\n\n" +
+                "That location can be written to without administrator rights, so a scheduled " +
+                "task that launches it with admin at every logon would let any program running " +
+                "as you replace PwrMon and gain administrator access.\n\n" +
+                "Install PwrMon (or move it under Program Files) to use elevated autostart. " +
+                "Normal autostart works from anywhere.",
+                "PwrMon — elevated autostart unavailable", MessageBoxButton.OK, MessageBoxImage.Warning);
+            ChkAutostartElevated.IsChecked = false;
+            elevated = false;
+        }
+
         if (!StartupHelper.Enable(elevated))
         {
             MessageBox.Show(this, "Could not configure autostart — see logs.", "PwrMon");

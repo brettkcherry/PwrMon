@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    # WPF + WMI + performance counters: this only builds on Windows.
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore PwrMon.sln
+
+      - name: Build
+        run: dotnet build PwrMon.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test PwrMon.sln -c Release --no-build --verbosity normal
+
+      - name: Check third-party notices are current
+        shell: pwsh
+        run: |
+          # Fails the job if a dependency change added something that isn't plain MIT
+          # without THIRD-PARTY-NOTICES.md being updated to match.
+          $output = ./tools/list-shipped-assemblies.ps1 6>&1 | Out-String
+          Write-Host $output
+          $notices = Get-Content THIRD-PARTY-NOTICES.md -Raw
+          $missing = @()
+          foreach ($line in $output -split "`n") {
+            if ($line -match '^\s{2}(\S+)\s+\S+\s+—\s+(.+)$') {
+              $pkg = $Matches[1]
+              if ($notices -notmatch [regex]::Escape($pkg)) { $missing += $pkg }
+            }
+          }
+          if ($missing) {
+            Write-Host "::error::Not documented in THIRD-PARTY-NOTICES.md: $($missing -join ', ')"
+            exit 1
+          }
+          Write-Host "All non-MIT components are documented."

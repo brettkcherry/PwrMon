@@ -3,11 +3,12 @@
 ;         2) iscc installer\PwrMon.iss
 ; Output: installer\Output\PwrMon-Setup.exe
 
+; Keep AppVersion in step with <Version> in src\PwrMon\PwrMon.csproj.
 #define AppName "PwrMon"
-#define AppVersion "1.3.0"
+#define AppVersion "1.3.1"
 #define AppExe "PwrMon.exe"
 #define AppPublisher "Brett Cherry"
-#define AppURL "https://github.com/"
+#define AppURL "https://github.com/brettkcherry/PwrMon"
 
 [Setup]
 AppId={{B7C61B0E-9A2D-4F63-8A0B-3D5E1C7F4A29}
