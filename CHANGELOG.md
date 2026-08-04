@@ -6,6 +6,19 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
 
 ### Added
 
+- **New theme: "Redshift"** — a night-watch red palette, after the red lighting an
+  observatory dome or a submarine control room switches to before dark work, because
+  long-wavelength light spares the eye's dark adaptation while blue-white light destroys it.
+  Red-cast black background, warm rose text instead of white, everything on the red→amber arc.
+  Deliberately not fully monochrome: Green/Orange/Red/Blue carry battery *state*, so they stay
+  separable within the warm band (amber good, burnt orange draining, hot pink-red alarm, quiet
+  rose idle), with one nebula violet for the iGPU series. Every color clears 5.3:1 against the
+  background and card.
+- **Theme list reordered darkest→lightest.** The four light themes (Paper, Chalk, Frost,
+  Meadow) now sit at the end instead of in the middle. People cycle the picker top-to-bottom
+  with a dark theme applied and their eyes adapted to it, so a white background part-way down
+  the list was a flashbang. The order is presentation only — the setting persists by name, not
+  index, so no saved theme was remapped.
 - **Mini-graph is now resizable**, down to a 150×90 floor, via a corner drag grip — the
   window is borderless and transparent, so there's no OS chrome to hit-test for standard
   edge-drag resize. Size persists like position.
@@ -51,6 +64,18 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
 
 ### Fixed
 
+- **The Interface font dropdown was already open every time Settings opened.** The font
+  pickers auto-open their dropdown when you type, and that handler was guarded only by the
+  `_initializing` flag the constructor clears on its last line. But an editable `ComboBox`
+  doesn't create its `PART_EditableTextBox` until the template is applied at first layout —
+  after the constructor has finished. WPF then syncs that fresh TextBox to the `Text` the
+  constructor set and raises `TextChanged`, with `_initializing` already `false`, which fell
+  through to the force-open. Both font pickers were opened this way; only the second stayed
+  open, because opening a ComboBox popup takes mouse capture and closes the first — which is
+  why the symptom looked specific to Interface font. Now gated on `IsKeyboardFocusWithin`:
+  a programmatic Text sync never has keyboard focus, real typing always does. That also stops
+  a programmatic set from clobbering the filter `SetFontComboSelection` installs just before
+  it, which would have collapsed the curated list on Revert.
 - **The elevated "Restart as admin" handoff could crash the new instance silently.** The old
   instance released its single-instance mutex by exiting rather than calling `ReleaseMutex`,
   so Windows marked it abandoned; `.WaitOne` on an abandoned mutex throws

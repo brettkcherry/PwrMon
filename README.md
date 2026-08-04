@@ -7,6 +7,25 @@ Microsoft Store shows you *health summaries* when what you actually want to know
 No ads, no telemetry, no installer required. One portable exe. The only network access is
 the optional PawnIO driver download — and only when you explicitly click the button.
 
+## Project status — in development, not yet released
+
+**There is no download, and you should build this from source only if you're comfortable
+debugging it.** PwrMon runs daily on its author's machine and does what this README says it
+does. What it hasn't had is contact with hardware other than that machine:
+
+- Verified on exactly one laptop — a Zenbook UX3404VA (i7-13700H, Iris Xe).
+- The driverless default tier is **confirmed on Intel only**. On AMD it is untested, so the
+  headline "CPU watts with no admin" claim is, today, an Intel claim.
+- No release build is published. The Inno Setup script in `installer/` works, but cutting a
+  Release means standing behind a binary on machines that haven't been tested.
+
+That's the honest gate on a public release, and it's a hardware problem rather than a code
+one. The full punch list is in [ISSUES.md](ISSUES.md); if you have an AMD laptop,
+`tools/SensorProbe` output is the single most useful thing anyone could send.
+
+The project page lives at [brettkcherry.github.io/PwrMon](https://brettkcherry.github.io/PwrMon/)
+(source in [docs/](docs/)).
+
 ## What it shows
 
 - **Live power flow** — charge/discharge wattage straight from the battery's fuel gauge
@@ -47,18 +66,17 @@ powershell -ExecutionPolicy Bypass -File tools/gen-icon.ps1
 # debug run
 dotnet run --project src/PwrMon
 
-# portable single-file publish (framework-dependent, ~small exe; needs .NET 8 Desktop Runtime)
-dotnet publish src/PwrMon -c Release -r win-x64 --self-contained false `
-  -p:PublishSingleFile=true -o publish/framework
+# both distributables, into the folders installer/PwrMon.iss expects
+./tools/publish.ps1
 
-# fully self-contained single exe (no runtime needed, bigger file)
-# IncludeNativeLibrariesForSelfExtract is set in the csproj and is load-bearing: without it
-# PublishSingleFile still emits 11 native DLLs (PresentationNative_cor3, wpfgfx_cor3,
-# libSkiaSharp…) alongside the exe, and moving the exe on its own gives DllNotFoundException
-# in HwndSubclass as soon as a window opens.
-dotnet publish src/PwrMon -c Release -r win-x64 --self-contained true `
-  -p:PublishSingleFile=true -o publish/portable
+# just one flavor
+./tools/publish.ps1 -Only portable      # framework-dependent, ~27MB; needs .NET 8 Desktop Runtime
+./tools/publish.ps1 -Only standalone    # self-contained, ~72MB; no runtime needed — what the installer ships
 ```
+
+`tools/publish.ps1` is the source of truth for these two builds — read it before hand-typing a `dotnet publish` command, the flags matter:
+- `IncludeNativeLibrariesForSelfExtract` is set in the csproj and is load-bearing: without it, `PublishSingleFile` still emits 11 native DLLs (`PresentationNative_cor3`, `wpfgfx_cor3`, `libSkiaSharp`…) alongside the exe, and moving the exe on its own gives `DllNotFoundException` in `HwndSubclass` as soon as a window opens.
+- `EnableCompressionInSingleFile` roughly halves the standalone exe (162MB → 72MB on v1.4.0) since `PublishSingleFile` stores the bundled runtime uncompressed by default. It's skipped for portable — no runtime payload to compress there, so it'd only cost startup-time extraction for no size win.
 
 ## Sensor tiers (what needs elevation — and what doesn't)
 
