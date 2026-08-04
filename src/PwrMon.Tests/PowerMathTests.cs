@@ -163,4 +163,32 @@ public class PowerMathTests
     {
         Assert.Equal(expected, PowerMath.ClaimsDischargingButFilling(discharging, slopeW, contradictionW));
     }
+
+    [Fact]
+    public void RateChanged_false_for_the_exact_same_value()
+    {
+        Assert.False(PowerMath.RateChanged(45.231, 45.231));
+    }
+
+    [Fact]
+    public void RateChanged_false_for_float_round_trip_noise()
+    {
+        // WMI values arrive as mW then get divided by 1000.0 — sub-mW float noise from that
+        // round trip must never register as a "new" reading.
+        Assert.False(PowerMath.RateChanged(45.0, 45.0 + 0.0001));
+    }
+
+    [Fact]
+    public void RateChanged_true_once_the_reading_actually_moves()
+    {
+        Assert.True(PowerMath.RateChanged(45.0, 45.6));
+    }
+
+    [Fact]
+    public void RateChanged_true_across_a_charge_discharge_transition()
+    {
+        // e.g. discharging at 12W to charging at 8W — Sampler tracks whichever direction's
+        // magnitude is active, so a state flip is just as much a "changed" value as any other
+        Assert.True(PowerMath.RateChanged(12.0, 8.0));
+    }
 }

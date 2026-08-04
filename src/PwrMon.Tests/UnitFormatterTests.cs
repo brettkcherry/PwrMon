@@ -53,6 +53,47 @@ public class UnitFormatterTests
         Assert.Equal("1,500 mW", UnitFormatter.Power(1.5));
     }
 
+    // stale: MULTIMETER-STUDY.md §7.1 — derive displayed precision from the source's actual
+    // resolution rather than always printing as many digits as double formatting allows.
+
+    [Fact]
+    public void Power_stale_drops_to_whole_watts_under_ten()
+    {
+        AppSettings.Current.PowerUnit = PowerUnit.Watts;
+        Assert.Equal("9 W", UnitFormatter.Power(9.49, stale: true));
+    }
+
+    [Fact]
+    public void Power_stale_drops_to_whole_watts_at_or_above_ten()
+    {
+        AppSettings.Current.PowerUnit = PowerUnit.Watts;
+        Assert.Equal("80 W", UnitFormatter.Power(80.4, stale: true));
+    }
+
+    [Fact]
+    public void Power_stale_still_honours_signed_and_the_plus_floor()
+    {
+        AppSettings.Current.PowerUnit = PowerUnit.Watts;
+        Assert.Equal("+5 W", UnitFormatter.Power(5.4, signed: true, stale: true));
+    }
+
+    [Fact]
+    public void Power_not_stale_by_default_keeps_existing_precision()
+    {
+        AppSettings.Current.PowerUnit = PowerUnit.Watts;
+        Assert.Equal("9.99 W", UnitFormatter.Power(9.99));
+        Assert.Equal("9.99 W", UnitFormatter.Power(9.99, stale: false));
+    }
+
+    [Theory]
+    [InlineData(UnitFormatter.StaleAfterSeconds - 1, false)]
+    [InlineData(UnitFormatter.StaleAfterSeconds, false)]      // exactly at the threshold -> not yet (strict >)
+    [InlineData(UnitFormatter.StaleAfterSeconds + 1, true)]
+    public void IsStale_matches_the_threshold(int seconds, bool expected)
+    {
+        Assert.Equal(expected, UnitFormatter.IsStale(TimeSpan.FromSeconds(seconds)));
+    }
+
     [Fact]
     public void Energy_watt_hours_mode_formats_with_one_decimal()
     {

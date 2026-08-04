@@ -17,6 +17,12 @@ public sealed class PowerSample
     /// <summary>Signed battery flow: positive = charging, negative = discharging.</summary>
     public double NetW => ChargeRateW - DischargeRateW;
 
+    /// <summary>How long the raw fuel-gauge rate has held its current value. The gauge
+    /// publishes on its own quantized ~15–30 s cadence regardless of how often we poll it, so
+    /// this can run well past the sampling interval — see
+    /// <see cref="PwrMon.Services.UnitFormatter.IsStale"/>. Live display only, not persisted.</summary>
+    public TimeSpan RateAge { get; init; }
+
     public double BatteryPercent { get; init; }
     public double RemainingWh { get; init; }
     public double FullChargeWh { get; init; }

@@ -501,8 +501,11 @@ public partial class MainWindow : Window
     public void OnSample(PowerSample s, SessionStats stats, Estimates est)
     {
         _lastSample = s;
-        UpdateHero(s, est);
-        UpdateCards(s, stats, est);
+        // only the raw battery flow numbers carry the gauge's quantization/staleness — CPU/GPU
+        // watts (RAPL, refreshes every tick) and the smoothed/estimated figures elsewhere don't
+        var rateStale = s.HasBattery && (s.Charging || s.Discharging) && UnitFormatter.IsStale(s.RateAge);
+        UpdateHero(s, est, rateStale);
+        UpdateCards(s, stats, est, rateStale);
         UpdateTier();
 
         if (_pendingLive is not null) _pendingLive.Add(s);
@@ -514,7 +517,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void UpdateHero(PowerSample s, Estimates est)
+    private void UpdateHero(PowerSample s, Estimates est, bool rateStale)
     {
         string state;
         System.Windows.Media.Brush brush;
@@ -536,10 +539,14 @@ public partial class MainWindow : Window
 
         if (s.HasBattery)
         {
-            HeroWatts.Text = UnitFormatter.Power(s.NetW, signed: true);
+            HeroWatts.Text = UnitFormatter.Power(s.NetW, signed: true, stale: rateStale);
             HeroWatts.Foreground = brush;
             var sysNote = s.AcOnline && est.EstSystemW is double es2 ? $" • system ≈ {UnitFormatter.Power(es2)}" : "";
-            HeroSub.Text = $"{UnitFormatter.Energy(s.RemainingWh, s.VoltageV)} of {UnitFormatter.Energy(s.FullChargeWh, s.VoltageV)} • {s.VoltageV:F2} V • {(s.AcOnline ? "on AC power" : "on battery")}{sysNote}";
+            // the gauge publishes on its own quantized ~15-30s cadence — once a reading has
+            // held long enough that it's almost certainly the same still-unpublished value
+            // rather than a coincidentally flat draw, say so instead of implying a fresh number
+            var staleNote = rateStale ? $" • reading held {(int)s.RateAge.TotalSeconds}s" : "";
+            HeroSub.Text = $"{UnitFormatter.Energy(s.RemainingWh, s.VoltageV)} of {UnitFormatter.Energy(s.FullChargeWh, s.VoltageV)} • {s.VoltageV:F2} V • {(s.AcOnline ? "on AC power" : "on battery")}{sysNote}{staleNote}";
             HeroSub.Foreground = dimBrush;
             HeroPercent.Text = $"{s.BatteryPercent:F1}%";
             HeroPercent.Foreground = textBrush;
@@ -557,11 +564,11 @@ public partial class MainWindow : Window
         }
     }
 
-    private void UpdateCards(PowerSample s, SessionStats stats, Estimates est)
+    private void UpdateCards(PowerSample s, SessionStats stats, Estimates est, bool rateStale)
     {
-        FlowIn.Text = s.Charging ? UnitFormatter.Power(s.ChargeRateW) : "—";
-        FlowOut.Text = s.Discharging ? UnitFormatter.Power(s.DischargeRateW) : "—";
-        FlowNet.Text = UnitFormatter.Power(s.NetW, signed: true);
+        FlowIn.Text = s.Charging ? UnitFormatter.Power(s.ChargeRateW, stale: rateStale) : "—";
+        FlowOut.Text = s.Discharging ? UnitFormatter.Power(s.DischargeRateW, stale: rateStale) : "—";
+        FlowNet.Text = UnitFormatter.Power(s.NetW, signed: true, stale: rateStale);
         FlowCurrent.Text = s.HasBattery && Math.Abs(s.CurrentA) > 0.005 ? $"{s.CurrentA:+0.00;-0.00} A" : "—";
 
         EstEmpty.Text = UnitFormatter.Duration(est.TimeToEmpty);
