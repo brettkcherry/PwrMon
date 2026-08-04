@@ -6,6 +6,11 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
 
 ### Added
 
+- **"Restart as admin" now offered from the EMI tier, not just NeedsAdmin.** Watts already
+  work without elevation there, so the banner reframes it as an upgrade ("add CPU temperature
+  and throttle headroom too") rather than a warning. This is what makes the THERMAL card's
+  🔒 rows actionable instead of a dead end.
+
 - **Temperature readings.** A THERMAL card showing drive temperature, CPU package, hottest
   core and throttle headroom (degrees remaining before the hottest core throttles), plus
   `CPU °C` and `Drive °C` chart series and two new history columns (`cpu_temp_c`,
@@ -24,6 +29,27 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
 - `tools/SensorProbe` now reports ACPI thermal zones, drive temperatures, and the Intel GPU
   routes above, times each LibreHardwareMonitor hardware update, and runs LHM's storage
   detection behind a 20-second watchdog so a hang is reported instead of producing no dump.
+
+### Fixed
+
+- **The elevated "Restart as admin" handoff could crash the new instance silently.** The old
+  instance released its single-instance mutex by exiting rather than calling `ReleaseMutex`,
+  so Windows marked it abandoned; `.WaitOne` on an abandoned mutex throws
+  `AbandonedMutexException`, and that happened before `OnStartup` had registered any exception
+  handler — so the new elevated process died instantly with no window and nothing logged. It
+  looked like clicking the button just closed the app. Fixed on both sides: the old instance
+  now releases the mutex explicitly before shutting down, and the new instance treats an
+  abandoned wait as success rather than failure, so even a hard crash of the old instance
+  can't wedge a future elevation.
+- **Self-contained single-file publishes didn't launch outside the publish folder.**
+  `PublishSingleFile` was still emitting 11 native DLLs (`PresentationNative_cor3.dll`,
+  `wpfgfx_cor3.dll`, `libSkiaSharp.dll`, …) alongside the exe; moving just the exe — which is
+  what the installer's `[Files]` section did — threw `DllNotFoundException` in WPF's
+  `HwndSubclass` the instant a window was created. `IncludeNativeLibrariesForSelfExtract` is
+  now set in the csproj so every publish profile bundles them into the one exe, making
+  "portable exe" actually portable.
+- **Desktop shortcut is now unchecked by default in the installer**, matching autostart
+  (already unchecked).
 
 ### Security
 

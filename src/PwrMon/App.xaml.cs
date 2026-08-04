@@ -43,9 +43,15 @@ public partial class App : Application
         {
             if (replace)
             {
-                // an elevated restart is taking over: ask the old instance to die, wait for the mutex
+                // an elevated restart is taking over: ask the old instance to die, wait for the mutex.
+                // ExitApp releases the mutex before Shutdown, but if the old instance died some
+                // other way (crash, killed) the wait completes as "abandoned" instead of
+                // returning true — that's not a failure here, just an unclean prior exit.
                 TrySignal(ExitSignalName);
-                if (!_mutex.WaitOne(TimeSpan.FromSeconds(8)))
+                bool acquired;
+                try { acquired = _mutex.WaitOne(TimeSpan.FromSeconds(8)); }
+                catch (AbandonedMutexException) { acquired = true; }
+                if (!acquired)
                 {
                     MessageBox.Show("PwrMon is already running and did not exit.", "PwrMon");
                     Shutdown();
@@ -227,6 +233,10 @@ public partial class App : Application
             Tray.Dispose();
         }
         catch (Exception ex) { Log.Error("shutdown", ex); }
+        // Release rather than abandon: a --replace takeover is waiting on this mutex, and an
+        // abandoned wait throws AbandonedMutexException before any handler is registered in
+        // the new process's OnStartup, crashing it silently (see 2026-08-04 incident).
+        try { _mutex?.ReleaseMutex(); } catch (Exception ex) { Log.Error("release mutex", ex); }
         Shutdown();
     }
 

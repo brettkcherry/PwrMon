@@ -625,7 +625,15 @@ public partial class MainWindow : Window
                 StatusTier.Text = "⚡ full silicon telemetry";
                 break;
             case SensorTier.EmiOnly:
-                Banner.Visibility = Visibility.Collapsed;
+                // Watts already work here with no admin needed — that's the good case, not an
+                // error — so this banner offers an upgrade rather than warning about a problem.
+                // It's what makes the THERMAL card's 🔒 rows (CPU package, hottest core,
+                // throttle headroom) actionable instead of a dead end.
+                Banner.Visibility = Visibility.Visible;
+                BannerText.Text = "CPU/iGPU watts are already live. Restart as administrator to add CPU " +
+                                  "temperature and throttle headroom too.";
+                BannerBtn1.Content = "Restart as admin";
+                BannerBtn2.Visibility = Visibility.Collapsed;
                 StatusTier.Text = "⚡ CPU/iGPU watts via Windows EMI — admin+PawnIO adds temps";
                 break;
             case SensorTier.NeedsAdmin:
@@ -1019,6 +1027,7 @@ public partial class MainWindow : Window
         switch (_lastTier)
         {
             case SensorTier.NeedsAdmin:
+            case SensorTier.EmiOnly:
                 StartupHelper.RestartElevated(); // new instance signals us to exit via --replace
                 break;
             case SensorTier.DriverBlocked:
