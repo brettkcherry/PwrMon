@@ -121,24 +121,32 @@ Everything lives in `%LocalAppData%\PwrMon\`:
 src/PwrMon/
   Services/
     BatteryReader.cs    WMI root\wmi ACPI battery classes (rates mW, capacities mWh)
-    HardwareReader.cs   LibreHardwareMonitor wrapper + sensor-tier detection
+    HardwareReader.cs   Energy Meter counters + LibreHardwareMonitor, sensor-tier detection
     DriveTemperature.cs drive °C via a query-only volume handle (no admin, no driver)
     Sampler.cs          polling loop, EMA smoothing, session stats, AC/sleep events
+    PowerMath.cs        pure power/energy formulas, lifted out of Sampler to be testable
     HistoryStore.cs     daily CSV persistence, backfill, retention, export
     TrayService.cs      dynamic GDI+ tray icon (live wattage as the icon)
-    StartupHelper.cs    HKCU Run key / elevated Task Scheduler autostart
+    StartupHelper.cs    HKCU Run key / elevated Task Scheduler autostart (+ ACL safety check)
+    Authenticode.cs     WinVerifyTrust signature check for the PawnIO download
+    ThemeService.cs     runtime palettes + curated font lists
+    UnitFormatter.cs    W/mW, Wh/mAh, duration formatting
+    Log.cs              append-only daily log
   Views/
     MainWindow          dashboard: hero readout, stat cards, ScottPlot history chart
     MiniGraphWindow     borderless topmost sparkline
     SettingsWindow      behavior/autostart/history settings
+src/PwrMon.Tests/       xUnit bench over the pure logic — see TESTING.md
 tools/
   SensorProbe/          console dump of every sensor this machine exposes
   gen-icon.ps1          renders Assets/app.ico
+  list-shipped-assemblies.ps1  reconciles THIRD-PARTY-NOTICES against deps.json
 ```
 
 Dependencies: [LibreHardwareMonitorLib](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) (MPL-2.0),
-[ScottPlot](https://scottplot.net/) (MIT), System.Management. Everything that ships is listed
-in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+[ScottPlot](https://scottplot.net/) (MIT), System.Management, System.Diagnostics.PerformanceCounter
+(the Energy Meter path), System.Threading.AccessControl. Everything that ships — including
+transitive components — is listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## Privacy & security
 

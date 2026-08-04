@@ -6,11 +6,6 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
 
 ### Added
 
-- **"Restart as admin" now offered from the EMI tier, not just NeedsAdmin.** Watts already
-  work without elevation there, so the banner reframes it as an upgrade ("add CPU temperature
-  and throttle headroom too") rather than a warning. This is what makes the THERMAL card's
-  🔒 rows actionable instead of a dead end.
-
 - **Temperature readings.** A THERMAL card showing drive temperature, CPU package, hottest
   core and throttle headroom (degrees remaining before the hottest core throttles), plus
   `CPU °C` and `Drive °C` chart series and two new history columns (`cpu_temp_c`,
@@ -26,9 +21,21 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
   - **iGPU temperature is not available** on Intel integrated graphics through any route that
     doesn't load a kernel driver. See "Temperature coverage" in the README for the four
     approaches tested and why each fails.
+- **"Restart as admin" now offered from the EMI tier, not just NeedsAdmin.** Watts already
+  work without elevation there, so the banner reframes it as an upgrade ("add CPU temperature
+  and throttle headroom too") rather than a warning. This is what makes the THERMAL card's
+  🔒 rows actionable instead of a dead end — and what first exercised the mutex bug below.
 - `tools/SensorProbe` now reports ACPI thermal zones, drive temperatures, and the Intel GPU
   routes above, times each LibreHardwareMonitor hardware update, and runs LHM's storage
   detection behind a 20-second watchdog so a hang is reported instead of producing no dump.
+- `SECURITY.md` with a private reporting channel and the trust boundaries stated explicitly.
+- `CONTRIBUTING.md` and this changelog.
+- `ISSUES.md` — the open punch list, moved out of the README.
+- `tools/list-shipped-assemblies.ps1` — reconciles what actually ships against
+  `THIRD-PARTY-NOTICES.md`, flagging anything that isn't plain MIT.
+- Unit tests for the startup ACL predicate.
+- `run-tests.ps1 -Configuration Release`, so tests can run while a Debug build is locked by
+  a running instance.
 
 ### Fixed
 
@@ -37,17 +44,25 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
   so Windows marked it abandoned; `.WaitOne` on an abandoned mutex throws
   `AbandonedMutexException`, and that happened before `OnStartup` had registered any exception
   handler — so the new elevated process died instantly with no window and nothing logged. It
-  looked like clicking the button just closed the app. Fixed on both sides: the old instance
-  now releases the mutex explicitly before shutting down, and the new instance treats an
-  abandoned wait as success rather than failure, so even a hard crash of the old instance
-  can't wedge a future elevation.
+  looked like clicking the button just closed the app. Predates the temperature work; it sat
+  under the original NeedsAdmin-tier button and just never got exercised until the EMI-tier
+  banner above sent more users through it. Fixed on both sides: the old instance now releases
+  the mutex explicitly before shutting down, and the new instance treats an abandoned wait as
+  success rather than failure, so even a hard crash of the old instance can't wedge a future
+  elevation. Verified end to end: log shows a clean
+  `starting → shutting down → starting(--replace) → elevated=True` sequence with no crash
+  event in between.
 - **Self-contained single-file publishes didn't launch outside the publish folder.**
   `PublishSingleFile` was still emitting 11 native DLLs (`PresentationNative_cor3.dll`,
   `wpfgfx_cor3.dll`, `libSkiaSharp.dll`, …) alongside the exe; moving just the exe — which is
   what the installer's `[Files]` section did — threw `DllNotFoundException` in WPF's
   `HwndSubclass` the instant a window was created. `IncludeNativeLibrariesForSelfExtract` is
   now set in the csproj so every publish profile bundles them into the one exe, making
-  "portable exe" actually portable.
+  "portable exe" actually portable. Verified by copying the lone exe into an empty folder and
+  confirming a window opens.
+- Log files are now pruned on the same retention window as history CSVs. They were rotating
+  by name but never being deleted, so the log directory only ever grew. The README's
+  "rotating daily logs" claim has been corrected to match.
 - **Desktop shortcut is now unchecked by default in the installer**, matching autostart
   (already unchecked).
 
@@ -70,23 +85,6 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
   logged instead of looking like an unexplained exit.
 - **Build paths no longer leak into stack traces.** Embedded PDBs were baking the build
   machine's directory layout into the binary; `PathMap` normalises them.
-
-### Fixed
-
-- Log files are now pruned on the same retention window as history CSVs. They were rotating
-  by name but never being deleted, so the log directory only ever grew. The README's
-  "rotating daily logs" claim has been corrected to match.
-
-### Added
-
-- `SECURITY.md` with a private reporting channel and the trust boundaries stated explicitly.
-- `CONTRIBUTING.md` and this changelog.
-- `ISSUES.md` — the open punch list, moved out of the README.
-- `tools/list-shipped-assemblies.ps1` — reconciles what actually ships against
-  `THIRD-PARTY-NOTICES.md`, flagging anything that isn't plain MIT.
-- Unit tests for the startup ACL predicate.
-- `run-tests.ps1 -Configuration Release`, so tests can run while a Debug build is locked by
-  a running instance.
 
 ### Changed
 

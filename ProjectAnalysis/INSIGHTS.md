@@ -1,6 +1,12 @@
-# ⚡ PowerMonitor: Technical Project Analysis
+# ⚡ PwrMon: Technical Project Analysis
 
-A thorough, mindful analysis of the **PowerMonitor** project—a portable Windows desktop utility built with **.NET 8** and **WPF** that provides real-time, high-precision power telemetry, custom background polling, dynamic tray notification rendering, and a floating sparkline overlay.
+> **Snapshot, July 2026 (v1.3.1).** This is a point-in-time analysis, like the instrument
+> studies alongside it. Written before the `PowerMath` extraction and test bench, the
+> temperature work, and the public-release security hardening — so treat the component
+> breakdown below as the shape of the app at that moment, not as current API documentation.
+> [CHANGELOG.md](../CHANGELOG.md) has what landed since.
+
+A thorough, mindful analysis of the **PwrMon** project—a portable Windows desktop utility built with **.NET 8** and **WPF** that provides real-time, high-precision power telemetry, custom background polling, dynamic tray notification rendering, and a floating sparkline overlay.
 
 ---
 
@@ -75,7 +81,7 @@ The application splits telemetry collection between battery metrics and silicon-
 *   **Memory Leak Prevention**: Correctly calls `DestroyIcon` via P/Invoke on `user32.dll` to clean up the GDI icon handles, preventing systemic leaks during fast sampling.
 
 ### 4. History Storage (`HistoryStore.cs`)
-*   Records telemetry and system events (AC plugged/unplugged, resume from sleep) to CSV files inside `%LocalAppData%\PowerMonitor\history\`.
+*   Records telemetry and system events (AC plugged/unplugged, resume from sleep) to CSV files inside `%LocalAppData%\PwrMon\history\`.
 *   **Buffered Writing**: Writes are stored in a `StringBuilder` buffer and flushed every 15 seconds (or upon day transition / shutdown) to minimize disk IO overhead.
 *   Loads up to 48 hours of recent historical data on startup, so chart visuals survive application restarts.
 *   Implements an automated directory cleaner based on user-configured retention days.
@@ -85,7 +91,7 @@ The application splits telemetry collection between battery metrics and silicon-
 *   **`MiniGraphWindow.xaml`**: A borderless, translucent, always-on-top overlay.
     *   Implements drag-to-move repositioning (saving coordinates to settings).
     *   Uses native Win32 `WS_EX_TRANSPARENT` via `SetWindowLong` to support a **click-through mode** where user clicks fall through to underlying applications.
-*   **`ThemeService.cs`**: Implements dynamic runtime styling. All theme colors reside as `SolidColorBrush` definitions in app resources. Changing themes modifies the color values in-place so all elements refresh immediately. Custom numeral fonts (like "Bahnschrift" or "Cascadia Mono") can be loaded to guarantee stable digit widths (avoiding numeral jitter during fast updates).
+*   **`ThemeService.cs`**: Implements dynamic runtime styling. All theme colors reside as `SolidColorBrush` definitions in app resources, and every consumer binds via `DynamicResource`, so applying a palette simply replaces the brush under each key and WPF re-resolves the lookups. (Mutating the existing brushes in place — the obvious approach, and the one this document originally described — is the bug behind "themes only change the chart, never the cards": WPF freezes a `Style`'s setter values once that style is first applied, so already-resolved `StaticResource` consumers keep pointing at the orphaned original brush.) Custom numeral fonts (like "Bahnschrift" or "Cascadia Mono") can be loaded to guarantee stable digit widths (avoiding numeral jitter during fast updates).
 
 ---
 
