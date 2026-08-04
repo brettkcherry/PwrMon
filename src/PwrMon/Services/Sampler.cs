@@ -39,6 +39,13 @@ public sealed class Sampler : IDisposable
     private DateTimeOffset _lastTick = DateTimeOffset.MinValue;
     private bool? _lastAc;
 
+    // multimeter-honesty (MULTIMETER-STUDY.md §7.1): the fuel gauge republishes on its own
+    // slow, quantized cadence independent of our poll rate, so track how long the raw reading
+    // has held its exact value — UnitFormatter uses this to stop implying a tenths-place
+    // reading is fresh once the gauge almost certainly hasn't actually republished it.
+    private double _lastRawRateW = double.NaN;
+    private DateTimeOffset _rawRateChangedAt = DateTimeOffset.MinValue;
+
     // learned "system minus CPU package" watts (screen/RAM/SSD/board), measured while on
     // battery where total draw is exact; lets us estimate system + wall draw on AC
     private const double BaselineTauSeconds = 180;
@@ -121,7 +128,16 @@ public sealed class Sampler : IDisposable
             var gap = PowerMath.IsGap(dt, interval);
             _lastTick = now;
 
-            var b = SanitizeDirection(_battery.Read(), now, gap);
+            var raw = _battery.Read();
+            var activeRawRateW = raw.Charging ? raw.ChargeRateW : raw.Discharging ? raw.DischargeRateW : 0;
+            if (gap || double.IsNaN(_lastRawRateW) || PowerMath.RateChanged(_lastRawRateW, activeRawRateW))
+            {
+                _lastRawRateW = activeRawRateW;
+                _rawRateChangedAt = now;
+            }
+            var rateAge = now - _rawRateChangedAt;
+
+            var b = SanitizeDirection(raw, now, gap);
             var h = _hardware.Read();
 
             if (h.CpuPackageW is double pkgEma)
@@ -225,6 +241,7 @@ public sealed class Sampler : IDisposable
                 CpuTjMaxDeltaC = h.CpuTjMaxDeltaC,
                 DriveTempC = _driveTemp.Read(),
                 GapBefore = gap,
+                RateAge = rateAge,
             };
 
             var stats = new SessionStats

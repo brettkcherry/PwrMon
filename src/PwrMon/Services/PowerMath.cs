@@ -51,4 +51,11 @@ public static class PowerMath
     /// actually filling beyond the contradiction threshold.</summary>
     public static bool ClaimsDischargingButFilling(bool discharging, double slopeW, double contradictionW) =>
         discharging && slopeW > contradictionW;
+
+    /// <summary>True when a new raw battery rate reading differs enough from the previous one
+    /// to count as a genuinely fresh value from the fuel gauge, rather than the same
+    /// still-quantized reading repeating across polls. Below this, the gauge simply hasn't
+    /// republished yet — see <see cref="UnitFormatter.IsStale"/> for what the UI does with
+    /// that.</summary>
+    public static bool RateChanged(double previousW, double currentW) => Math.Abs(currentW - previousW) > 0.0005;
 }

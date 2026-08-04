@@ -72,7 +72,8 @@ public partial class MiniGraphWindow : Window
         while (_points.Count > 0 && _points[0].t < cutoff)
             _points.RemoveAt(0);
 
-        MiniWatts.Text = UnitFormatter.Power(w is double.NaN ? 0 : w, signed: s.HasBattery);
+        var rateStale = s.HasBattery && (s.Charging || s.Discharging) && UnitFormatter.IsStale(s.RateAge);
+        MiniWatts.Text = UnitFormatter.Power(w is double.NaN ? 0 : w, signed: s.HasBattery, stale: rateStale);
         var brush = s.Charging ? ChargeBrush : s.Discharging ? DischargeBrush : IdleBrush;
         MiniWatts.Foreground = brush;
         Spark.Stroke = brush;

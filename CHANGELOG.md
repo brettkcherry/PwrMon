@@ -6,6 +6,18 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
 
 ### Added
 
+- **Mini-graph is now resizable**, down to a 150×90 floor, via a corner drag grip — the
+  window is borderless and transparent, so there's no OS chrome to hit-test for standard
+  edge-drag resize. Size persists like position.
+- **Precision-honesty staleness indicator** (MULTIMETER-STUDY.md §7.1). The fuel gauge
+  republishes on its own quantized ~15–30 s cadence regardless of how often PwrMon polls it;
+  the hero readout and Power Flow card used to print two decimal places off that reading
+  every tick regardless of whether the gauge had actually said anything new. Now: once a raw
+  reading has held its exact value past 20 s, the readout drops to whole watts and the hero
+  subtext says how long it's been held, instead of implying a tenths-place-fresh number.
+  CPU/iGPU watts (RAPL, refreshes every tick), the 30 s-smoothed estimates, and the Power
+  Budget card's already-labelled `≈` estimates are unaffected — this only applies to the raw,
+  single-sample battery flow numbers that were the actual complaint.
 - **Temperature readings.** A THERMAL card showing drive temperature, CPU package, hottest
   core and throttle headroom (degrees remaining before the hottest core throttles), plus
   `CPU °C` and `Drive °C` chart series and two new history columns (`cpu_temp_c`,

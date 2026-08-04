@@ -4,14 +4,6 @@ Open work on PwrMon, roughly in the order it bothers us. Items here are things w
 confirmed on real hardware or in the code, not speculative polish. Anything already shipped
 lives in [CHANGELOG.md](CHANGELOG.md) — this file is only what's still outstanding.
 
-## Improvements
-
-- **Displayed precision should follow the source's resolution.** The hero readout prints two
-  decimals below 10 W off a fuel gauge that is quantized and publishes every ~15–30 s — more
-  significant figures than the measurement carries. Wants a staleness indicator too, so a
-  number that hasn't been refreshed doesn't read as live. The argument is already written up
-  in [ProjectAnalysis/MULTIMETER-STUDY.md](ProjectAnalysis/MULTIMETER-STUDY.md) §7.1.
-
 ## Queued discussions
 
 - **Chart interaction.** TradingView-style pan/zoom shipped (time-only axis, clamped to data
@@ -31,6 +23,12 @@ lives in [CHANGELOG.md](CHANGELOG.md) — this file is only what's still outstan
   has no chrome for the OS to hit-test) down to a 150×90 floor, with size persisted the same
   way as position. Builds clean; drag interaction itself needs a pass on real hardware — no
   way to click-and-drag a native window from here to confirm the grip feels right.
+- **Precision-honesty staleness note.** The hero readout and Power Flow card now drop to
+  whole watts and append "reading held Ns" once the raw battery rate has held its value past
+  `UnitFormatter.StaleAfterSeconds` (20s) — see MULTIMETER-STUDY.md §7.1. The threshold logic
+  and formatting are fully unit tested, but the actual on-gauge cadence this tunes against
+  (~15–30 s, from the 2026-07-16 incident notes) was observed on one machine; worth
+  confirming the note appears at a sensible moment and doesn't flicker on real hardware.
 
 ## Known limitations
 
