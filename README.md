@@ -9,10 +9,13 @@ the optional PawnIO driver download — and only when you explicitly click the b
 
 ## What it shows
 
-- **Live power flow** — exact charge/discharge wattage straight from the battery's fuel
-  gauge (ACPI via WMI), updated up to twice a second, plus net flow, voltage, and current.
-- **CPU & iGPU silicon power** — RAPL package/cores/platform watts and iGPU watts via
-  LibreHardwareMonitor (needs admin + PawnIO on Memory-Integrity systems; see below).
+- **Live power flow** — charge/discharge wattage straight from the battery's fuel gauge
+  (ACPI via WMI), plus net flow, voltage, and current. PwrMon polls as often as twice a
+  second; how often that number actually *changes* is the gauge's call, and most publish on
+  their own cadence (~15–30 s on this project's reference machine).
+- **CPU & iGPU silicon power** — RAPL package, cores and iGPU watts with **no administrator
+  and no kernel driver**, read from Windows' own Energy Meter counters. Elevation plus PawnIO
+  adds platform (PSys) power and CPU temperatures. See "Sensor tiers" below.
 - **Temperatures** — drive temperature read straight from the disk with no administrator or
   driver required, so it works in every tier; CPU package, hottest core and throttle headroom
   arrive with the full sensor tier. See "Temperature coverage" below for what isn't available.
@@ -49,21 +52,34 @@ dotnet publish src/PwrMon -c Release -r win-x64 --self-contained false `
   -p:PublishSingleFile=true -o publish/framework
 
 # fully self-contained single exe (no runtime needed, bigger file)
+# IncludeNativeLibrariesForSelfExtract is set in the csproj and is load-bearing: without it
+# PublishSingleFile still emits 11 native DLLs (PresentationNative_cor3, wpfgfx_cor3,
+# libSkiaSharp…) alongside the exe, and moving the exe on its own gives DllNotFoundException
+# in HwndSubclass as soon as a window opens.
 dotnet publish src/PwrMon -c Release -r win-x64 --self-contained true `
-  -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o publish/portable
+  -p:PublishSingleFile=true -o publish/portable
 ```
 
-## Sensor tiers (why is CPU power locked?)
+## Sensor tiers (what needs elevation — and what doesn't)
 
-| Tier | Battery telemetry | CPU/iGPU watts | Requirement |
-|------|-------------------|----------------|-------------|
-| Standard user | ✅ full | ❌ | none |
-| Administrator | ✅ full | ⚠️ usually ❌ on Win11 | Memory Integrity blocks the legacy WinRing0 MSR driver |
-| Admin + [PawnIO](https://pawnio.eu/) | ✅ full | ✅ | PawnIO is a signed, HVCI-compatible sensor driver |
+PwrMon reads CPU/iGPU power from whichever of two sources is available, and prefers the one
+that asks nothing of you:
 
-The dashboard detects the current tier and shows a banner with one-click fixes
-(restart elevated / get PawnIO / re-detect). Battery wattage — the number that actually
-tells you your total system draw on battery — works at every tier.
+| Tier | What you get | Requirement |
+|------|--------------|-------------|
+| **Default** — every user | Battery watts + health, **CPU/iGPU watts** via Windows' Energy Meter counters, CPU load, drive °C | nothing |
+| **Full** — elevated | Everything above, **plus** CPU platform (PSys) power, package and hottest-core temperature, throttle headroom | admin + [PawnIO](https://pawnio.eu/), a signed HVCI-compatible sensor driver |
+
+The default tier is the part most tools in this category don't have: no elevation, no kernel
+driver, no UAC prompt, and unaffected by Memory Integrity. Elevation is an **upgrade** for
+platform power and temperatures — not a prerequisite for watts.
+
+Where a machine exposes no Energy Meter provider, the default tier has no CPU/iGPU watts and
+the dashboard shows a banner with one-click fixes (restart elevated / get PawnIO / re-detect).
+That path is verified on Intel; **it has not been tested on AMD** — see [ISSUES.md](ISSUES.md).
+
+Battery wattage — the number that actually tells you your total system draw on battery —
+works at every tier, elevated or not.
 
 > On battery, **discharge rate = total system draw**. That's physics, not an estimate.
 > When plugged in, the wall draw isn't measurable on most laptops; you get charge rate

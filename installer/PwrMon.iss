@@ -5,7 +5,7 @@
 
 ; Keep AppVersion in step with <Version> in src\PwrMon\PwrMon.csproj.
 #define AppName "PwrMon"
-#define AppVersion "1.3.1"
+#define AppVersion "1.4.0"
 #define AppExe "PwrMon.exe"
 #define AppPublisher "Brett Cherry"
 #define AppURL "https://github.com/brettkcherry/PwrMon"
@@ -44,7 +44,7 @@ Name: "{group}\Uninstall {#AppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
 
 [Tasks]
-Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Additional icons:"
+Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Additional icons:"; Flags: unchecked
 Name: "autostart"; Description: "Start {#AppName} when Windows starts"; GroupDescription: "Startup:"; Flags: unchecked
 
 [Registry]

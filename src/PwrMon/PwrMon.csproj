@@ -11,7 +11,7 @@
     <PlatformTarget>x64</PlatformTarget>
     <RootNamespace>PwrMon</RootNamespace>
     <AssemblyName>PwrMon</AssemblyName>
-    <Version>1.3.1</Version>
+    <Version>1.4.0</Version>
     <Product>PwrMon</Product>
     <Authors>Brett Cherry</Authors>
     <Company>Brett Cherry</Company>
@@ -24,6 +24,12 @@
     <!-- embedded PDBs put source paths in the binary, so logged stack traces would otherwise
          hand every user the build machine's directory layout. Normalise them. -->
     <PathMap>$(MSBuildProjectDirectory)=/PwrMon/</PathMap>
+    <!-- Without this, PublishSingleFile still drops 11 native DLLs next to the exe
+         (PresentationNative_cor3, wpfgfx_cor3, libSkiaSharp…). The app then runs only from
+         the publish folder: copy the exe alone — as the installer did — and WPF throws
+         DllNotFoundException in HwndSubclass the instant a window is created, which reads
+         as "the app doesn't launch". Bundling them makes "portable exe" actually true. -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
   <ItemGroup>
