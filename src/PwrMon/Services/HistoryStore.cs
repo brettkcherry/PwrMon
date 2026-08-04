@@ -30,14 +30,26 @@ public sealed class HistoryStore : IDisposable
         string.Create(Inv,
             $"{s.Time:yyyy-MM-ddTHH:mm:ss.fffzzz},{s.ChargeRateW:F3},{s.DischargeRateW:F3},{Opt(s.CpuPackageW)},{Opt(s.IGpuW)},{Opt(s.CpuLoadPct)},{s.BatteryPercent:F2},{s.RemainingWh:F3},{s.VoltageV:F3},{(s.AcOnline ? 1 : 0)},{(s.GapBefore ? 1 : 0)},{Opt(s.CpuPlatformW)},{Opt(s.CpuTempC)},{Opt(s.DriveTempC)}");
 
+    /// <summary>True when the buffer must be flushed before <paramref name="sampleDay"/> joins
+    /// it — i.e. it already holds a different, earlier day's rows. Pulled out of
+    /// <see cref="Append"/> so the day-rollover ordering is independently testable without
+    /// disk I/O: checking this too late (after the sample was already buffered) was the bug —
+    /// the first sample of a new day would land in the previous day's file alongside it.</summary>
+    internal static bool ShouldFlushBeforeAppending(string? bufferedDay, string sampleDay) =>
+        bufferedDay is not null && sampleDay != bufferedDay;
+
     public void Append(PowerSample s)
     {
         var line = FormatLine(s);
+        var day = s.Time.ToString("yyyy-MM-dd");
         lock (_gate)
         {
+            if (ShouldFlushBeforeAppending(_bufferDay, day))
+                FlushLocked();
+
             _buffer.AppendLine(line);
-            _bufferDay ??= s.Time.ToString("yyyy-MM-dd");
-            if ((DateTime.UtcNow - _lastFlush).TotalSeconds >= 15 || s.Time.ToString("yyyy-MM-dd") != _bufferDay)
+            _bufferDay ??= day;
+            if ((DateTime.UtcNow - _lastFlush).TotalSeconds >= 15)
                 FlushLocked();
         }
     }

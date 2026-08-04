@@ -154,4 +154,29 @@ public class HistoryStoreTests
         const string header = "time,charge_w,discharge_w,cpu_w,igpu_w,cpu_load,percent,remaining_wh,voltage_v,ac,gap,platform_w";
         Assert.Null(HistoryStore.ParseLine(header));
     }
+
+    // ShouldFlushBeforeAppending: regression coverage for the midnight-rollover bug, where
+    // the day check ran *after* the sample was already buffered, so the first sample of a
+    // new day landed in the previous day's file alongside it.
+
+    [Fact]
+    public void No_flush_needed_for_the_very_first_sample_ever_buffered()
+    {
+        Assert.False(HistoryStore.ShouldFlushBeforeAppending(bufferedDay: null, sampleDay: "2026-03-14"));
+    }
+
+    [Fact]
+    public void No_flush_needed_when_the_sample_matches_the_buffered_day()
+    {
+        Assert.False(HistoryStore.ShouldFlushBeforeAppending(bufferedDay: "2026-03-14", sampleDay: "2026-03-14"));
+    }
+
+    [Fact]
+    public void Flush_is_required_when_the_sample_is_a_different_day_than_whats_buffered()
+    {
+        // This is the midnight case: yesterday's rows are still sitting in the buffer when
+        // the first sample past midnight arrives. They must be flushed under yesterday's
+        // filename before today's sample is allowed to join the buffer.
+        Assert.True(HistoryStore.ShouldFlushBeforeAppending(bufferedDay: "2026-03-14", sampleDay: "2026-03-15"));
+    }
 }

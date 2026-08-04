@@ -65,6 +65,21 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
   "rotating daily logs" claim has been corrected to match.
 - **Desktop shortcut is now unchecked by default in the installer**, matching autostart
   (already unchecked).
+- **`BatteryReader` leaked a WMI result collection on every read.** `ManagementObjectSearcher
+  .Get()` returns an `IDisposable` collection; the individual `ManagementBaseObject`s inside
+  it were disposed, but the collection itself wasn't, at every call site — twice a second in
+  the hot path. Now wrapped in `using`.
+- **One history row could land in the wrong daily file at midnight.** `HistoryStore.Append`
+  was appending the line to the buffer before checking whether the day had changed, so the
+  first sample past midnight got flushed into the previous day's CSV alongside it. The check
+  now runs first: a day change flushes the old buffer under its own day before the new
+  sample joins.
+- **The sensor tier could get stuck reporting Full after the driver stopped mid-session.**
+  `Tier` gated on an ever-set high-water mark, so one good RAPL reading pinned it at `Full`
+  for the rest of the session even if PawnIO later crashed or HVCI re-enabled — the recovery
+  banner never came back. Replaced with a consecutive-miss streak per source (LHM, EMI):
+  eight ticks without a real reading and the tier falls back, same threshold already used
+  elsewhere for warm-up so a single transient miss still can't cause a flap.
 
 ### Security
 
