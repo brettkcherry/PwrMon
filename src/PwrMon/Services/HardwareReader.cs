@@ -31,12 +31,29 @@ public sealed class HardwareReader : IDisposable
     // Per-core "Distance to TjMax"; LHM offers no aggregate, so the hottest core is the min.
     private readonly List<ISensor> _tjMaxDistances = new();
     private int _updates;
-    private float _maxPowerSeen;
+
+    // "Live" tracks recent misses, not an ever-set high-water mark: a source that stops
+    // producing readings mid-session (PawnIO service dies, HVCI re-enables, the EMI counter
+    // category disappears) must be able to fall out of its tier, not stay pinned at the best
+    // it ever saw. StaleAfterMisses consecutive non-readings and a source is no longer live;
+    // both start "missed" so a tier can't report before its first real reading.
+    internal const int StaleAfterMisses = 8;
+    private int _lhmMissStreak = StaleAfterMisses;
 
     // Windows Energy Meter (EMI) RAPL counters — CPU/iGPU watts without any driver or elevation.
     // Values arrive in milliwatts.
     private PerformanceCounter? _emiPkg, _emiCores, _emiGpu;
-    private float _maxEmiSeen;
+    private int _emiMissStreak = StaleAfterMisses;
+
+    /// <summary>Whether a source with this consecutive-miss count still counts as live.</summary>
+    internal static bool IsLive(int missStreak) => missStreak < StaleAfterMisses;
+
+    /// <summary>Next miss-streak value: a reading resets it to 0, a miss nudges it up
+    /// (capped at <see cref="StaleAfterMisses"/> so it can't grow unbounded over a long
+    /// session). Pulled out with <see cref="IsLive"/> so this state machine is testable
+    /// without a real <see cref="Computer"/> or Energy Meter counters.</summary>
+    internal static int NextMissStreak(int current, bool gotReading) =>
+        gotReading ? 0 : Math.Min(current + 1, StaleAfterMisses);
 
     public bool IsElevated { get; } =
         new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
@@ -49,8 +66,8 @@ public sealed class HardwareReader : IDisposable
     {
         get
         {
-            if (_maxPowerSeen > 0.5f) return SensorTier.Full;
-            if (_maxEmiSeen > 0.5f && _updates >= 8) return SensorTier.EmiOnly;
+            if (IsLive(_lhmMissStreak)) return SensorTier.Full;
+            if (IsLive(_emiMissStreak) && _updates >= 8) return SensorTier.EmiOnly;
             if (!LhmInitialized) return SensorTier.LhmFailed;
             if (_updates < 8) return SensorTier.Probing;
             return IsElevated ? SensorTier.DriverBlocked : SensorTier.NeedsAdmin;
@@ -114,8 +131,8 @@ public sealed class HardwareReader : IDisposable
         _emiGpu?.Dispose();
         _emiPkg = _emiCores = _emiGpu = null;
         _updates = 0;
-        _maxPowerSeen = 0;
-        _maxEmiSeen = 0;
+        _lhmMissStreak = StaleAfterMisses;
+        _emiMissStreak = StaleAfterMisses;
         Init();
     }
 
@@ -210,21 +227,21 @@ public sealed class HardwareReader : IDisposable
                 if (Val(s) is double d && (tjMaxDelta is null || d < tjMaxDelta)) tjMaxDelta = d;
             gpuLoad = Val(_gpuLoad);
             gpuClock = Val(_gpuClock);
-
-            if (lhmPkg is > 0.5) _maxPowerSeen = Math.Max(_maxPowerSeen, (float)lhmPkg.Value);
-            if (lhmGpu is > 0.5) _maxPowerSeen = Math.Max(_maxPowerSeen, (float)lhmGpu.Value);
         }
 
-        _updates++;
+        // A flat 0/null from an LHM RAPL sensor means "driver can't read MSRs right now", not
+        // "0 watts" — a real reading of either source resets the streak, anything else nudges
+        // it toward stale.
+        _lhmMissStreak = NextMissStreak(_lhmMissStreak, lhmPkg is > 0.5 || lhmGpu is > 0.5);
+        var lhmLive = IsLive(_lhmMissStreak);
 
-        // A flat 0 from an LHM RAPL sensor means "driver can't read MSRs", not "0 watts".
-        var lhmLive = _maxPowerSeen > 0.5f;
+        _updates++;
 
         // EMI fallback: Windows' own RAPL counters (mW), no driver or elevation required
         var emiPkg = EmiVal(_emiPkg);
         var emiCores = EmiVal(_emiCores);
         var emiGpu = EmiVal(_emiGpu);
-        if (emiPkg is > 0.5) _maxEmiSeen = Math.Max(_maxEmiSeen, (float)emiPkg.Value);
+        _emiMissStreak = NextMissStreak(_emiMissStreak, emiPkg is > 0.5);
 
         return new HardwareReading(
             CpuPackageW: lhmLive ? lhmPkg : emiPkg,

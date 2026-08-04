@@ -38,7 +38,8 @@ public sealed class BatteryReader : IDisposable
         bool found = false, ac = false, charging = false, discharging = false;
         double chargeMw = 0, dischargeMw = 0, remainingMwh = 0, voltageMv = 0;
 
-        foreach (ManagementBaseObject obj in _status.Get())
+        using var results = _status.Get();
+        foreach (ManagementBaseObject obj in results)
         {
             found = true;
             ac |= AsBool(obj["PowerOnline"]);
@@ -80,7 +81,8 @@ public sealed class BatteryReader : IDisposable
         try
         {
             double mwh = 0;
-            foreach (ManagementBaseObject obj in _fullCap.Get())
+            using var results = _fullCap.Get();
+            foreach (ManagementBaseObject obj in results)
             {
                 mwh += AsDouble(obj["FullChargedCapacity"]);
                 obj.Dispose();
@@ -105,7 +107,8 @@ public sealed class BatteryReader : IDisposable
         {
             using var s = new ManagementObjectSearcher(@"root\wmi",
                 "SELECT DesignedCapacity,Chemistry,ManufactureName,DeviceName FROM BatteryStaticData WHERE Active=TRUE");
-            foreach (ManagementBaseObject obj in s.Get())
+            using var results = s.Get();
+            foreach (ManagementBaseObject obj in results)
             {
                 designMwh += AsDouble(obj["DesignedCapacity"]);
                 if (chemistry.Length == 0) chemistry = DecodeChemistry(AsDouble(obj["Chemistry"]));
@@ -120,7 +123,8 @@ public sealed class BatteryReader : IDisposable
         {
             using var s = new ManagementObjectSearcher(@"root\wmi",
                 "SELECT CycleCount FROM BatteryCycleCount WHERE Active=TRUE");
-            foreach (ManagementBaseObject obj in s.Get())
+            using var results = s.Get();
+            foreach (ManagementBaseObject obj in results)
             {
                 var c = (int)AsDouble(obj["CycleCount"]);
                 if (c > 0) cycles = Math.Max(cycles ?? 0, c);
@@ -132,7 +136,8 @@ public sealed class BatteryReader : IDisposable
         try
         {
             using var s = new ManagementObjectSearcher(@"root\cimv2", "SELECT DesignVoltage FROM Win32_Battery");
-            foreach (ManagementBaseObject obj in s.Get())
+            using var results = s.Get();
+            foreach (ManagementBaseObject obj in results)
             {
                 designVoltageMv = Math.Max(designVoltageMv, AsDouble(obj["DesignVoltage"]));
                 obj.Dispose();

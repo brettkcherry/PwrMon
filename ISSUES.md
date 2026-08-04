@@ -4,24 +4,6 @@ Open work on PwrMon, roughly in the order it bothers us. Items here are things w
 confirmed on real hardware or in the code, not speculative polish. Anything already shipped
 lives in [CHANGELOG.md](CHANGELOG.md) — this file is only what's still outstanding.
 
-## Bugs
-
-- **WMI result collections are never disposed.** `ManagementObjectSearcher.Get()` returns an
-  `IDisposable` collection that `BatteryReader` iterates but never disposes (`Read` and
-  `RefreshFullChargeIfStale`, plus all three queries in `ReadStatic`). The individual
-  `ManagementBaseObject`s are disposed correctly; the collection wrapping them isn't, so
-  unmanaged COM handles are left to finalization — twice a second, for as long as the app
-  runs.
-- **One history row lands in the wrong daily file at midnight.** `HistoryStore.Append`
-  appends the line to the buffer *before* testing whether the day changed, so the first
-  sample after midnight is flushed into the previous day's CSV. Exactly one row per
-  rollover. Display self-corrects (`LoadRecent` filters on the timestamp, not the filename),
-  but the file on disk is wrong and filename-based retention can prune it a day early.
-- **The sensor tier can't fall back once it reaches Full.** `HardwareReader.Tier` gates on
-  `_maxPowerSeen`, a high-water mark only ever reset by `Reinit()`. One good RAPL read pins
-  the tier at `Full` for the rest of the session, so a machine whose driver stops mid-session
-  keeps claiming full telemetry and the banner never reappears to offer a fix.
-
 ## Improvements
 
 - **Mini-graph should be resizable**, with a smaller minimum size — especially horizontally.
