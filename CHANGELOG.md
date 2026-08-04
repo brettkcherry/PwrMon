@@ -64,6 +64,15 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
 
 ### Fixed
 
+- **Implausible RAPL power spikes could plot as real readings.** CPU package/cores/platform
+  and iGPU watts have no hardware-level sanity bound of their own, and a driver misread of a
+  stale or wrapped energy counter — observed around AC plug/unplug — could report a wattage
+  no laptop chip can physically draw. Readings above 500 W are now dropped as a miss instead
+  of plotted, mirroring the cap the EMI fallback path already applied to itself.
+- **Stat card labels could overflow onto a second line** when a fixed-width card, a font
+  change, or a precision change widened the value column — "Throttle headroom" on the new
+  THERMAL card was the trigger. `StatLabel` now wraps, and the PROCESSOR and SESSION cards
+  are slightly wider to fit their longest labels without wrapping in the first place.
 - **The Interface font dropdown was already open every time Settings opened.** The font
   pickers auto-open their dropdown when you type, and that handler was guarded only by the
   `_initializing` flag the constructor clears on its last line. But an editable `ComboBox`

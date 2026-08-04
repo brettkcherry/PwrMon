@@ -106,7 +106,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Style="{StaticResource Card}" Width="215" Tag="cpu">
+            <Border Style="{StaticResource Card}" Width="225" Tag="cpu">
                 <StackPanel>
                     <TextBlock x:Name="CpuTitle" Style="{StaticResource CardTitle}" Text="PROCESSOR"/>
                     <Grid>
@@ -243,7 +243,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Style="{StaticResource Card}" Width="235" Tag="session">
+            <Border Style="{StaticResource Card}" Width="248" Tag="session">
                 <StackPanel>
                     <Grid>
                         <TextBlock Style="{StaticResource CardTitle}" Text="SESSION"/>

@@ -215,10 +215,10 @@ public sealed class HardwareReader : IDisposable
                 if (_updates < 3) Log.Error("LHM update", ex);
             }
 
-            lhmPkg = Val(_cpuPackage);
-            lhmCores = Val(_cpuCores);
-            lhmPlatform = Val(_cpuPlatform);
-            lhmGpu = Val(_gpuPower);
+            lhmPkg = PowerVal(_cpuPackage);
+            lhmCores = PowerVal(_cpuCores);
+            lhmPlatform = PowerVal(_cpuPlatform);
+            lhmGpu = PowerVal(_gpuPower);
             load = Val(_cpuLoad);
             temp = Val(_cpuTemp);
             tempMax = Val(_cpuTempMax);
@@ -268,6 +268,14 @@ public sealed class HardwareReader : IDisposable
     }
 
     private static double? Val(ISensor? s) => s?.Value is float f && !float.IsNaN(f) ? f : null;
+
+    // RAPL/MSR reads have no hardware-level sanity bound of their own; a laptop CPU package
+    // or iGPU physically cannot draw anywhere near this much. An implausible spike (observed
+    // right around AC plug/unplug — most likely a driver misread of a stale/wrapped energy
+    // counter during the power-state transition) gets dropped as a miss rather than plotted
+    // as a real reading, mirroring the cap the EMI fallback path already applies to itself.
+    private const double MaxPlausiblePowerW = 500;
+    private static double? PowerVal(ISensor? s) => Val(s) is double v && v <= MaxPlausiblePowerW ? v : null;
 
     public void Dispose()
     {

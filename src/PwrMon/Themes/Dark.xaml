@@ -56,6 +56,10 @@
         <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
+        <!-- default NoWrap lets long labels run straight into the value column instead of
+             overflowing onto a second line — a fixed-width card plus a font/precision change
+             (either can widen the value column's Auto share) is enough to trigger it -->
+        <Setter Property="TextWrapping" Value="Wrap"/>
     </Style>
 
     <Style x:Key="StatValue" TargetType="TextBlock">
