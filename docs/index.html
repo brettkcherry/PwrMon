@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PwrMon — live power telemetry for Windows laptops</title>
+<meta name="description" content="A Windows app that answers one question: what is my machine pulling right now, in watts? In development — not yet released.">
+<meta property="og:title" content="PwrMon — live power telemetry for Windows laptops">
+<meta property="og:description" content="Battery, CPU and iGPU watts in real time. No ads, no telemetry, no kernel driver. In development — not yet released.">
+<meta property="og:type" content="website">
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-alt: #f6f7f9;
+    --fg: #16181d;
+    --fg-dim: #5b616e;
+    --line: #e3e6ea;
+    --accent: #b45309;
+    --accent-soft: #fef3c7;
+    --warn-bg: #fffbeb;
+    --warn-line: #fcd34d;
+    --mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1014;
+      --bg-alt: #161920;
+      --fg: #e7e9ee;
+      --fg-dim: #9aa1ae;
+      --line: #262b34;
+      --accent: #fbbf24;
+      --accent-soft: #2a2110;
+      --warn-bg: #1d1809;
+      --warn-line: #6b5310;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  h1, h2, h3 { line-height: 1.25; letter-spacing: -0.015em; }
+  h2 {
+    font-size: 1.4rem; margin: 3.5rem 0 1rem;
+    padding-top: 1.6rem; border-top: 1px solid var(--line);
+  }
+  h3 { font-size: 1.05rem; margin: 2rem 0 .4rem; }
+  code { font-family: var(--mono); font-size: .88em; background: var(--bg-alt); padding: .1em .35em; border-radius: 4px; }
+
+  /* ---- hero ---- */
+  header { padding: 4.5rem 0 1rem; }
+  .logo { font-size: 3rem; line-height: 1; }
+  h1 { font-size: 2.6rem; margin: .5rem 0 .3rem; }
+  .tagline { font-size: 1.22rem; color: var(--fg-dim); margin: 0 0 1.6rem; max-width: 34em; }
+
+  .status {
+    display: flex; gap: .9rem; align-items: flex-start;
+    background: var(--warn-bg); border: 1px solid var(--warn-line);
+    border-radius: 10px; padding: 1rem 1.15rem; margin: 0 0 1.5rem;
+  }
+  .status .dot {
+    flex: none; width: 9px; height: 9px; border-radius: 50%;
+    background: var(--accent); margin-top: .55rem;
+  }
+  .status strong { display: block; }
+  .status p { margin: .2rem 0 0; color: var(--fg-dim); font-size: .94rem; }
+
+  .meta { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+  .pill {
+    font-size: .8rem; font-family: var(--mono);
+    border: 1px solid var(--line); border-radius: 100px;
+    padding: .25rem .7rem; color: var(--fg-dim);
+  }
+
+  /* ---- the question ---- */
+  .lede { font-size: 1.08rem; }
+  blockquote {
+    margin: 1.5rem 0; padding: .1rem 0 .1rem 1.15rem;
+    border-left: 3px solid var(--accent); color: var(--fg-dim);
+  }
+
+  /* ---- features ---- */
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .cell { background: var(--bg); padding: 1.1rem 1.2rem; }
+  .cell h3 { margin: 0 0 .3rem; font-size: .97rem; }
+  .cell p { margin: 0; font-size: .9rem; color: var(--fg-dim); }
+
+  /* ---- screenshots ---- */
+  figure { margin: 1.5rem 0; }
+  figure img { width: 100%; border: 1px solid var(--line); border-radius: 10px; display: block; }
+  figcaption { font-size: .87rem; color: var(--fg-dim); margin-top: .5rem; }
+  .shot-todo {
+    border: 1px dashed var(--line); border-radius: 10px;
+    padding: 2.4rem 1.2rem; text-align: center;
+    color: var(--fg-dim); font-size: .9rem; background: var(--bg-alt);
+  }
+  .shot-todo code { background: transparent; }
+
+  /* ---- tables ---- */
+  .scroll { overflow-x: auto; margin: 1.2rem 0; }
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+  th, td { text-align: left; padding: .6rem .8rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--fg-dim); font-weight: 600; }
+
+  /* ---- honesty list ---- */
+  .honest { list-style: none; padding: 0; }
+  .honest li { padding: .55rem 0 .55rem 1.6rem; position: relative; border-bottom: 1px solid var(--line); font-size: .95rem; }
+  .honest li:last-child { border-bottom: 0; }
+  .honest li::before { content: "—"; position: absolute; left: 0; color: var(--fg-dim); }
+
+  footer {
+    margin-top: 4rem; padding: 2rem 0 3.5rem;
+    border-top: 1px solid var(--line);
+    font-size: .88rem; color: var(--fg-dim);
+  }
+  footer a { color: var(--fg-dim); text-decoration: underline; }
+  .links { display: flex; flex-wrap: wrap; gap: 1.2rem; margin-bottom: 1.2rem; }
+  .links a { color: var(--accent); text-decoration: none; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="logo">⚡</div>
+  <h1>PwrMon</h1>
+  <p class="tagline">Live power telemetry for Windows laptops. Because every battery app shows you
+  <em>health summaries</em> when what you want to know is what your machine is pulling right now, in watts.</p>
+
+  <div class="status">
+    <span class="dot"></span>
+    <div>
+      <strong>In development — not yet released.</strong>
+      <p>There's no download here yet. PwrMon runs daily on the developer's machine, but it has
+      been verified on exactly one laptop, and its driverless sensor path is confirmed on Intel
+      only. Publishing a build people would install means testing it on hardware I don't own.
+      This page is here to say what it is and where it actually stands.</p>
+    </div>
+  </div>
+
+  <div class="meta">
+    <span class="pill">C# / .NET 8 / WPF</span>
+    <span class="pill">Windows 10–11 x64</span>
+    <span class="pill">MIT</span>
+    <span class="pill">v1.4.0 — unreleased</span>
+  </div>
+</header>
+
+<p class="lede">On battery, discharge rate <em>is</em> your total system draw — that's physics, not an
+estimate. Windows knows this number. It just won't show it to you, and neither will the battery
+apps on the Store, which prefer to report a wear percentage and a wildly optimistic time-remaining
+guess. PwrMon reads the fuel gauge directly and puts the watts on screen.</p>
+
+<blockquote>The design constraint the whole project hangs on: read real silicon power without
+loading a kernel driver that Microsoft has blocklisted. Most tools in this category ship WinRing0.
+PwrMon doesn't, and never loads it.</blockquote>
+
+<h2>What it does</h2>
+
+<div class="grid">
+  <div class="cell">
+    <h3>Live power flow</h3>
+    <p>Charge/discharge watts from the battery's own fuel gauge over ACPI, plus net flow, voltage
+    and current.</p>
+  </div>
+  <div class="cell">
+    <h3>CPU &amp; iGPU watts</h3>
+    <p>RAPL package, core and iGPU power — with no administrator and no kernel driver, via Windows'
+    own Energy Meter counters.</p>
+  </div>
+  <div class="cell">
+    <h3>History chart</h3>
+    <p>Pan/zoomable multi-series chart over 5 minutes to 48 hours, with AC plug/unplug and resume
+    markers. Persists across restarts.</p>
+  </div>
+  <div class="cell">
+    <h3>Temperatures</h3>
+    <p>Drive °C with no admin at all; CPU package, hottest core and throttle headroom in the
+    elevated tier.</p>
+  </div>
+  <div class="cell">
+    <h3>Tray wattage ticker</h3>
+    <p>The live number rendered <em>as</em> the tray icon — green charging, orange discharging,
+    red heavy draw.</p>
+  </div>
+  <div class="cell">
+    <h3>Floating mini-graph</h3>
+    <p>Borderless always-on-top sparkline of the last 1–5 minutes. Draggable, translucent,
+    resizable, optionally click-through.</p>
+  </div>
+  <div class="cell">
+    <h3>Estimates that aren't garbage</h3>
+    <p>Time-to-empty and time-to-full from 30-second smoothed rates, not Windows'
+    <code>EstimatedRunTime</code>.</p>
+  </div>
+  <div class="cell">
+    <h3>Your data stays put</h3>
+    <p>Daily CSV history under <code>%LocalAppData%</code>, pruned on a retention window you set.
+    Exportable. Never uploaded.</p>
+  </div>
+</div>
+
+<h2>What it looks like</h2>
+
+<!--
+  SCREENSHOTS — currently placeholders.
+  Drop curated captures into docs/assets/ and replace each .shot-todo block with:
+
+    <figure>
+      <img src="assets/dashboard.png" alt="PwrMon dashboard showing live wattage, stat cards and history chart">
+      <figcaption>…</figcaption>
+    </figure>
+
+  .gitignore excludes images tree-wide on purpose; docs/assets/ is excepted so these can be
+  committed. Check each capture for other windows, filenames and personal data before committing.
+-->
+
+<div class="shot-todo">Dashboard capture goes here — <code>docs/assets/dashboard.png</code></div>
+<div class="shot-todo" style="margin-top:1rem">Tray ticker + floating mini-graph — <code>docs/assets/minigraph.png</code></div>
+
+<h2>Sensor tiers</h2>
+
+<p>PwrMon reads CPU and iGPU power from whichever of two sources is available, and prefers the one
+that asks nothing of you. Battery wattage — the number that tells you your total system draw —
+works at every tier.</p>
+
+<div class="scroll">
+<table>
+  <thead>
+    <tr><th>Tier</th><th>What you get</th><th>Requirement</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Default</strong><br>every user</td>
+      <td>Battery watts &amp; health, CPU/iGPU watts via Energy Meter counters, CPU load, drive °C</td>
+      <td>Nothing. No UAC prompt, no driver, unaffected by Memory Integrity.</td>
+    </tr>
+    <tr>
+      <td><strong>Full</strong><br>elevated</td>
+      <td>Everything above, plus platform (PSys) power, CPU package and hottest-core temperature,
+      throttle headroom</td>
+      <td>Administrator + <a href="https://pawnio.eu/">PawnIO</a>, a signed HVCI-compatible sensor driver</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>The default tier is the part most tools in this category don't have. Elevation is an
+<em>upgrade</em> for platform power and temperatures — not a prerequisite for watts.</p>
+
+<h2>Where it honestly stands</h2>
+
+<p>The interesting parts of a project this age are the edges. These are the real ones, taken from
+the repo's own <a href="https://github.com/brettkcherry/PwrMon/blob/main/ISSUES.md">ISSUES.md</a>:</p>
+
+<ul class="honest">
+  <li><strong>Verified on one machine</strong> — a Zenbook UX3404VA (i7-13700H, Iris Xe). No second
+  machine, no AMD testing.</li>
+  <li><strong>The driverless tier is an Intel claim.</strong> The Energy Meter counter path is what
+  makes the no-admin tier work, and it has only been observed on Intel. Until someone runs it on
+  AMD, that's the widest gap between what the docs promise and what's been seen.</li>
+  <li><strong>No iGPU temperature on Intel integrated graphics.</strong> Four routes tested and
+  ruled out. Reading it needs a kernel driver PwrMon deliberately doesn't ship — Task Manager
+  doesn't show it either, for the same reason.</li>
+  <li><strong>No battery temperature</strong> where the WMI class has no instances, which is the
+  case on the reference machine.</li>
+  <li><strong>The fuel gauge is slower than the app.</strong> PwrMon polls up to twice a second, but
+  most gauges republish on their own ~15–30 s cadence. Rather than print a stale tenths-place
+  number as though it were fresh, the readout drops to whole watts and tells you how long the
+  reading has been held.</li>
+</ul>
+
+<h2>Privacy &amp; security</h2>
+
+<ul class="honest">
+  <li><strong>No telemetry, no analytics, no auto-update, no crash reporting.</strong> There is
+  exactly one outbound URL in the codebase: the optional PawnIO download, behind an explicit
+  consent dialog, with the installer's signature verified and its signer shown to you first.</li>
+  <li><strong>No WinRing0</strong> — the driver on Microsoft's vulnerable-driver blocklist that
+  most tools in this category use to read CPU power. Not shipped, never loaded.</li>
+  <li><strong>Elevation is optional and never silent.</strong> Battery telemetry needs none.</li>
+</ul>
+
+<footer>
+  <div class="links">
+    <a href="https://github.com/brettkcherry/PwrMon">Source on GitHub</a>
+    <a href="https://github.com/brettkcherry/PwrMon/blob/main/ISSUES.md">Known issues</a>
+    <a href="https://github.com/brettkcherry/PwrMon/blob/main/CHANGELOG.md">Changelog</a>
+    <a href="https://github.com/brettkcherry/PwrMon/blob/main/SECURITY.md">Security</a>
+  </div>
+  <p>Built by Brett Cherry. MIT licensed. Runs on Windows 10 and 11, x64.<br>
+  If you have an AMD laptop and a spare ten minutes, that's the single most useful thing anyone
+  could contribute — see
+  <a href="https://github.com/brettkcherry/PwrMon/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>.</p>
+</footer>
+
+</div>
+</body>
+</html>

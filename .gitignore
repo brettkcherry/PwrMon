@@ -26,6 +26,13 @@ installer/Output/
 *.mp4
 # real source assets under Assets/ stay tracked (.ico was never matched above)
 !src/PwrMon/Assets/*.png
+# curated captures for the public landing page. Deliberately narrow: only images placed
+# in docs/assets/ escape the blanket ignore above, so an incidental screenshot dropped
+# anywhere else still can't reach a public repo. Check every file here for other windows,
+# filenames and personal data before committing — these are published.
+!docs/assets/*.png
+!docs/assets/*.gif
 
 # internal working notes — not for publication
 HANDOFF.md
+GO-PUBLIC.md
