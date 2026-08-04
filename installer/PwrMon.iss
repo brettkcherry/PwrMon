@@ -1,5 +1,5 @@
 ; Inno Setup script for PwrMon
-; Build:  1) dotnet publish (see README — produces publish\portable\PwrMon.exe)
+; Build:  1) tools\publish.ps1 -Only standalone  (see README — produces publish\standalone\PwrMon.exe)
 ;         2) iscc installer\PwrMon.iss
 ; Output: installer\Output\PwrMon-Setup.exe
 

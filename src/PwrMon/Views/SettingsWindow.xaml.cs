@@ -194,7 +194,20 @@ public partial class SettingsWindow : Window
         var suppressFilter = false;
         combo.AddHandler(TextBoxBase.TextChangedEvent, new TextChangedEventHandler((_, _) =>
         {
-            if (_initializing || suppressFilter) return;
+            // Only react to the user actually typing. The _initializing flag alone was not
+            // enough and was the bug behind "the Interface font dropdown is already open every
+            // time Settings opens": an editable ComboBox does not create its PART_EditableTextBox
+            // until its template is applied, which happens at first layout — *after* the
+            // constructor has already set _initializing = false. WPF then syncs that fresh
+            // TextBox to the Text set on line 188 and raises TextChanged, which fell straight
+            // through to the force-open below. Both font combos were opened this way; only the
+            // second stayed open, because opening a ComboBox popup takes mouse capture and so
+            // closes the first — which is exactly why the symptom looked specific to Interface
+            // font rather than to both pickers.
+            // Keyboard focus is the honest discriminator: a programmatic Text sync never has it,
+            // and genuine typing always does. It also stops a programmatic Text set from
+            // clobbering the filter that SetFontComboSelection installs immediately before it.
+            if (_initializing || suppressFilter || !combo.IsKeyboardFocusWithin) return;
             var query = combo.Text ?? "";
             view.Filter = query.Length == 0
                 ? o => curated.Contains((string)o, StringComparer.OrdinalIgnoreCase)

@@ -41,24 +41,20 @@ public static class ThemeService
             "#F5B62E", "#3FB950", "#F0883E", "#F85149", "#58A6FF",
             "#000000", "#060608", "#17181C",
             "#F5B62E", "#58A6FF", "#BC8CFF", "#3FB950", "#8B93A7", "#F2000000"),
-        new("Paper", false, "#F5F2EA", "#FFFFFF", "#DDD6C7", "#3D3929", "#8A8471",
-            "#C15F3C", "#3B6D11", "#BA7517", "#A32D2D", "#185FA5",
-            "#FFFFFF", "#FBF9F3", "#E8E2D4",
-            "#C15F3C", "#185FA5", "#7F77DD", "#3B6D11", "#888780", "#F2FFFFFF"),
-
-        // ─── 3 light siblings, riffing on existing dark families rather than new directions ───
-        new("Chalk", false, "#F3F3EF", "#FFFFFF", "#E2E0D4", "#2B2B26", "#8D8C82",
-            "#B8860B", "#2E7D32", "#BF5B22", "#B33A3A", "#2568B0",
-            "#FFFFFF", "#FAFAF6", "#E4E2D6",
-            "#B8860B", "#2568B0", "#7B5FBF", "#2E7D32", "#8D8C82", "#F2FFFFFF"),
-        new("Frost", false, "#EFF3F7", "#FFFFFF", "#D7E1EA", "#223140", "#7C8B99",
-            "#2472A4", "#4C9B76", "#B4652C", "#B23B3B", "#3E7CB1",
-            "#FFFFFF", "#F7FAFC", "#DEE7EE",
-            "#2472A4", "#9B7CA8", "#4FA8AE", "#4C9B76", "#7C8B99", "#F2FFFFFF"),
-        new("Meadow", false, "#F1F6EE", "#FFFFFF", "#DCE7D5", "#263A22", "#7E8F76",
-            "#2F7A32", "#2F7A32", "#B36A1E", "#B23A34", "#2E6FA8",
-            "#FFFFFF", "#F8FBF6", "#E1EAD9",
-            "#2F7A32", "#2C7C93", "#6E9B2E", "#1F5C28", "#7E8F76", "#F2FFFFFF"),
+        // Redshift — night-watch red: the lighting an observatory dome or a submarine control
+        // room switches to before dark work ("rig for red"), because long-wavelength light spares
+        // the eye's dark adaptation while blue-white light destroys it. So: no blue-white
+        // anywhere — the background is a red-cast black, the text is warm rose rather than
+        // white, and the whole palette lives on the red→amber arc. It stops short of true
+        // monochrome for the same reason Phosphor does: Green/Orange/Red/Blue carry battery
+        // *state* (charging / discharging / alarm / idle), and collapsing them into one hue
+        // would cost real meaning. They're separated within the warm band instead — amber for
+        // good, burnt orange for drain, hot pink-red for alarm, quiet rose for idle — with
+        // one nebula violet for the iGPU series, the single concession to legibility.
+        new("Redshift", true, "#0E0608", "#170A0D", "#2E1418", "#F2CBC4", "#B27B75",
+            "#FF5A45", "#F5C860", "#D9822B", "#FF3355", "#E58BB0",
+            "#170A0D", "#0B0406", "#2A1216",
+            "#FF5A45", "#E58BB0", "#B368D6", "#F5C860", "#B27B75", "#EE0B0406"),
 
         // ─── 3 mid-tone themes: genuine middle luminance, not a dimmed dark or tinted light ───
         new("Dusk", true, "#574C63", "#665A73", "#7A6D87", "#F3EDF7", "#C8BBD2",
@@ -73,6 +69,30 @@ public static class ThemeService
             "#F0B255", "#8FC98A", "#E8935A", "#E27D6E", "#7FAAD6",
             "#786A5D", "#6F6155", "#8C7D6E",
             "#F0B255", "#7FAAD6", "#B79AC4", "#8FC98A", "#D4C4B4", "#EE786A5D"),
+
+        // ─── Light themes last, deliberately ───
+        // The picker renders this array in order, and people cycle it top-to-bottom with a
+        // dark theme already applied and their eyes adapted to it. A white background part-way
+        // down the list is a flashbang; parked at the end, the list ramps monotonically from
+        // near-black up to white, so the only bright step is the one you opt into.
+        // Paper belongs here too — it's the oldest of the four, but it's every bit as bright.
+        new("Paper", false, "#F5F2EA", "#FFFFFF", "#DDD6C7", "#3D3929", "#8A8471",
+            "#C15F3C", "#3B6D11", "#BA7517", "#A32D2D", "#185FA5",
+            "#FFFFFF", "#FBF9F3", "#E8E2D4",
+            "#C15F3C", "#185FA5", "#7F77DD", "#3B6D11", "#888780", "#F2FFFFFF"),
+        // 3 light siblings, riffing on existing dark families rather than new directions
+        new("Chalk", false, "#F3F3EF", "#FFFFFF", "#E2E0D4", "#2B2B26", "#8D8C82",
+            "#B8860B", "#2E7D32", "#BF5B22", "#B33A3A", "#2568B0",
+            "#FFFFFF", "#FAFAF6", "#E4E2D6",
+            "#B8860B", "#2568B0", "#7B5FBF", "#2E7D32", "#8D8C82", "#F2FFFFFF"),
+        new("Frost", false, "#EFF3F7", "#FFFFFF", "#D7E1EA", "#223140", "#7C8B99",
+            "#2472A4", "#4C9B76", "#B4652C", "#B23B3B", "#3E7CB1",
+            "#FFFFFF", "#F7FAFC", "#DEE7EE",
+            "#2472A4", "#9B7CA8", "#4FA8AE", "#4C9B76", "#7C8B99", "#F2FFFFFF"),
+        new("Meadow", false, "#F1F6EE", "#FFFFFF", "#DCE7D5", "#263A22", "#7E8F76",
+            "#2F7A32", "#2F7A32", "#B36A1E", "#B23A34", "#2E6FA8",
+            "#FFFFFF", "#F8FBF6", "#E1EAD9",
+            "#2F7A32", "#2C7C93", "#6E9B2E", "#1F5C28", "#7E8F76", "#F2FFFFFF"),
     };
 
     public static ThemePalette Current { get; private set; } = All[0];
