@@ -25,6 +25,8 @@ public sealed class AppSettings
     public bool MiniGraphEnabled { get; set; }
     public double MiniGraphX { get; set; } = double.NaN;
     public double MiniGraphY { get; set; } = double.NaN;
+    public double MiniGraphWidth { get; set; } = 300;
+    public double MiniGraphHeight { get; set; } = 150;
     public int MiniGraphOpacityPct { get; set; } = 85;
     public int MiniGraphWindowSeconds { get; set; } = 120;
     public bool MiniGraphClickThrough { get; set; }
@@ -91,6 +93,10 @@ public sealed class AppSettings
         }
         Current.SamplingIntervalSeconds = Math.Clamp(Current.SamplingIntervalSeconds, 0.5, 10);
         Current.HistoryRetentionDays = Math.Clamp(Current.HistoryRetentionDays, 1, 60);
+        // floors match MiniGraphWindow's MinWidth/MinHeight — guards a hand-edited or stale
+        // settings.json from pinning the window below what it can actually render at
+        Current.MiniGraphWidth = Math.Max(Current.MiniGraphWidth, 150);
+        Current.MiniGraphHeight = Math.Max(Current.MiniGraphHeight, 90);
     }
 
     public static void Save()

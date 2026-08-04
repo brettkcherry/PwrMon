@@ -6,8 +6,6 @@ lives in [CHANGELOG.md](CHANGELOG.md) — this file is only what's still outstan
 
 ## Improvements
 
-- **Mini-graph should be resizable**, with a smaller minimum size — especially horizontally.
-  Currently `ResizeMode="NoResize"` at a fixed 300×150.
 - **Displayed precision should follow the source's resolution.** The hero readout prints two
   decimals below 10 W off a fuel gauge that is quantized and publishes every ~15–30 s — more
   significant figures than the measurement carries. Wants a staleness indicator too, so a
@@ -28,6 +26,11 @@ lives in [CHANGELOG.md](CHANGELOG.md) — this file is only what's still outstan
   checkbox assignment during setup firing the handler and writing the others'
   not-yet-applied state back to settings — is guarded now. Worth one pass on real hardware
   to confirm the symptom is actually gone.
+- **Mini-graph resize.** Was fixed `ResizeMode="NoResize"` at 300×150 with no way to shrink
+  it. Now has a corner grip (`Thumb`-based, since the window is borderless + transparent and
+  has no chrome for the OS to hit-test) down to a 150×90 floor, with size persisted the same
+  way as position. Builds clean; drag interaction itself needs a pass on real hardware — no
+  way to click-and-drag a native window from here to confirm the grip feels right.
 
 ## Known limitations
 

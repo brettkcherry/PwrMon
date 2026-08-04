@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="PwrMon Mini"
-        Width="300" Height="150"
+        Width="300" Height="150" MinWidth="150" MinHeight="90"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="False" ResizeMode="NoResize"
         FontFamily="{DynamicResource TextFontFamily}"
@@ -57,6 +57,18 @@
                 <TextBlock x:Name="MinLabel" Grid.Column="1" Text="" FontSize="9" Margin="4,0,0,0"
                            Foreground="{DynamicResource TextDimBrush}" VerticalAlignment="Bottom" HorizontalAlignment="Left"/>
             </Grid>
+            <!-- borderless + AllowsTransparency means Windows has no chrome to hit-test for
+                 edge-drag resize, so this corner grip drives Width/Height directly instead -->
+            <Thumb x:Name="ResizeGrip" Grid.Row="1" Width="14" Height="14"
+                   HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                   Cursor="SizeNWSE" Background="Transparent"
+                   DragDelta="ResizeGrip_DragDelta" DragCompleted="ResizeGrip_DragCompleted">
+                <Thumb.Template>
+                    <ControlTemplate TargetType="Thumb">
+                        <Path Data="M 14,0 L 14,14 L 0,14 Z" Fill="{DynamicResource TextDimBrush}" Opacity="0.35"/>
+                    </ControlTemplate>
+                </Thumb.Template>
+            </Thumb>
         </Grid>
     </Border>
 </Window>
