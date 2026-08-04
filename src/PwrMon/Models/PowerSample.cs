@@ -34,6 +34,16 @@ public sealed class PowerSample
     public double? GpuLoadPct { get; init; }
     public double? GpuClockMhz { get; init; }
 
+    /// <summary>Hottest single core in °C — full tier only. Live display only, not persisted.</summary>
+    public double? CpuTempMaxC { get; init; }
+    /// <summary>Headroom in °C between the hottest core and its throttle point. Small = about
+    /// to throttle. Full tier only; live display only, not persisted.</summary>
+    public double? CpuTjMaxDeltaC { get; init; }
+
+    /// <summary>Hottest fixed drive in °C. Unlike <see cref="CpuTempC"/> this needs no
+    /// elevation or driver, so it's the one temperature available in the default tier.</summary>
+    public double? DriveTempC { get; init; }
+
     /// <summary>True when the wall-clock gap since the previous sample is large (sleep/hibernate) —
     /// charts should break the line before this sample.</summary>
     public bool GapBefore { get; init; }

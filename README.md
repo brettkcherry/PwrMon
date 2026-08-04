@@ -13,8 +13,12 @@ the optional PawnIO driver download — and only when you explicitly click the b
   gauge (ACPI via WMI), updated up to twice a second, plus net flow, voltage, and current.
 - **CPU & iGPU silicon power** — RAPL package/cores/platform watts and iGPU watts via
   LibreHardwareMonitor (needs admin + PawnIO on Memory-Integrity systems; see below).
+- **Temperatures** — drive temperature read straight from the disk with no administrator or
+  driver required, so it works in every tier; CPU package, hottest core and throttle headroom
+  arrive with the full sensor tier. See "Temperature coverage" below for what isn't available.
 - **History chart** — pan/zoomable multi-series chart (net W, CPU W, iGPU W, battery %,
-  CPU load) over 5 minutes to 48 hours, with AC plug/unplug and resume event markers.
+  CPU load, CPU °C, drive °C) over 5 minutes to 48 hours, with AC plug/unplug and resume
+  event markers.
   History persists across restarts (daily CSV files, configurable retention).
 - **Time estimates that aren't garbage** — time-to-empty / time-to-full computed from
   30-second smoothed rates, not Windows' famously bogus `EstimatedRunTime`.
@@ -65,6 +69,27 @@ tells you your total system draw on battery — works at every tier.
 > When plugged in, the wall draw isn't measurable on most laptops; you get charge rate
 > into the battery plus CPU/iGPU silicon power.
 
+## Temperature coverage
+
+| Sensor | Source | Tier |
+|--------|--------|------|
+| Drive | `IOCTL_STORAGE_QUERY_PROPERTY` on a query-only volume handle | every tier — no admin, no driver |
+| CPU package / hottest core / throttle headroom | LibreHardwareMonitor MSRs | admin + PawnIO, same as CPU watts |
+
+**iGPU temperature is not available** on Intel integrated graphics, and it isn't for lack of
+trying. LibreHardwareMonitor exposes no temperature sensor for Intel GPUs; Level Zero Sysman
+can't initialise on a stock driver install (no `HKLM\SOFTWARE\Khronos\OneAPI\LevelZero`
+registration); Intel's IGCL `ctlEnumTemperatureSensors` returns `CTL_RESULT_ERROR_ZE_LOADER`
+because it's implemented over Level Zero; and the kernel's own `D3DKMT` adapter perf data
+returns zeros, which is why Task Manager shows no iGPU temperature either. Tools that do
+report it load a kernel driver and read the GPU's thermal registers directly — see the
+"No WinRing0" boundary in [SECURITY.md](SECURITY.md). On a monolithic mobile die the iGPU
+shares the package thermal domain, so **CPU package temperature tracks it closely**.
+
+Battery temperature is exposed by some machines through the WMI `BatteryTemperature` class;
+where the class has no instances (as on this project's reference machine) there's nothing to
+read. `tools/SensorProbe` reports all of the above for your hardware.
+
 ## Data & files
 
 Everything lives in `%LocalAppData%\PwrMon\`:
@@ -81,6 +106,7 @@ src/PwrMon/
   Services/
     BatteryReader.cs    WMI root\wmi ACPI battery classes (rates mW, capacities mWh)
     HardwareReader.cs   LibreHardwareMonitor wrapper + sensor-tier detection
+    DriveTemperature.cs drive °C via a query-only volume handle (no admin, no driver)
     Sampler.cs          polling loop, EMA smoothing, session stats, AC/sleep events
     HistoryStore.cs     daily CSV persistence, backfill, retention, export
     TrayService.cs      dynamic GDI+ tray icon (live wattage as the icon)

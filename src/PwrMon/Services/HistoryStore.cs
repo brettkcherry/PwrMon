@@ -12,7 +12,9 @@ namespace PwrMon.Services;
 /// </summary>
 public sealed class HistoryStore : IDisposable
 {
-    private const string Header = "time,charge_w,discharge_w,cpu_w,igpu_w,cpu_load,percent,remaining_wh,voltage_v,ac,gap,platform_w";
+    // Columns are append-only: ParseLine length-guards every field past index 10 so older
+    // CSVs keep loading unchanged.
+    private const string Header = "time,charge_w,discharge_w,cpu_w,igpu_w,cpu_load,percent,remaining_wh,voltage_v,ac,gap,platform_w,cpu_temp_c,drive_temp_c";
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
     private readonly object _gate = new();
@@ -26,7 +28,7 @@ public sealed class HistoryStore : IDisposable
     /// <summary>Builds one CSV line for a sample, matching <see cref="Header"/>'s column order.</summary>
     internal static string FormatLine(PowerSample s) =>
         string.Create(Inv,
-            $"{s.Time:yyyy-MM-ddTHH:mm:ss.fffzzz},{s.ChargeRateW:F3},{s.DischargeRateW:F3},{Opt(s.CpuPackageW)},{Opt(s.IGpuW)},{Opt(s.CpuLoadPct)},{s.BatteryPercent:F2},{s.RemainingWh:F3},{s.VoltageV:F3},{(s.AcOnline ? 1 : 0)},{(s.GapBefore ? 1 : 0)},{Opt(s.CpuPlatformW)}");
+            $"{s.Time:yyyy-MM-ddTHH:mm:ss.fffzzz},{s.ChargeRateW:F3},{s.DischargeRateW:F3},{Opt(s.CpuPackageW)},{Opt(s.IGpuW)},{Opt(s.CpuLoadPct)},{s.BatteryPercent:F2},{s.RemainingWh:F3},{s.VoltageV:F3},{(s.AcOnline ? 1 : 0)},{(s.GapBefore ? 1 : 0)},{Opt(s.CpuPlatformW)},{Opt(s.CpuTempC)},{Opt(s.DriveTempC)}");
 
     public void Append(PowerSample s)
     {
@@ -150,6 +152,8 @@ public sealed class HistoryStore : IDisposable
                 AcOnline = p[9] == "1",
                 GapBefore = p[10] == "1",
                 CpuPlatformW = p.Length > 11 ? OptParse(p[11]) : null,
+                CpuTempC = p.Length > 12 ? OptParse(p[12]) : null,
+                DriveTempC = p.Length > 13 ? OptParse(p[13]) : null,
             };
         }
         catch { return null; }

@@ -149,6 +149,31 @@
                 </StackPanel>
             </Border>
 
+            <Border Style="{StaticResource Card}" Width="205" Tag="thermal">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="THERMAL"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Style="{StaticResource StatLabel}" Text="CPU package"
+                                   ToolTip="Needs administrator plus PawnIO — the same tier as CPU watts."/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="ThermCpu" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource StatLabel}" Text="Hottest core"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="ThermCoreMax" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="2" Style="{StaticResource StatLabel}" Text="Throttle headroom"
+                                   ToolTip="Degrees between the hottest core and its throttle point. When this reaches zero the CPU cuts power — watch it against the watts on the chart."/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="ThermTjMax" Style="{StaticResource StatValue}"/>
+                        <TextBlock Grid.Row="3" x:Name="ThermDriveLabel" Style="{StaticResource StatLabel}" Text="Drive"
+                                   ToolTip="Read straight from the drive. No administrator or driver needed, so this one works in every tier."/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" x:Name="ThermDrive" Style="{StaticResource StatValue}" Foreground="{DynamicResource AccentBrush}"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
             <Border Style="{StaticResource Card}" Width="215" Tag="budget">
                 <StackPanel>
                     <TextBlock Style="{StaticResource CardTitle}" Text="POWER BUDGET"/>
@@ -263,6 +288,10 @@
                         <CheckBox x:Name="ChkGpu" Style="{StaticResource SeriesCheck}" Content="iGPU" Foreground="{DynamicResource GpuBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
                         <CheckBox x:Name="ChkPct" Style="{StaticResource SeriesCheck}" Content="Battery %" Foreground="{DynamicResource GreenBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
                         <CheckBox x:Name="ChkLoad" Style="{StaticResource SeriesCheck}" Content="Load %" Foreground="{DynamicResource TextDimBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
+                        <CheckBox x:Name="ChkCpuTemp" Style="{StaticResource SeriesCheck}" Content="CPU °C" Foreground="{DynamicResource RedBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"
+                                  ToolTip="Plotted against the right-hand axis, which is shared with the percentage series."/>
+                        <CheckBox x:Name="ChkDriveTemp" Style="{StaticResource SeriesCheck}" Content="Drive °C" Foreground="{DynamicResource OrangeBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"
+                                  ToolTip="Plotted against the right-hand axis, which is shared with the percentage series."/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <ToggleButton x:Name="LiveToggle" Content="● LIVE" IsChecked="True" FontSize="11" FontWeight="Bold"
