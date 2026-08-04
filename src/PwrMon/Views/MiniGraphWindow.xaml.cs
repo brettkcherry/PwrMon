@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -29,6 +30,8 @@ public partial class MiniGraphWindow : Window
 
         var s = AppSettings.Current;
         Opacity = s.MiniGraphOpacityPct / 100.0;
+        Width = Math.Max(MinWidth, s.MiniGraphWidth);
+        Height = Math.Max(MinHeight, s.MiniGraphHeight);
         if (!double.IsNaN(s.MiniGraphX) && !double.IsNaN(s.MiniGraphY))
         {
             // only restore a position that is still on a connected screen
@@ -141,6 +144,21 @@ public partial class MiniGraphWindow : Window
             AppSettings.Current.MiniGraphY = Top;
             AppSettings.Save();
         }
+    }
+
+    /// <summary>Grows/shrinks the window directly from the corner grip — works regardless of
+    /// ResizeMode since there's no window chrome to hand this off to.</summary>
+    private void ResizeGrip_DragDelta(object sender, DragDeltaEventArgs e)
+    {
+        Width = Math.Max(MinWidth, Width + e.HorizontalChange);
+        Height = Math.Max(MinHeight, Height + e.VerticalChange);
+    }
+
+    private void ResizeGrip_DragCompleted(object sender, DragCompletedEventArgs e)
+    {
+        AppSettings.Current.MiniGraphWidth = Width;
+        AppSettings.Current.MiniGraphHeight = Height;
+        AppSettings.Save();
     }
 
     private void OpenDashboard_Click(object sender, RoutedEventArgs e) => App.Current.ShowDashboard();
