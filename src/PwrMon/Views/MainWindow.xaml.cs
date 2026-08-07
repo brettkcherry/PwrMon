@@ -45,6 +45,8 @@ public partial class MainWindow : Window
     private double _panStartLeft;
     private const double MinSpanDays = 30.0 / 86400.0;  // can't zoom in past 30 s
     private const double FutureFrac = 0.02;             // breathing margin right of the newest sample
+    private const double ZoomStepPerNotch = 1.08;       // gentle: ~9 notches to halve/double the span
+    private const double PanFracPerNotch = 0.06;        // sideways scroll travel per wheel notch
     private SensorTier _lastTier = SensorTier.Probing;
     private BatteryStaticInfo? _staticInfo;
     private PowerSample? _lastSample;
@@ -52,7 +54,11 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        SourceInitialized += (_, _) => EnableDarkTitleBar(ThemeService.Current.IsDark);
+        SourceInitialized += (_, _) =>
+        {
+            EnableDarkTitleBar(ThemeService.Current.IsDark);
+            HookHorizontalWheel();
+        };
         ThemeService.Changed += OnThemeChanged;
         Closed += (_, _) => ThemeService.Changed -= OnThemeChanged;
 
@@ -832,6 +838,15 @@ public partial class MainWindow : Window
     private void Chart_MouseWheel(object sender, MouseWheelEventArgs e)
     {
         if (_times.Count == 0) return;
+
+        // Shift+wheel is the cross-app convention for "scroll sideways"
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+        {
+            PanByWheel(-e.Delta);   // wheel-up scrolls left, matching every other Shift+wheel surface
+            e.Handled = true;
+            return;
+        }
+
         var limits = Chart.Plot.Axes.GetLimits();
         var span = limits.Right - limits.Left;
         if (span <= 0) return;
@@ -841,10 +856,24 @@ public partial class MainWindow : Window
         var anchor = Chart.Plot.GetCoordinates(new Pixel(pos.X * Chart.DisplayScale, pos.Y * Chart.DisplayScale)).X;
         var frac = (anchor - limits.Left) / span;
 
-        var newSpan = Math.Clamp(span * (e.Delta > 0 ? 1 / 1.2 : 1.2), MinSpanDays, MaxSpanDays());
+        // Math.Pow (rather than a flat step) keeps sub-notch trackpad deltas proportional
+        var newSpan = Math.Clamp(span * Math.Pow(ZoomStepPerNotch, -e.Delta / 120.0), MinSpanDays, MaxSpanDays());
         SetLive(false);
         ApplyView(anchor - frac * newSpan, newSpan);
         e.Handled = true;
+    }
+
+    /// <summary>Scroll the time window sideways by a wheel delta (120 = one notch).
+    /// Positive delta scrolls toward newer samples.</summary>
+    private void PanByWheel(int delta)
+    {
+        if (_times.Count == 0 || delta == 0) return;
+        var limits = Chart.Plot.Axes.GetLimits();
+        var span = limits.Right - limits.Left;
+        if (span <= 0) return;
+
+        SetLive(false);
+        ApplyView(limits.Left + span * PanFracPerNotch * (delta / 120.0), span);
     }
 
     private void Chart_MouseDown(object sender, MouseButtonEventArgs e)
@@ -1164,6 +1193,36 @@ public partial class MainWindow : Window
         }
         // slim mode: let the window actually close — chart + history buffers are freed,
         // the app lives on in the tray, and reopening rebuilds from CSV backfill
+    }
+
+    // WPF never routes WM_MOUSEHWHEEL (tilt wheel / two-finger sideways swipe), so the
+    // top-level HWND has to be hooked directly. Child WPF elements share this HWND, so one
+    // hook covers the chart; we hit-test the cursor to make sure the gesture was aimed at it.
+    private const int WM_MOUSEHWHEEL = 0x020E;
+
+    private void HookHorizontalWheel()
+    {
+        var source = (HwndSource?)PresentationSource.FromVisual(this);
+        source?.AddHook(WndProcHook);
+    }
+
+    private IntPtr WndProcHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg != WM_MOUSEHWHEEL) return IntPtr.Zero;
+
+        var delta = (short)((wParam.ToInt64() >> 16) & 0xFFFF);
+        if (delta == 0 || !IsCursorOverChart()) return IntPtr.Zero;
+
+        PanByWheel(delta);
+        handled = true;
+        return IntPtr.Zero;
+    }
+
+    private bool IsCursorOverChart()
+    {
+        if (!Chart.IsVisible || !GetCursorPos(out var pt)) return false;
+        var local = Chart.PointFromScreen(new Point(pt.X, pt.Y));
+        return local.X >= 0 && local.Y >= 0 && local.X < Chart.ActualWidth && local.Y < Chart.ActualHeight;
     }
 
     private void EnableDarkTitleBar(bool dark)

@@ -49,3 +49,8 @@ lives in [CHANGELOG.md](CHANGELOG.md) — this file is only what's still outstan
   and it is **verified on Intel only**. Until it's tested on AMD, the README's default-tier
   claim is an Intel claim. This is the widest gap between what the docs promise and what has
   actually been observed.
+
+## Fixes
+
+- Resizing the mini chart should a) remove the little triangle in the corner b) work from all side and corners of the widget. movement remains "drag from anywhere inside"
+

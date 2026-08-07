@@ -6,6 +6,9 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
 
 ### Added
 
+- **Sideways scrolling on the main chart.** Shift+wheel, or a tilt-wheel/two-finger
+  horizontal swipe, now pans the time axis the same way dragging does — WPF doesn't route
+  horizontal wheel events on its own, so this required hooking the window's HWND directly.
 - **New theme: "Redshift"** — a night-watch red palette, after the red lighting an
   observatory dome or a submarine control room switches to before dark work, because
   long-wavelength light spares the eye's dark adaptation while blue-white light destroys it.
@@ -64,6 +67,10 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
 
 ### Fixed
 
+- **Chart wheel-zoom was too sensitive**, especially on precision trackpads sending many
+  small-delta events per gesture — it zoomed on a fixed step per event instead of scaling by
+  the actual delta, so a light two-finger scroll could blow past the intended range in one
+  swipe. Now scales proportionally to wheel delta with a gentler per-notch step.
 - **Implausible RAPL power spikes could plot as real readings.** CPU package/cores/platform
   and iGPU watts have no hardware-level sanity bound of their own, and a driver misread of a
   stale or wrapped energy counter — observed around AC plug/unplug — could report a wattage
