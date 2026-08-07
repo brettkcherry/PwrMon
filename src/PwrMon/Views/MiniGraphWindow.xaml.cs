@@ -147,18 +147,50 @@ public partial class MiniGraphWindow : Window
         }
     }
 
-    /// <summary>Grows/shrinks the window directly from the corner grip — works regardless of
-    /// ResizeMode since there's no window chrome to hand this off to.</summary>
-    private void ResizeGrip_DragDelta(object sender, DragDeltaEventArgs e)
+    /// <summary>Grows/shrinks the window directly from an edge/corner thumb — works regardless
+    /// of ResizeMode since there's no window chrome to hand this off to. Dragging the west or
+    /// north side also has to slide Left/Top so the opposite edge stays put, the way native
+    /// edge-drag resize behaves.</summary>
+    private void ResizeFromEdge(double dx, double dy, bool west, bool north)
     {
-        Width = Math.Max(MinWidth, Width + e.HorizontalChange);
-        Height = Math.Max(MinHeight, Height + e.VerticalChange);
+        if (west)
+        {
+            var newWidth = Math.Max(MinWidth, Width - dx);
+            Left += Width - newWidth;
+            Width = newWidth;
+        }
+        else if (dx != 0)
+        {
+            Width = Math.Max(MinWidth, Width + dx);
+        }
+
+        if (north)
+        {
+            var newHeight = Math.Max(MinHeight, Height - dy);
+            Top += Height - newHeight;
+            Height = newHeight;
+        }
+        else if (dy != 0)
+        {
+            Height = Math.Max(MinHeight, Height + dy);
+        }
     }
+
+    private void ResizeN_DragDelta(object sender, DragDeltaEventArgs e) => ResizeFromEdge(0, e.VerticalChange, west: false, north: true);
+    private void ResizeS_DragDelta(object sender, DragDeltaEventArgs e) => ResizeFromEdge(0, e.VerticalChange, west: false, north: false);
+    private void ResizeW_DragDelta(object sender, DragDeltaEventArgs e) => ResizeFromEdge(e.HorizontalChange, 0, west: true, north: false);
+    private void ResizeE_DragDelta(object sender, DragDeltaEventArgs e) => ResizeFromEdge(e.HorizontalChange, 0, west: false, north: false);
+    private void ResizeNW_DragDelta(object sender, DragDeltaEventArgs e) => ResizeFromEdge(e.HorizontalChange, e.VerticalChange, west: true, north: true);
+    private void ResizeNE_DragDelta(object sender, DragDeltaEventArgs e) => ResizeFromEdge(e.HorizontalChange, e.VerticalChange, west: false, north: true);
+    private void ResizeSW_DragDelta(object sender, DragDeltaEventArgs e) => ResizeFromEdge(e.HorizontalChange, e.VerticalChange, west: true, north: false);
+    private void ResizeSE_DragDelta(object sender, DragDeltaEventArgs e) => ResizeFromEdge(e.HorizontalChange, e.VerticalChange, west: false, north: false);
 
     private void ResizeGrip_DragCompleted(object sender, DragCompletedEventArgs e)
     {
         AppSettings.Current.MiniGraphWidth = Width;
         AppSettings.Current.MiniGraphHeight = Height;
+        AppSettings.Current.MiniGraphX = Left;
+        AppSettings.Current.MiniGraphY = Top;
         AppSettings.Save();
     }
 

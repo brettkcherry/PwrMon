@@ -7,6 +7,13 @@
         Topmost="True" ShowInTaskbar="False" ResizeMode="NoResize"
         FontFamily="{DynamicResource TextFontFamily}"
         MouseLeftButtonDown="Window_MouseLeftButtonDown">
+    <Window.Resources>
+        <!-- hit-testable but invisible: the grip is felt, not seen -->
+        <ControlTemplate x:Key="InvisibleThumb" TargetType="Thumb">
+            <Border Background="Transparent"/>
+        </ControlTemplate>
+    </Window.Resources>
+    <Grid>
     <Border x:Name="RootBorder" CornerRadius="12" Background="#EE12151B" BorderBrush="#333B49" BorderThickness="1"
             Padding="12,8">
         <Border.ContextMenu>
@@ -57,18 +64,35 @@
                 <TextBlock x:Name="MinLabel" Grid.Column="1" Text="" FontSize="9" Margin="4,0,0,0"
                            Foreground="{DynamicResource TextDimBrush}" VerticalAlignment="Bottom" HorizontalAlignment="Left"/>
             </Grid>
-            <!-- borderless + AllowsTransparency means Windows has no chrome to hit-test for
-                 edge-drag resize, so this corner grip drives Width/Height directly instead -->
-            <Thumb x:Name="ResizeGrip" Grid.Row="1" Width="14" Height="14"
-                   HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                   Cursor="SizeNWSE" Background="Transparent"
-                   DragDelta="ResizeGrip_DragDelta" DragCompleted="ResizeGrip_DragCompleted">
-                <Thumb.Template>
-                    <ControlTemplate TargetType="Thumb">
-                        <Path Data="M 14,0 L 14,14 L 0,14 Z" Fill="{DynamicResource TextDimBrush}" Opacity="0.35"/>
-                    </ControlTemplate>
-                </Thumb.Template>
-            </Thumb>
         </Grid>
     </Border>
+
+    <!-- borderless + AllowsTransparency means Windows has no chrome to hit-test for
+         edge-drag resize, so these invisible thumbs cover every edge and corner and drive
+         Width/Height/Left/Top directly instead -->
+    <Thumb x:Name="ResizeN" Height="6" VerticalAlignment="Top" Margin="8,0"
+           Cursor="SizeNS" Template="{StaticResource InvisibleThumb}"
+           DragDelta="ResizeN_DragDelta" DragCompleted="ResizeGrip_DragCompleted"/>
+    <Thumb x:Name="ResizeS" Height="6" VerticalAlignment="Bottom" Margin="8,0"
+           Cursor="SizeNS" Template="{StaticResource InvisibleThumb}"
+           DragDelta="ResizeS_DragDelta" DragCompleted="ResizeGrip_DragCompleted"/>
+    <Thumb x:Name="ResizeW" Width="6" HorizontalAlignment="Left" Margin="0,8"
+           Cursor="SizeWE" Template="{StaticResource InvisibleThumb}"
+           DragDelta="ResizeW_DragDelta" DragCompleted="ResizeGrip_DragCompleted"/>
+    <Thumb x:Name="ResizeE" Width="6" HorizontalAlignment="Right" Margin="0,8"
+           Cursor="SizeWE" Template="{StaticResource InvisibleThumb}"
+           DragDelta="ResizeE_DragDelta" DragCompleted="ResizeGrip_DragCompleted"/>
+    <Thumb x:Name="ResizeNW" Width="8" Height="8" HorizontalAlignment="Left" VerticalAlignment="Top"
+           Cursor="SizeNWSE" Template="{StaticResource InvisibleThumb}"
+           DragDelta="ResizeNW_DragDelta" DragCompleted="ResizeGrip_DragCompleted"/>
+    <Thumb x:Name="ResizeNE" Width="8" Height="8" HorizontalAlignment="Right" VerticalAlignment="Top"
+           Cursor="SizeNESW" Template="{StaticResource InvisibleThumb}"
+           DragDelta="ResizeNE_DragDelta" DragCompleted="ResizeGrip_DragCompleted"/>
+    <Thumb x:Name="ResizeSW" Width="8" Height="8" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+           Cursor="SizeNESW" Template="{StaticResource InvisibleThumb}"
+           DragDelta="ResizeSW_DragDelta" DragCompleted="ResizeGrip_DragCompleted"/>
+    <Thumb x:Name="ResizeSE" Width="8" Height="8" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+           Cursor="SizeNWSE" Template="{StaticResource InvisibleThumb}"
+           DragDelta="ResizeSE_DragDelta" DragCompleted="ResizeGrip_DragCompleted"/>
+    </Grid>
 </Window>

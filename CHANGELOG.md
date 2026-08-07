@@ -22,9 +22,13 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
   with a dark theme applied and their eyes adapted to it, so a white background part-way down
   the list was a flashbang. The order is presentation only — the setting persists by name, not
   index, so no saved theme was remapped.
-- **Mini-graph is now resizable**, down to a 150×90 floor, via a corner drag grip — the
-  window is borderless and transparent, so there's no OS chrome to hit-test for standard
-  edge-drag resize. Size persists like position.
+- **Mini-graph is now resizable**, down to a 150×90 floor, via invisible drag grips on all
+  four edges and all four corners — the window is borderless and transparent, so there's no
+  OS chrome to hit-test for standard edge-drag resize. Dragging from the top or left edge
+  grows the window in that direction while the opposite edge stays anchored, matching native
+  resize behavior; dragging from anywhere in the body still moves the whole widget. Size and
+  position persist the same way as before. (Replaces the earlier corner-only grip, which also
+  drew a visible triangle glyph in the corner — removed, since the grip is felt, not seen.)
 - **Precision-honesty staleness indicator** (MULTIMETER-STUDY.md §7.1). The fuel gauge
   republishes on its own quantized ~15–30 s cadence regardless of how often PwrMon polls it;
   the hero readout and Power Flow card used to print two decimal places off that reading
