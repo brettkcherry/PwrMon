@@ -4,14 +4,6 @@ Open work on PwrMon, roughly in the order it bothers us. Items here are things w
 confirmed on real hardware or in the code, not speculative polish. Anything already shipped
 lives in [CHANGELOG.md](CHANGELOG.md) — this file is only what's still outstanding.
 
-## Queued discussions
-
-- **Chart interaction.** TradingView-style pan/zoom shipped (time-only axis, clamped to data
-  extent, Y auto-fit, LIVE = go-to-realtime), but the interaction model still needs to
-  diverge from TradingView's in places.
-- **Window open/close behaviour**, from the tray and app-wide: what opens where, and what
-  closing actually does.
-
 ## Known limitations
 
 - **No iGPU temperature on Intel integrated graphics.** Four routes tested and ruled out
@@ -34,5 +26,3 @@ lives in [CHANGELOG.md](CHANGELOG.md) — this file is only what's still outstan
   and it is **verified on Intel only**. Until it's tested on AMD, the README's default-tier
   claim is an Intel claim. This is the widest gap between what the docs promise and what has
   actually been observed.
-
-
