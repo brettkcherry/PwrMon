@@ -1182,17 +1182,22 @@ public partial class MainWindow : Window
         AppSettings.Current.WindowWidth = Width;
         AppSettings.Current.WindowHeight = Height;
         AppSettings.Save();
-        if (!AppSettings.Current.CloseToTray)
+
+        // See WindowLifecycle.DecideCloseAction for the pinned CloseToTray x SlimMode table.
+        switch (WindowLifecycle.DecideCloseAction(AppSettings.Current.CloseToTray, AppSettings.Current.SlimMode))
         {
-            App.Current.ExitApp();
+            case WindowLifecycle.CloseAction.ExitApp:
+                App.Current.ExitApp();
+                break;
+            case WindowLifecycle.CloseAction.CancelAndHide:
+                e.Cancel = true;
+                Hide();
+                break;
+            case WindowLifecycle.CloseAction.AllowCloseKeepRunning:
+                // let the window actually close — chart + history buffers are freed, the app
+                // lives on in the tray, and reopening rebuilds the dashboard from CSV backfill
+                break;
         }
-        else if (!AppSettings.Current.SlimMode)
-        {
-            e.Cancel = true;
-            Hide();
-        }
-        // slim mode: let the window actually close — chart + history buffers are freed,
-        // the app lives on in the tray, and reopening rebuilds from CSV backfill
     }
 
     // WPF never routes WM_MOUSEHWHEEL (tilt wheel / two-finger sideways swipe), so the

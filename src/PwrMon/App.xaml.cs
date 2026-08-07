@@ -36,38 +36,43 @@ public partial class App : Application
         base.OnStartup(e);
 
         var replace = e.Args.Contains("--replace");
-        var minimized = e.Args.Contains("--minimized") || AppSettings.Current.StartMinimized;
 
         _mutex = new Mutex(true, MutexName, out var isFirst);
         if (!isFirst)
         {
-            if (replace)
+            switch (WindowLifecycle.DecideSecondInstanceAction(replace))
             {
-                // an elevated restart is taking over: ask the old instance to die, wait for the mutex.
-                // ExitApp releases the mutex before Shutdown, but if the old instance died some
-                // other way (crash, killed) the wait completes as "abandoned" instead of
-                // returning true — that's not a failure here, just an unclean prior exit.
-                TrySignal(ExitSignalName);
-                bool acquired;
-                try { acquired = _mutex.WaitOne(TimeSpan.FromSeconds(8)); }
-                catch (AbandonedMutexException) { acquired = true; }
-                if (!acquired)
-                {
-                    MessageBox.Show("PwrMon is already running and did not exit.", "PwrMon");
+                case WindowLifecycle.SecondInstanceAction.SignalExitAndTakeOver:
+                    // an elevated restart is taking over: ask the old instance to die, wait for the mutex.
+                    // ExitApp releases the mutex before Shutdown, but if the old instance died some
+                    // other way (crash, killed) the wait completes as "abandoned" instead of
+                    // returning true — that's not a failure here, just an unclean prior exit.
+                    TrySignal(ExitSignalName);
+                    bool acquired;
+                    try { acquired = _mutex.WaitOne(TimeSpan.FromSeconds(8)); }
+                    catch (AbandonedMutexException) { acquired = true; }
+                    if (!acquired)
+                    {
+                        MessageBox.Show("PwrMon is already running and did not exit.", "PwrMon");
+                        Shutdown();
+                        return;
+                    }
+                    break;
+
+                case WindowLifecycle.SecondInstanceAction.SignalShowAndExit:
+                    // just poke the running instance to show itself
+                    TrySignal(ShowSignalName);
                     Shutdown();
                     return;
-                }
-            }
-            else
-            {
-                // just poke the running instance to show itself
-                TrySignal(ShowSignalName);
-                Shutdown();
-                return;
             }
         }
 
         AppSettings.Load();
+
+        // must be read after Load: AppSettings.Current is a defaults instance until then, so
+        // computing this earlier silently ignored the user's saved StartMinimized preference.
+        var showOnStartup = WindowLifecycle.ShouldShowDashboardOnStartup(e.Args, AppSettings.Current.StartMinimized);
+
         ThemeService.Apply(AppSettings.Current.Theme);
         ThemeService.ApplyNumeralFont(AppSettings.Current.NumeralFont);
         ThemeService.ApplyTextFont(AppSettings.Current.TextFont);
@@ -109,6 +114,7 @@ public partial class App : Application
         Tray.SettingsRequested += () => { ShowDashboard(); _mainWindow?.OpenSettings(); };
         Tray.ExitRequested += () => ExitApp();
         Tray.MiniGraphToggleRequested += ToggleMiniGraph;
+        Tray.MiniGraphClickThroughToggleRequested += ToggleMiniGraphClickThrough;
 
         Sampler.SampleReady += (s, stats, est) =>
         {
@@ -132,8 +138,12 @@ public partial class App : Application
         History.CleanupOldFiles();
         Log.CleanupOldFiles(AppSettings.Current.HistoryRetentionDays);
 
-        // dashboard is created lazily (ShowDashboard) so slim/minimized starts stay light
-        if (!minimized && !AppSettings.Current.SlimMode)
+        // The dashboard is created lazily (ShowDashboard) so a minimized start stays light.
+        // Slim mode deliberately does NOT suppress this: it means "free the dashboard when you
+        // close it" — which is what its Settings checkbox says — not "launch into the tray".
+        // Gating the initial show on it too made launching the exe look like nothing happened.
+        // See WindowLifecycle.ShouldShowDashboardOnStartup for the pinned decision table.
+        if (showOnStartup)
             ShowDashboard();
 
         if (AppSettings.Current.MiniGraphEnabled)
@@ -215,6 +225,16 @@ public partial class App : Application
     }
 
     public bool IsMiniGraphOpen => _miniGraph is not null;
+
+    /// <summary>The only way to turn click-through off once it's on: the window itself can no
+    /// longer be right-clicked to reach its own menu at that point.</summary>
+    private void ToggleMiniGraphClickThrough()
+    {
+        var enabled = !AppSettings.Current.MiniGraphClickThrough;
+        AppSettings.Current.MiniGraphClickThrough = enabled;
+        AppSettings.Save();
+        _miniGraph?.SetClickThrough(enabled);
+    }
 
     public void ExitApp()
     {

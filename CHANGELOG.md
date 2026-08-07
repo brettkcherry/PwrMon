@@ -71,6 +71,22 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
 
 ### Fixed
 
+- **Launching the app did nothing visible when slim mode was on.** Slim mode means "free the
+  dashboard's memory when you close it" — that's what its Settings checkbox says, and what its
+  close handler does. But startup also gated the *initial* window on it, so anyone with slim
+  mode enabled launched straight into the tray with no window: double-click the exe or the
+  Start-menu shortcut, and to all appearances nothing happened. Only `--minimized` and the
+  `StartMinimized` setting suppress the first show now.
+- **The "Start minimized to tray" setting was silently ignored.** It was read out of
+  `AppSettings.Current` several lines *before* `AppSettings.Load()` ran, so it always saw a
+  defaults instance rather than the user's saved value — the checkbox only ever worked via the
+  `--minimized` argument the autostart entry passes. Moved the read after the load.
+- The startup show/hide decision, the second-instance (`--replace`) decision, and the
+  close-to-tray/slim-mode close decision are now pure functions in the new
+  `Services/WindowLifecycle.cs`, called from `App.OnStartup` and `MainWindow_Closing` instead
+  of being inlined. Same behavior, but now pinned by 20 unit tests covering the full
+  `CloseToTray x SlimMode x StartMinimized` matrix — two of the three bugs above came from
+  exactly this surface having zero coverage.
 - **Chart wheel-zoom was too sensitive**, especially on precision trackpads sending many
   small-delta events per gesture — it zoomed on a fixed step per event instead of scaling by
   the actual delta, so a light two-finger scroll could blow past the intended range in one

@@ -228,8 +228,9 @@ public partial class MiniGraphWindow : Window
     private void Exit_Click(object sender, RoutedEventArgs e) => App.Current.ExitApp();
 
     /// <summary>WS_EX_TRANSPARENT: clicks pass through to whatever is underneath. Once enabled the
-    /// window can't be right-clicked anymore — the tray menu's mini-graph toggle is the way back.</summary>
-    private void SetClickThrough(bool enabled)
+    /// window can't be right-clicked anymore, so the only way back is the tray menu's "Mini graph
+    /// click-through" item, which calls this directly (<see cref="App.SetMiniGraphClickThrough"/>).</summary>
+    public void SetClickThrough(bool enabled)
     {
         var hwnd = new WindowInteropHelper(this).Handle;
         if (hwnd == IntPtr.Zero) return;

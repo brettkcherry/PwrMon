@@ -29,7 +29,7 @@
                 <MenuItem x:Name="MenuWin120" Header="Show last 2 min" Click="WindowSecs_Click" Tag="120"/>
                 <MenuItem x:Name="MenuWin300" Header="Show last 5 min" Click="WindowSecs_Click" Tag="300"/>
                 <Separator/>
-                <MenuItem Header="Click-through (disable via tray menu)" Click="ClickThrough_Click"/>
+                <MenuItem Header="Click-through (disable via tray icon menu)" Click="ClickThrough_Click"/>
                 <MenuItem Header="Hide mini graph" Click="Hide_Click"/>
                 <Separator/>
                 <MenuItem Header="Exit PwrMon" Click="Exit_Click"/>
