@@ -50,6 +50,19 @@
         <Button Content="Open history folder" Style="{StaticResource FlatButton}" HorizontalAlignment="Left"
                 Margin="0,8,0,0" FontSize="11" Click="OpenHistory_Click"/>
 
+        <TextBlock Style="{StaticResource CardTitle}" Text="UPDATES" Margin="0,16,0,6"/>
+        <TextBlock x:Name="UpdateStatusText" Foreground="{DynamicResource TextDimBrush}" FontSize="11.5"
+                   TextWrapping="Wrap"/>
+        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+            <Button x:Name="BtnCheckUpdate" Content="Check for updates" Style="{StaticResource FlatButton}"
+                    FontSize="11" MinWidth="130" Click="CheckUpdate_Click"/>
+            <!-- Hidden until a manifest has actually verified. There is deliberately no way
+                 to reach the download step without having passed the signature check. -->
+            <Button x:Name="BtnInstallUpdate" Content="Download and install" Style="{StaticResource FlatButton}"
+                    FontSize="11" MinWidth="150" Margin="8,0,0,0" Visibility="Collapsed"
+                    Click="InstallUpdate_Click"/>
+        </StackPanel>
+
         <TextBlock Style="{StaticResource CardTitle}" Text="ABOUT" Margin="0,16,0,6"/>
         <TextBlock x:Name="AboutText" Foreground="{DynamicResource TextDimBrush}" FontSize="11.5" TextWrapping="Wrap">
             <Run x:Name="AboutVersion" Text="PwrMon"/> — live power telemetry for Windows.<LineBreak/>

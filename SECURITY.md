@@ -35,7 +35,10 @@ Only the latest release gets fixes. There are no maintained branches.
 - The autostart mechanisms (HKCU Run key, elevated scheduled task)
 - The single-instance signalling (mutex and named events)
 - Parsing of files under `%LocalAppData%\PwrMon\` — settings, history CSVs
-- Anything causing PwrMon to make a network request other than the consented PawnIO download
+- **The update mechanism** — anything that gets PwrMon to run an installer that did not
+  verify, or that makes a tampered release manifest look genuine
+- Anything causing PwrMon to make a network request other than the update check and the
+  consented PawnIO download
 
 ## What's out of scope
 
@@ -71,6 +74,17 @@ randomly named temp directory, then verified with `WinVerifyTrust` before anythi
 The verified signer is shown to you and you confirm it before the installer runs. If
 verification fails, PwrMon refuses to run the file and sends you to the PawnIO website.
 
+**Updates.** PwrMon checks for updates only when you press the button in Settings → Updates;
+nothing happens at launch and nothing installs on its own. Because PwrMon's own installer is
+not code-signed, Authenticode cannot vouch for it, so the trust root is an ECDSA P-256 public
+key compiled into the binary instead. The chain is: verify the detached signature over the
+release manifest's exact bytes → read the installer's expected SHA-256 out of the now-trusted
+manifest → confirm the download URL is a PwrMon release asset on GitHub over HTTPS → download
+into a freshly created randomly named temp directory → require the hash to match → ask you →
+run it. A manifest that fails verification is treated as hostile and reported as such, not
+quietly as "no update available". HTTPS alone is explicitly *not* the control here: TLS proves
+the bytes came from github.com, not that they are a build of PwrMon.
+
 **Elevated autostart.** The scheduled task runs PwrMon with administrator rights at logon
 without a UAC prompt, so the executable it points at must not be replaceable by a
 non-administrator. PwrMon checks the ACL of the exe and its directory and refuses to create
@@ -95,5 +109,9 @@ Get-FileHash .\PwrMon.exe -Algorithm SHA256
 ```
 
 Only download from the [GitHub releases page](https://github.com/brettkcherry/PwrMon/releases).
-PwrMon has no auto-update mechanism and will never ask to install anything other than PawnIO,
-and only when you click the button.
+
+PwrMon can update itself, but only from Settings → Updates and only when you press the
+button — there is no background check, no automatic download, and no silent install. The two
+things it will ever offer to run are a PwrMon release that verified against the signing key
+described above, and the official PawnIO installer. Both ask before they run, and both are
+refused outright if verification fails.

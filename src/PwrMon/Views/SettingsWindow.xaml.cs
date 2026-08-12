@@ -83,6 +83,13 @@ public partial class SettingsWindow : Window
         var v = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
         AboutVersion.Text = $"PwrMon {v?.Major}.{v?.Minor}.{v?.Build}";
 
+        // Resting state. No check fires on open: this window is reached by people changing a
+        // setting, and a spinner plus a network call they didn't ask for is the wrong greeting.
+        UpdateStatusText.Text = UpdateService.IsConfigured
+            ? $"You're running PwrMon {UpdateService.CurrentVersion}."
+            : "Update checking isn't configured in this build.";
+        BtnCheckUpdate.IsEnabled = UpdateService.IsConfigured;
+
         ChkCloseToTray.Click += (_, _) => SaveBehavior();
         ChkStartMinimized.Click += (_, _) => SaveBehavior();
         ChkSlimMode.Click += (_, _) => SaveBehavior();
@@ -304,4 +311,112 @@ public partial class SettingsWindow : Window
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
+
+    // ─────────────────────────── updates ───────────────────────────
+    // The verification chain lives in UpdateService; this is only the consent surface for it.
+    // Two properties are load-bearing here and shouldn't be "simplified" away:
+    //   1. BtnInstallUpdate is unreachable until a manifest has verified, so there is no path
+    //      to a download that skipped the signature check.
+    //   2. _pending is the manifest that verified, not one re-fetched at install time —
+    //      re-fetching would open a window to swap the manifest between check and download.
+
+    private UpdateService.Manifest? _pending;
+
+    private async void CheckUpdate_Click(object sender, RoutedEventArgs e)
+    {
+        BtnCheckUpdate.IsEnabled = false;
+        BtnInstallUpdate.Visibility = Visibility.Collapsed;
+        _pending = null;
+        UpdateStatusText.Text = "Checking…";
+
+        var result = await UpdateService.CheckAsync();
+
+        switch (result.Status)
+        {
+            case UpdateStatus.Available:
+                _pending = result.Manifest;
+                UpdateStatusText.Text =
+                    $"PwrMon {result.Manifest!.Version} is available (you have {UpdateService.CurrentVersion})."
+                    + (string.IsNullOrWhiteSpace(result.Manifest.Notes) ? "" : $"\n{result.Manifest.Notes}");
+                BtnInstallUpdate.Visibility = Visibility.Visible;
+                break;
+
+            case UpdateStatus.UpToDate:
+                UpdateStatusText.Text = $"PwrMon {UpdateService.CurrentVersion} is the latest version.";
+                break;
+
+            case UpdateStatus.SignatureInvalid:
+                // Not "no update today". Either a release was mis-signed or something is
+                // sitting between this machine and GitHub, and both deserve saying out loud.
+                UpdateStatusText.Text =
+                    "An update was found but its signature did not verify, so PwrMon will not "
+                    + "install it. Download from the releases page by hand if you were expecting one.";
+                break;
+
+            case UpdateStatus.NotConfigured:
+                UpdateStatusText.Text = "Update checking isn't configured in this build.";
+                break;
+
+            default:
+                UpdateStatusText.Text = "Couldn't check for updates just now — see logs.";
+                break;
+        }
+
+        BtnCheckUpdate.IsEnabled = true;
+    }
+
+    private async void InstallUpdate_Click(object sender, RoutedEventArgs e)
+    {
+        if (_pending is null) return;
+
+        var proceed = MessageBox.Show(this,
+            $"Download PwrMon {_pending.Version} and run its installer?\n\n"
+            + "The download is checked against the signed release manifest before anything runs. "
+            + "The installer will ask for administrator rights itself, and PwrMon will close so "
+            + "it can replace the running copy.",
+            "Update PwrMon", MessageBoxButton.OKCancel, MessageBoxImage.Question);
+        if (proceed != MessageBoxResult.OK) return;
+
+        BtnInstallUpdate.IsEnabled = false;
+        BtnCheckUpdate.IsEnabled = false;
+        UpdateStatusText.Text = "Downloading…";
+
+        var installer = await UpdateService.DownloadAsync(_pending);
+        if (installer is null)
+        {
+            UpdateStatusText.Text =
+                "The download failed its integrity check and was discarded — see logs. "
+                + "Nothing was installed.";
+            BtnInstallUpdate.IsEnabled = true;
+            BtnCheckUpdate.IsEnabled = true;
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(installer) { UseShellExecute = true });
+        }
+        catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
+        {
+            // UAC declined. Staying open is the point: quitting here would leave the user with
+            // no PwrMon and no new version, over a prompt they deliberately dismissed.
+            Log.Info("update install: UAC declined");
+            UpdateStatusText.Text = "Installation cancelled. PwrMon is unchanged.";
+            BtnInstallUpdate.IsEnabled = true;
+            BtnCheckUpdate.IsEnabled = true;
+            return;
+        }
+        catch (Exception ex)
+        {
+            Log.Error("update install", ex);
+            UpdateStatusText.Text = "Could not start the installer — see logs.";
+            BtnInstallUpdate.IsEnabled = true;
+            BtnCheckUpdate.IsEnabled = true;
+            return;
+        }
+
+        // The installer can't replace an exe that's still running, so hand over and exit.
+        Log.Info($"update: launched installer for {_pending.Version}, shutting down");
+        Application.Current.Shutdown();
+    }
 }

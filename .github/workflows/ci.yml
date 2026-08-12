@@ -10,15 +10,23 @@ on:
 permissions:
   contents: read
 
+# Actions are pinned to full commit SHAs, not tags. A tag is mutable: whoever
+# controls an action's repository can repoint `v7` at new code whenever they
+# like, and every workflow using it picks that up silently on the next run.
+# This job holds no secrets today, so a compromised action could only tamper
+# with build output — but that stops being the ceiling the moment a release
+# workflow with a signing key lands beside it. The trailing comment records
+# which tag each SHA came from; Dependabot reads that format and keeps the two
+# in sync.
 jobs:
   build-and-test:
     # WPF + WMI + performance counters: this only builds on Windows.
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-dotnet@v6
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           dotnet-version: '8.0.x'
 

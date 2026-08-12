@@ -1,0 +1,40 @@
+# Dependency updates.
+#
+# PwrMon is the one app here that runs elevated and talks to a kernel driver,
+# so its dependency surface deserves more attention than its size suggests.
+# The sensor libraries are the ones actually holding handles to hardware
+# interfaces; everything else is UI and storage.
+#
+# `cooldown` holds a new release for a few days before Dependabot offers it.
+# When a package account is compromised the malicious version is usually
+# caught and pulled within a day or two, and the people it reaches are the
+# ones who upgraded within hours of publication. Nothing here needs a
+# dependency the day it ships. This delays *version* updates only — a real
+# advisory comes through the security-updates path and is not held back.
+# (Security updates are a separate repo setting: Settings → Advanced Security
+# → Dependabot security updates. This file does not turn them on.)
+version: 2
+
+updates:
+  # NuGet. `/` finds PwrMon.sln, which covers src/PwrMon, src/PwrMon.Tests
+  # and tools/SensorProbe.
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+      semver-patch-days: 3
+
+  # ci.yml pins actions to full commit SHAs with the tag in a trailing comment,
+  # because tags are mutable — whoever controls an action's repo can repoint one
+  # at new code. Dependabot reads that `# v7.0.1` format and keeps the SHA and
+  # the comment in sync, so pinning costs nothing to maintain. Keep it that way
+  # if a release workflow with a signing key ever lands beside this one.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
