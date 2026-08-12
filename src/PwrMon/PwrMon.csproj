@@ -52,7 +52,7 @@
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="10.0.9" />
     <PackageReference Include="System.Management" Version="10.0.9" />
     <!-- EventWaitHandleAcl: explicit DACLs on the cross-instance signals -->
-    <PackageReference Include="System.Threading.AccessControl" Version="10.0.9" />
+    <PackageReference Include="System.Threading.AccessControl" Version="10.0.10" />
   </ItemGroup>
 
   <ItemGroup>
