@@ -34,8 +34,14 @@
         <TextBlock Style="{StaticResource CardTitle}" Text="START WITH WINDOWS" Margin="0,14,0,6"/>
         <CheckBox x:Name="ChkAutostart" Content="Start PwrMon at logon"
                   Foreground="{DynamicResource TextBrush}" Margin="0,4" Click="Autostart_Click"/>
-        <CheckBox x:Name="ChkAutostartElevated" Content="…as administrator (scheduled task, no UAC prompt)"
-                  Foreground="{DynamicResource TextBrush}" Margin="22,4,0,0" Click="Autostart_Click"/>
+        <!-- CheckBox.Content is a plain string by default and doesn't wrap, unlike the
+             TextBlock note below it — that's why this one ran off the fixed-width window
+             while AutostartNote didn't. An explicit wrapping TextBlock fixes it without
+             touching the window's width. -->
+        <CheckBox x:Name="ChkAutostartElevated" Foreground="{DynamicResource TextBrush}"
+                  Margin="22,4,0,0" Click="Autostart_Click">
+            <TextBlock Text="…as administrator (scheduled task, no UAC prompt)" TextWrapping="Wrap"/>
+        </CheckBox>
         <TextBlock x:Name="AutostartNote" Foreground="{DynamicResource TextDimBrush}" FontSize="11"
                    Margin="22,2,0,0" TextWrapping="Wrap"/>
 
