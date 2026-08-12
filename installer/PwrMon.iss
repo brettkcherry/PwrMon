@@ -20,6 +20,10 @@ DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 LicenseFile=..\LICENSE
 UninstallDisplayIcon={app}\{#AppExe}
+; Without this, Inno falls back to its built-in "%1 version %2" template for the Windows
+; Settings > Installed apps entry — that's where "PwrMon version 1.5.0" came from. The actual
+; version is still tracked (AppVersion above still populates the separate Version column).
+UninstallDisplayName={#AppName}
 ; app offers in-place elevation when the user wants CPU/iGPU sensors
 PrivilegesRequired=admin
 OutputBaseFilename=PwrMon-Setup
