@@ -48,7 +48,15 @@ Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription
 Name: "autostart"; Description: "Start {#AppName} when Windows starts"; GroupDescription: "Startup:"; Flags: unchecked
 
 [Registry]
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; \
+; HKLM, not HKCU. PrivilegesRequired=admin means Setup itself always runs elevated, and
+; "current user" during an elevated process is not reliably the person who launched it — on
+; a machine with more than one admin account, a UAC prompt can hand control to a *different*
+; admin, and an HKCU write here would land in that account's hive instead of the installing
+; user's. The install would look successful and the checkbox would silently do nothing for
+; whoever actually uses the machine. HKLM's Run key has no such ambiguity: it's one location,
+; already reachable because admin is required either way, and it starts PwrMon for whichever
+; account logs in — which is also the more standard behavior for a machine-wide installer.
+Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; \
     ValueName: "{#AppName}"; ValueData: """{app}\{#AppExe}"" --minimized"; \
     Flags: uninsdeletevalue; Tasks: autostart
 
