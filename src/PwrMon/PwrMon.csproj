@@ -50,7 +50,7 @@
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
     <PackageReference Include="ScottPlot.WPF" Version="5.1.59" />
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="10.0.9" />
-    <PackageReference Include="System.Management" Version="10.0.9" />
+    <PackageReference Include="System.Management" Version="10.0.10" />
     <!-- EventWaitHandleAcl: explicit DACLs on the cross-instance signals -->
     <PackageReference Include="System.Threading.AccessControl" Version="10.0.9" />
   </ItemGroup>
