@@ -14,17 +14,56 @@ debugging it.** PwrMon runs daily on its author's machine and does what this REA
 does. What it hasn't had is contact with hardware other than that machine:
 
 - Verified on exactly one laptop — a Zenbook UX3404VA (i7-13700H, Iris Xe).
-- The driverless default tier is **confirmed on Intel only**. On AMD it is untested, so the
-  headline "CPU watts with no admin" claim is, today, an Intel claim.
+- The driverless default tier is **confirmed on Intel only**. On AMD it is untested, so every
+  claim about it in this README is scoped to Intel until someone shows otherwise.
 - No release build is published. The Inno Setup script in `installer/` works, but cutting a
   Release means standing behind a binary on machines that haven't been tested.
 
-That's the honest gate on a public release, and it's a hardware problem rather than a code
-one. The full punch list is in [ISSUES.md](ISSUES.md); if you have an AMD laptop,
-`tools/SensorProbe` output is the single most useful thing anyone could send.
+Nothing here is a claim waiting to be verified — the claims are written to match what's
+actually been observed, and they'll widen as hardware reports arrive. The full punch list is
+in [ISSUES.md](ISSUES.md).
 
 The project page lives at [brettkcherry.github.io/PwrMon](https://brettkcherry.github.io/PwrMon/)
 (source in [docs/](docs/)).
+
+## What needs work, and how you can help
+
+One thing is worth more than everything else combined: **a sensor dump from a machine that
+isn't a 13th-gen Intel Zenbook.** Especially an AMD one.
+
+Here's why that specific ask. PwrMon's headline claim is that it reads CPU and iGPU watts
+with **no administrator and no kernel driver**, using Windows' own Energy Meter counters —
+where effectively every comparable tool loads a driver, usually one on Microsoft's
+vulnerable-driver blocklist. That path works. It's also been observed on exactly one CPU
+family, which means that today it is an *Intel* claim wearing a general one's clothes. Nobody
+can close that gap from this machine.
+
+**`tools/SensorProbe` is the whole test.** It's a small console app that installs nothing,
+elevates nothing, changes nothing, and needs no trust — it reads sensors, prints what it
+found, and exits:
+
+```powershell
+dotnet run --project tools/SensorProbe
+```
+
+It writes a `sensorprobe-<timestamp>.txt` next to itself and prints the path. Attach that to
+a [hardware report](https://github.com/brettkcherry/PwrMon/issues/new/choose) with your CPU,
+GPU and Windows version.
+
+**A dump where nothing works is exactly as useful as one where everything does** — "the EMI
+counters don't exist on this chip" is a finding, and it's one that changes what this README is
+allowed to claim. Please file it either way.
+
+Also useful, in rough order:
+
+- **Discrete GPUs.** PwrMon is integrated-graphics-focused today. Whether NVIDIA/AMD dGPU
+  power is reachable without elevation is an open question worth answering.
+- **Non-Intel iGPUs**, and Intel chips outside the 12th–14th gen range.
+- **Anything in [ISSUES.md](ISSUES.md)** — that file is only what's still outstanding, and
+  it's kept honest.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR; the ethos section there is what
+gets changes merged or bounced.
 
 ## What it shows
 
@@ -33,8 +72,10 @@ The project page lives at [brettkcherry.github.io/PwrMon](https://brettkcherry.g
   second; how often that number actually *changes* is the gauge's call, and most publish on
   their own cadence (~15–30 s on this project's reference machine).
 - **CPU & iGPU silicon power** — RAPL package, cores and iGPU watts with **no administrator
-  and no kernel driver**, read from Windows' own Energy Meter counters. Elevation plus PawnIO
-  adds platform (PSys) power and CPU temperatures. See "Sensor tiers" below.
+  and no kernel driver**, read from Windows' own Energy Meter counters. *Verified on Intel
+  (12th–14th gen); untested on AMD — see [what needs work](#what-needs-work-and-how-you-can-help).*
+  Elevation plus PawnIO adds platform (PSys) power and CPU temperatures. See "Sensor tiers"
+  below.
 - **Temperatures** — drive temperature read straight from the disk with no administrator or
   driver required, so it works in every tier; CPU package, hottest core and throttle headroom
   arrive with the full sensor tier. See "Temperature coverage" below for what isn't available.
@@ -168,9 +209,11 @@ transitive components — is listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTI
 
 ## Privacy & security
 
-- **No telemetry, no analytics, no auto-update, no crash reporting.** There is exactly one
-  outbound URL in the entire codebase: the optional PawnIO installer download, behind an
-  explicit consent dialog.
+- **No telemetry, no analytics, no crash reporting.** Nothing about you or your machine is
+  ever sent anywhere. PwrMon makes a network request only when you press a button: checking
+  for updates (Settings → Updates), and the optional PawnIO installer download. There is no
+  background check, no automatic download, and no silent install — see
+  [SECURITY.md](SECURITY.md) for how an update is verified before it is allowed to run.
 - **No WinRing0.** Most tools in this category read CPU power through WinRing0, a driver on
   Microsoft's vulnerable-driver blocklist. PwrMon doesn't ship it and never loads it — the
   default path uses Windows' own Energy Meter counters (no driver, no elevation), and the
@@ -185,3 +228,28 @@ Found something? See [SECURITY.md](SECURITY.md).
 ## Known issues
 
 Open bugs and the punch list live in [ISSUES.md](ISSUES.md).
+
+## License
+
+**PwrMon is free software under the [GNU GPL-3.0](LICENSE)**, and separately available under a
+[commercial license](COMMERCIAL-LICENSE.md).
+
+In plain English, because nobody should have to read a license to know where they stand:
+
+- **Using PwrMon?** Free, forever, for anything including at work. Nothing is asked of you.
+- **Reading, forking, modifying, packaging it?** Go ahead. If you distribute something built
+  on it, that has to be GPL-3.0 with source too — that's the deal, and it's the only
+  obligation the license creates.
+- **Contributing?** Inbound is GPL-3.0 plus a one-time [CLA](CLA.md). You keep your copyright.
+  Bug reports and hardware dumps need no agreement at all.
+- **Want to ship it inside a closed-source product?** That's what the
+  [commercial license](COMMERCIAL-LICENSE.md) is for — including the driverless RAPL sensor
+  layer on its own.
+- **Forking it?** Rename it. The code is open; the name and icon aren't — see
+  [TRADEMARK.md](TRADEMARK.md).
+
+Third-party components keep their own licenses; see
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). PawnIO is never bundled — it's downloaded
+by you, from its own source, only if you ask for it.
+
+Copyright © 2026 Brett Cherry.

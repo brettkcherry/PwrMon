@@ -75,3 +75,18 @@ powershell -ExecutionPolicy Bypass -File tools/list-shipped-assemblies.ps1
 
 One change per PR. Say what hardware you tested on. If it's a UI change, a screenshot in the
 PR (not committed to the repo) helps.
+
+## Licensing of contributions
+
+PwrMon is **GPL-3.0**, and separately available under a commercial license
+([COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)). Code contributions are accepted **inbound
+under GPL-3.0 plus the [CLA](CLA.md)** — a one-time agreement, by comment on your first PR,
+that lets your contribution be licensed under both halves rather than only the open one.
+
+You keep your copyright either way. The reasoning, including why you might reasonably decline,
+is at the bottom of [CLA.md](CLA.md).
+
+**None of this applies to bug reports, hardware dumps, reproductions, or design feedback** —
+no agreement, no ceremony. A [hardware report](https://github.com/brettkcherry/PwrMon/issues/new/choose)
+from an unfamiliar machine is the most valuable thing anyone can send right now, and it needs
+nothing signed.

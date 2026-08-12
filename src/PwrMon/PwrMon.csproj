@@ -17,6 +17,13 @@
     <Company>Brett Cherry</Company>
     <Copyright>© 2026 Brett Cherry</Copyright>
     <Description>Live power telemetry for Windows — battery flow, CPU/iGPU watts, history charts, tray wattage ticker.</Description>
+    <!-- Public license. PwrMon is dual-licensed: GPL-3.0 here, with a separate commercial
+         license available (COMMERCIAL-LICENSE.md) for anyone who needs to ship it inside a
+         closed-source product. SPDX carries only the open half — that's the grant this
+         binary is distributed under. -->
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/brettkcherry/PwrMon</RepositoryUrl>
+    <PackageProjectUrl>https://brettkcherry.github.io/PwrMon/</PackageProjectUrl>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>

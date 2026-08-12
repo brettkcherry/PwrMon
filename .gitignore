@@ -36,3 +36,16 @@ installer/Output/
 # internal working notes — not for publication
 HANDOFF.md
 GO-PUBLIC.md
+# Branding exploration. The images beside it are already covered by the blanket *.jpg rule,
+# so committing the catalogue alone would publish a page of broken image links.
+docs/branding/
+
+# Signing key material. The release key lives at ~/.pwrmon/release-key.txt, outside the repo
+# entirely, and tools/new-release-key.ps1 defaults it there — this is the backstop for the day
+# someone points -OutFile somewhere convenient. A leaked private key hands every installed
+# copy of PwrMon an elevated binary of the holder's choosing.
+*.key
+*.pem
+*.pfx
+*.snk
+release-key*.txt

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/brettkcherry/PwrMon/security/advisories/new
+    about: Please report security problems privately, not as a public issue. See SECURITY.md.
+  - name: Known issues and punch list
+    url: https://github.com/brettkcherry/PwrMon/blob/main/ISSUES.md
+    about: Confirmed open items live here — worth a look before filing a duplicate.

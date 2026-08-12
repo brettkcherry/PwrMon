@@ -1,0 +1,94 @@
+name: Hardware report
+description: Run SensorProbe on your machine and paste the output. This is the single most useful contribution to PwrMon right now.
+title: "[Hardware] "
+labels: ["hardware-report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Thank you.** PwrMon is verified on exactly one laptop, and that's the honest gate on
+        a real release. A dump from unfamiliar hardware — with no code attached, and even if
+        everything fails — is genuinely the most valuable thing anyone can send.
+
+        **AMD machines are the biggest gap.** PwrMon's headline claim is that it reads CPU
+        watts with no administrator and no kernel driver, via Windows' Energy Meter counters.
+        That is confirmed on Intel only. Whether it holds on AMD is an open question, and one
+        dump answers it.
+
+        A report where nothing works is just as useful as one where everything does. Please
+        file it either way.
+
+  - type: textarea
+    id: machine
+    attributes:
+      label: The machine
+      description: Make and model, CPU, and GPU(s). Whatever you know.
+      placeholder: |
+        Laptop: Framework 13 (AMD)
+        CPU: Ryzen 7 7840U
+        GPU: Radeon 780M integrated, no discrete
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: "`winver`, or Settings → System → About."
+      placeholder: "Windows 11 24H2 (26100.1742)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: hvci
+    attributes:
+      label: Memory Integrity (HVCI)
+      description: Settings → Privacy & security → Windows Security → Device security → Core isolation.
+      options:
+        - "On"
+        - "Off"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: elevated
+    attributes:
+      label: Did you run SensorProbe as administrator?
+      description: Both are useful. Unelevated is the more important case — it's what most users will be in.
+      options:
+        - "No — ran it normally"
+        - "Yes — ran it elevated"
+        - "Ran it both ways (paste both dumps below)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: probe
+    attributes:
+      label: SensorProbe output
+      description: |
+        SensorProbe writes a `sensorprobe-<timestamp>.txt` next to itself and prints the path when
+        it finishes. Attach that file by dragging it into this box, or paste its contents here.
+      placeholder: "Paste the dump, or drag the .txt file into this box."
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Optional. Did it hang, crash, take a long time, or report something that looks obviously wrong?
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Before you post
+      options:
+        - label: >
+            I've had a look over the dump for anything I'd rather not publish. It can include
+            the battery's serial number and manufacturer IDs, plus your drive model — nothing
+            account-related, but it's a public issue and it's your call.
+          required: true

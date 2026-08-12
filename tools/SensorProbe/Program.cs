@@ -20,7 +20,26 @@ if (args.Length == 4 && args[0].Equals("--igcl-init", StringComparison.OrdinalIg
 
 var probeMotherboard = args.Contains("--motherboard", StringComparer.OrdinalIgnoreCase);
 var elevated = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
+
+// Tee to a file as well as the console. The dump is meant to be handed to someone else, and
+// a console window you have to select-and-copy out of is the step where reports get lost.
+// Best-effort: if the directory isn't writable, carry on with console output alone.
+string? dumpPath = null;
+try
+{
+    dumpPath = Path.Combine(AppContext.BaseDirectory, $"sensorprobe-{DateTime.Now:yyyyMMdd-HHmmss}.txt");
+    var fileWriter = new StreamWriter(dumpPath) { AutoFlush = true };
+    Console.SetOut(new SensorProbe.TeeWriter(Console.Out, fileWriter));
+}
+catch (Exception ex)
+{
+    dumpPath = null;
+    Console.WriteLine($"(couldn't open a dump file, console output only: {ex.GetType().Name}: {ex.Message})");
+}
+
 Console.WriteLine($"=== SensorProbe ===  elevated={elevated}  motherboard={probeMotherboard}  time={DateTime.Now:O}");
+Console.WriteLine("This dump describes hardware, not accounts — but it can include the battery's");
+Console.WriteLine("serial number, manufacturer IDs and your drive model. Worth a skim before posting.");
 
 // Every Temperature sensor found anywhere, collected as we go and reprinted at the end —
 // the per-hardware dump is long and temps are easy to lose in it.
@@ -122,6 +141,13 @@ Console.WriteLine(elevated
     : "(CPU temps read null unelevated by design; storage and ACPI zones should still have values)");
 
 Console.WriteLine("\n=== done ===");
+if (dumpPath is not null)
+{
+    Console.Out.Flush();
+    // Straight to the real console — this line is about the file, so it doesn't belong in it.
+    Console.Error.WriteLine($"\nDump written to: {dumpPath}");
+    Console.Error.WriteLine("Attach that file to a hardware report: https://github.com/brettkcherry/PwrMon/issues/new/choose");
+}
 return;
 
 static string FormatVal(float? v) => v.HasValue ? v.Value.ToString("0.###") : "null";

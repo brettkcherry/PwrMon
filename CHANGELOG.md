@@ -4,7 +4,58 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+### Changed
+
+- **License: MIT → GPL-3.0, dual-licensed with a commercial option.** Changed 2026-08-11,
+  while the repository was still private with zero users — so no copy of PwrMon was ever
+  distributed under MIT and nobody's rights changed. The open license is GPL-3.0
+  ([LICENSE](LICENSE)); a separate [commercial license](COMMERCIAL-LICENSE.md) covers anyone
+  who needs to embed PwrMon — or just its driverless RAPL sensor layer — in a closed-source
+  product.
+
 ### Added
+
+- **PwrMon can update itself.** Settings → Updates checks for a new release, verifies it, and
+  runs the installer. Until now a fix could be released but never reached anyone who had
+  already installed — for the one app here that runs elevated and talks to a kernel driver,
+  "we can ship a patch but not deliver it" was the wrong place to be.
+
+  Because PwrMon's installer isn't code-signed, Authenticode can't vouch for it, so the trust
+  root is an ECDSA P-256 public key compiled into the binary. The release manifest is signed
+  with the matching private key; the manifest carries the installer's SHA-256, so one
+  signature authenticates both. A manifest that fails verification is reported as a failure,
+  not swallowed as "no update available". There is no background check and no automatic
+  install — see [SECURITY.md](SECURITY.md) and [docs/RELEASING.md](docs/RELEASING.md).
+
+  The updater is inert in any build where the signing key hasn't been configured: it makes no
+  network request at all rather than doing something unverified.
+- **Release signing tooling** — `tools/new-release-key.ps1` generates the key pair,
+  `tools/sign-release.ps1` produces and self-verifies `latest.json` + `latest.json.sig`. Both
+  require PowerShell 7.
+- **Dependabot** ([.github/dependabot.yml](.github/dependabot.yml)) watching NuGet and GitHub
+  Actions, with a cooldown so a freshly published version waits a few days before being
+  offered — compromised packages are usually caught within a day or two, and the people they
+  reach are the ones who upgraded within hours.
+
+### Security
+
+- **CI actions are pinned to full commit SHAs** rather than tags. A tag is mutable: whoever
+  controls an action's repository can repoint `v7` at new code, and every workflow using it
+  picks that up silently. Harmless while the workflow holds no secrets, and not harmless the
+  moment a release workflow with a signing key sits beside it.
+
+- **Contributor License Agreement** ([CLA.md](CLA.md)) — one comment on a first PR, keeping
+  your own copyright. It's what lets a contribution be covered by both licenses rather than
+  the open one alone. Bug reports and hardware dumps need no agreement.
+- **[TRADEMARK.md](TRADEMARK.md)** — PwrMon and the bolt icon are unregistered trademarks of
+  Brett Cherry. The code is open, the identity isn't; forks rename.
+- **A real hardware-contribution path.** `SensorProbe` now writes a timestamped dump file
+  beside itself and prints the path, instead of leaving output in a console window to be
+  selected and copied — that step was where reports got lost. It also warns up front that the
+  dump carries battery serial and drive model, which is worth knowing before posting it
+  publicly. Paired with a structured hardware-report issue form and a README section that
+  leads with the gap: **verified on one laptop, AMD untested, and a dump where nothing works
+  is worth as much as one where everything does.**
 
 - **Sideways scrolling on the main chart.** Shift+wheel, or a tilt-wheel/two-finger
   horizontal swipe, now pans the time axis the same way dragging does — WPF doesn't route

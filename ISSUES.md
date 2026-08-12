@@ -23,6 +23,6 @@ lives in [CHANGELOG.md](CHANGELOG.md) — this file is only what's still outstan
 - Verified on a Zenbook UX3404VA (i7-13700H, Iris Xe). **No AMD or second-machine testing
   yet** — `tools/SensorProbe` is the first move on any new hardware.
 - The Energy Meter counter path is what makes the default (no-admin, no-driver) tier work,
-  and it is **verified on Intel only**. Until it's tested on AMD, the README's default-tier
-  claim is an Intel claim. This is the widest gap between what the docs promise and what has
-  actually been observed.
+  and it is **verified on Intel only** — the README scopes its claim to match. Widening that
+  claim needs one AMD dump; see
+  [hardware reports](https://github.com/brettkcherry/PwrMon/issues/new/choose).
