@@ -7,6 +7,20 @@ Microsoft Store shows you *health summaries* when what you actually want to know
 No ads, no telemetry, no installer required. One portable exe. The only network access is
 the optional PawnIO driver download — and only when you explicitly click the button.
 
+<p align="center">
+  <img src="docs/assets/dashboard-full-telemetry.png" alt="PwrMon dashboard, plugged in at 100%, full silicon telemetry: CPU/iGPU watts, thermal, health, and a 24-hour history chart" width="760">
+</p>
+
+<p align="center">
+  <img src="docs/assets/dashboard-charging.png" alt="Charging at 15.6 W, the Wall series live on a 1-hour chart" width="252">
+  <img src="docs/assets/dashboard-discharging.png" alt="Discharging at 14.5 W with a 3:23 time-to-empty estimate" width="252">
+  <img src="docs/assets/mini-graph.png" alt="The floating always-on-top mini-graph, translucent and draggable" width="150">
+</p>
+
+<p align="center">
+  <img src="docs/assets/settings-alerts.png" alt="Settings: the plugged-in-but-draining alert, autostart, and history retention" width="380">
+</p>
+
 ## Project status — in development, not yet released
 
 **There is no download, and you should build this from source only if you're comfortable
