@@ -5,7 +5,7 @@
 
 ; Keep AppVersion in step with <Version> in src\PwrMon\PwrMon.csproj.
 #define AppName "PwrMon"
-#define AppVersion "1.5.0"
+#define AppVersion "1.6.0"
 #define AppExe "PwrMon.exe"
 #define AppPublisher "Brett Cherry"
 #define AppURL "https://github.com/brettkcherry/PwrMon"

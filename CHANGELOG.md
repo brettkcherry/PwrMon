@@ -2,7 +2,7 @@
 
 Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.6.0] — 2026-08-13
 
 ### Changed
 
@@ -15,6 +15,22 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
 
 ### Added
 
+- **The mini graph now plots eight series, not just Net watts** — CPU, iGPU, Wall, Battery %,
+  Load %, CPU and drive temperature, each keeping the colour it already wears on the main
+  history chart. Which one is showing is a per-click cycle, opted into from the right-click
+  menu (ships with just Net enrolled, so clicking does nothing until a second series is
+  added). Cycling skips any series this machine can't currently measure — landing on a
+  permanently empty graph reads as a bug, not as a missing sensor. The window-drag and the
+  click share one mouse handler (`DragMove()` is modal and only returns once the button is
+  back up), told apart afterward by whether the window actually travelled, with a few pixels
+  of slop for hand tremor.
+
+  The tray icon also now opens on a single left click instead of the shell's usual double
+  click — the icon's whole job is the number on it, and a closer look shouldn't cost two.
+- **Always on top**, for the mini graph — a checkable item on its own context menu and the
+  tray menu, mirroring the existing click-through toggle. The window-length and opacity menu
+  items are fixed alongside it: they were always clickable but never showed which option was
+  currently active. A 15-minute "show last" option too.
 - **"Plugged in but draining" now actually alerts you.** PwrMon has detected this state since
   the 2026-07-16 TB4 incident, but only ever showed it passively — a red hero state in a
   window that's usually closed, and a tray tooltip you have to hover. On 2026-08-13 the same
