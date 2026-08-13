@@ -4,8 +4,9 @@ Live, real-time power telemetry for Windows laptops — because every battery ap
 Microsoft Store shows you *health summaries* when what you actually want to know is
 **what is my machine pulling right now, in watts?**
 
-No ads, no telemetry, no installer required. One portable exe. The only network access is
-the optional PawnIO driver download — and only when you explicitly click the button.
+No ads, no telemetry, no account. PwrMon only reaches the network when you press a button —
+checking for updates, or downloading the optional PawnIO driver — and never in the
+background.
 
 <p align="center">
   <img src="docs/assets/dashboard-full-telemetry.png" alt="PwrMon dashboard, plugged in at 100%, full silicon telemetry: CPU/iGPU watts, thermal, health, and a 24-hour history chart" width="760">
@@ -21,21 +22,36 @@ the optional PawnIO driver download — and only when you explicitly click the b
   <img src="docs/assets/settings-alerts.png" alt="Settings: the plugged-in-but-draining alert, autostart, and history retention" width="380">
 </p>
 
-## Project status — in development, not yet released
+## Getting it
 
-**There is no download, and you should build this from source only if you're comfortable
-debugging it.** PwrMon runs daily on its author's machine and does what this README says it
-does. What it hasn't had is contact with hardware other than that machine:
+Download the installer from the [latest
+release](https://github.com/brettkcherry/PwrMon/releases/latest). PwrMon then keeps itself
+up to date: Settings → Updates checks for a new signed release and verifies it against a key
+compiled into the binary, only when you ask it to.
+
+Releases are **not code-signed yet**, so Windows SmartScreen will warn on first run. Verify
+the SHA-256 against the release notes before installing:
+
+```powershell
+Get-FileHash .\PwrMon-Setup.exe -Algorithm SHA256
+```
+
+## Project status — released, and tested on one machine
+
+PwrMon runs daily on its author's machine and does what this README says it does. What it
+hasn't had is contact with hardware other than that machine:
 
 - Verified on exactly one laptop — a Zenbook UX3404VA (i7-13700H, Iris Xe).
 - The driverless default tier is **confirmed on Intel only**. On AMD it is untested, so every
   claim about it in this README is scoped to Intel until someone shows otherwise.
-- No release build is published. The Inno Setup script in `installer/` works, but cutting a
-  Release means standing behind a binary on machines that haven't been tested.
+- Battery telemetry uses standard ACPI interfaces and should be the most portable part; the
+  silicon-power layer is the part most likely to behave differently on hardware it hasn't met.
 
 Nothing here is a claim waiting to be verified — the claims are written to match what's
-actually been observed, and they'll widen as hardware reports arrive. The full punch list is
-in [ISSUES.md](ISSUES.md).
+actually been observed, and they'll widen as hardware reports arrive. **A dump from a machine
+where nothing works is worth as much as one where everything does** — see [what needs
+work](#what-needs-work-and-how-you-can-help) below. The full punch list is in
+[ISSUES.md](ISSUES.md).
 
 The project page lives at [brettkcherry.github.io/PwrMon](https://brettkcherry.github.io/PwrMon/)
 (source in [docs/](docs/)).
