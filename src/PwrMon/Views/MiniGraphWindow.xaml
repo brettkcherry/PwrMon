@@ -29,6 +29,19 @@
                 <MenuItem x:Name="MenuWin120" Header="Show last 2 min" IsCheckable="True" Click="WindowSecs_Click" Tag="120"/>
                 <MenuItem x:Name="MenuWin300" Header="Show last 5 min" IsCheckable="True" Click="WindowSecs_Click" Tag="300"/>
                 <MenuItem x:Name="MenuWin900" Header="Show last 15 min" IsCheckable="True" Click="WindowSecs_Click" Tag="900"/>
+                <MenuItem x:Name="MenuWin3600" Header="Show last 1 hour" IsCheckable="True" Click="WindowSecs_Click" Tag="3600"/>
+                <MenuItem x:Name="MenuWin86400" Header="Show last 24 hours" IsCheckable="True" Click="WindowSecs_Click" Tag="86400"/>
+                <Separator/>
+                <MenuItem Header="Click cycles through">
+                    <MenuItem x:Name="MenuCycleNet" Header="Net W" IsCheckable="True" StaysOpenOnClick="True" Click="Cycle_Click" Tag="Net"/>
+                    <MenuItem x:Name="MenuCycleCpu" Header="CPU W" IsCheckable="True" StaysOpenOnClick="True" Click="Cycle_Click" Tag="Cpu"/>
+                    <MenuItem x:Name="MenuCycleGpu" Header="iGPU W" IsCheckable="True" StaysOpenOnClick="True" Click="Cycle_Click" Tag="Gpu"/>
+                    <MenuItem x:Name="MenuCycleWall" Header="Wall W" IsCheckable="True" StaysOpenOnClick="True" Click="Cycle_Click" Tag="Wall"/>
+                    <MenuItem x:Name="MenuCyclePercent" Header="Battery %" IsCheckable="True" StaysOpenOnClick="True" Click="Cycle_Click" Tag="Percent"/>
+                    <MenuItem x:Name="MenuCycleLoad" Header="Load %" IsCheckable="True" StaysOpenOnClick="True" Click="Cycle_Click" Tag="Load"/>
+                    <MenuItem x:Name="MenuCycleCpuTemp" Header="CPU °C" IsCheckable="True" StaysOpenOnClick="True" Click="Cycle_Click" Tag="CpuTemp"/>
+                    <MenuItem x:Name="MenuCycleDriveTemp" Header="Drive °C" IsCheckable="True" StaysOpenOnClick="True" Click="Cycle_Click" Tag="DriveTemp"/>
+                </MenuItem>
                 <Separator/>
                 <MenuItem x:Name="MenuAlwaysOnTop" Header="Always on top" IsCheckable="True" Click="AlwaysOnTop_Click"/>
                 <MenuItem Header="Click-through (disable via tray icon menu)" Click="ClickThrough_Click"/>

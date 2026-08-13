@@ -58,7 +58,10 @@ public sealed class TrayService : IDisposable
             ContextMenuStrip = menu,
             Text = "PwrMon",
         };
-        _icon.DoubleClick += (_, _) => OpenRequested?.Invoke();
+        // Single left click opens, rather than the shell's usual double click: this icon's whole
+        // job is the number on it, and wanting a closer look at that shouldn't cost two clicks.
+        // Right click still belongs to the menu, so it's filtered out here.
+        _icon.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left) OpenRequested?.Invoke(); };
         // clicking a drain alert should land on the chart that shows what's happening
         _icon.BalloonTipClicked += (_, _) => OpenRequested?.Invoke();
 

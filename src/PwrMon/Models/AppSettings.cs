@@ -8,6 +8,10 @@ public enum PowerUnit { Watts, Milliwatts }
 public enum EnergyUnit { WattHours, MilliampHours }
 public enum TrayDisplay { Watts, Percent }
 
+/// <summary>Which reading the mini graph plots. Deliberately the same eight series the main
+/// history chart offers, so a series means the same thing and wears the same colour in both.</summary>
+public enum MiniGraphSeries { Net, Cpu, Gpu, Wall, Percent, Load, CpuTemp, DriveTemp }
+
 /// <summary>Persisted user preferences. JSON in %LocalAppData%\PwrMon\settings.json.</summary>
 public sealed class AppSettings
 {
@@ -36,6 +40,12 @@ public sealed class AppSettings
     public int MiniGraphWindowSeconds { get; set; } = 120;
     public bool MiniGraphClickThrough { get; set; }
     public bool MiniGraphAlwaysOnTop { get; set; } = true;
+    /// <summary>The series currently plotted.</summary>
+    public MiniGraphSeries MiniGraphSeries { get; set; } = MiniGraphSeries.Net;
+    /// <summary>Which series a body-click cycles between, in cycle order. Ships with just Net,
+    /// so the click does nothing until the user opts a second series in — no surprise changes
+    /// to a graph they never asked to be cyclable.</summary>
+    public List<MiniGraphSeries> MiniGraphCycle { get; set; } = new() { MiniGraphSeries.Net };
 
     public bool ChartShowNet { get; set; } = true;
     public bool ChartShowCpu { get; set; } = true;

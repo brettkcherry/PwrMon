@@ -15,7 +15,15 @@ namespace PwrMon.Views;
 /// </summary>
 public partial class MiniGraphWindow : Window
 {
-    private readonly List<(DateTimeOffset t, double w)> _points = new();
+    /// <summary>Whole samples rather than one series' values: switching series has to redraw the
+    /// history that's already on screen, not start collecting it again from empty.</summary>
+    private readonly List<PowerSample> _points = new();
+    private PowerSample? _last;
+    private Estimates? _lastEst;
+
+    /// <summary>How far the window may travel during a press and still count as a click. Covers
+    /// the pixel or two of hand tremor between button down and up.</summary>
+    private const double ClickSlopPx = 3;
 
     private Brush ChargeBrush => (Brush)FindResource("GreenBrush");
     private Brush DischargeBrush => (Brush)FindResource("OrangeBrush");
@@ -62,20 +70,79 @@ public partial class MiniGraphWindow : Window
         RootBorder.Background = new SolidColorBrush(ThemeService.ParseColor(t.MiniBg));
         RootBorder.BorderBrush = new SolidColorBrush(ThemeService.ParseColor(t.CardBorder));
         ZeroLine.Stroke = new SolidColorBrush(ThemeService.ParseColor(t.ChartGrid));
+        RefreshReadout();   // the series colour comes from the palette too
     }
 
     public void OnSample(PowerSample s, Estimates est)
     {
-        var w = s.HasBattery ? s.NetW : (s.CpuPackageW ?? double.NaN);
-        if (!double.IsNaN(w)) _points.Add((s.Time, w));
+        _points.Add(s);
+        _last = s;
+        _lastEst = est;
 
         var cutoff = DateTimeOffset.Now.AddSeconds(-AppSettings.Current.MiniGraphWindowSeconds - 5);
-        while (_points.Count > 0 && _points[0].t < cutoff)
+        while (_points.Count > 0 && _points[0].Time < cutoff)
             _points.RemoveAt(0);
 
-        var rateStale = s.HasBattery && (s.Charging || s.Discharging) && UnitFormatter.IsStale(s.RateAge);
-        MiniWatts.Text = UnitFormatter.Power(w is double.NaN ? 0 : w, signed: s.HasBattery, stale: rateStale);
-        var brush = s.Charging ? ChargeBrush : s.Discharging ? DischargeBrush : IdleBrush;
+        RefreshReadout();
+        Redraw();
+    }
+
+    /// <summary>The value the given series contributes for one sample, or null when this machine
+    /// or this moment doesn't have it (no battery, no RAPL driver, off AC for wall input).</summary>
+    private static double? Value(PowerSample s, MiniGraphSeries series) => series switch
+    {
+        MiniGraphSeries.Net => s.HasBattery ? s.NetW : null,
+        MiniGraphSeries.Cpu => s.CpuPackageW,
+        MiniGraphSeries.Gpu => s.IGpuW,
+        MiniGraphSeries.Wall => s.EstWallW,
+        MiniGraphSeries.Percent => s.HasBattery ? s.BatteryPercent : null,
+        MiniGraphSeries.Load => s.CpuLoadPct,
+        MiniGraphSeries.CpuTemp => s.CpuTempC,
+        MiniGraphSeries.DriveTemp => s.DriveTempC,
+        _ => null,
+    };
+
+    private static string Format(MiniGraphSeries series, double v) => series switch
+    {
+        MiniGraphSeries.Net => UnitFormatter.Power(v, signed: true),
+        MiniGraphSeries.Cpu or MiniGraphSeries.Gpu or MiniGraphSeries.Wall => UnitFormatter.Power(v),
+        MiniGraphSeries.Percent or MiniGraphSeries.Load => $"{v:F0}%",
+        _ => $"{v:F0} °C",
+    };
+
+    /// <summary>Net keeps its charge/discharge colouring — that signal is the whole point of it.
+    /// Every other series wears the colour it already has on the main history chart.</summary>
+    private Brush SeriesBrush(MiniGraphSeries series, PowerSample s)
+    {
+        var t = ThemeService.Current;
+        var hex = series switch
+        {
+            MiniGraphSeries.Cpu => t.SeriesCpu,
+            MiniGraphSeries.Gpu => t.SeriesGpu,
+            MiniGraphSeries.Wall => t.SeriesWall,
+            MiniGraphSeries.Percent => t.SeriesPct,
+            MiniGraphSeries.Load => t.SeriesLoad,
+            MiniGraphSeries.CpuTemp => t.Red,
+            MiniGraphSeries.DriveTemp => t.Orange,
+            _ => null,
+        };
+        if (hex is not null) return new SolidColorBrush(ThemeService.ParseColor(hex));
+        return s.Charging ? ChargeBrush : s.Discharging ? DischargeBrush : IdleBrush;
+    }
+
+    private void RefreshReadout()
+    {
+        if (_last is not { } s || _lastEst is not { } est) return;
+        var series = AppSettings.Current.MiniGraphSeries;
+        var v = Value(s, series);
+
+        var rateStale = series == MiniGraphSeries.Net && s.HasBattery && (s.Charging || s.Discharging)
+                        && UnitFormatter.IsStale(s.RateAge);
+        MiniWatts.Text = v is null ? "—"
+            : rateStale ? UnitFormatter.Power(v.Value, signed: true, stale: true)
+            : Format(series, v.Value);
+
+        var brush = SeriesBrush(series, s);
         MiniWatts.Foreground = brush;
         Spark.Stroke = brush;
 
@@ -83,8 +150,6 @@ public partial class MiniGraphWindow : Window
         MiniPct.Text = s.HasBattery
             ? $"{s.BatteryPercent:F0}%" + (s.Discharging && est.TimeToEmpty is not null ? $" • {UnitFormatter.Duration(est.TimeToEmpty)}" : "")
             : "";
-
-        Redraw();
     }
 
     private void Redraw()
@@ -93,6 +158,7 @@ public partial class MiniGraphWindow : Window
         var hPx = GraphArea.ActualHeight;
         if (wPx < 10 || hPx < 10 || _points.Count < 2) return;
 
+        var series = AppSettings.Current.MiniGraphSeries;
         var windowSec = AppSettings.Current.MiniGraphWindowSeconds;
         var now = DateTimeOffset.Now;
         var t0 = now.AddSeconds(-windowSec);
@@ -103,18 +169,24 @@ public partial class MiniGraphWindow : Window
         // fixed baseline instead of the data: real fluctuations got squashed into a sliver of
         // the graph instead of using its full height. This is why the line "meant nothing."
         double? minSeen = null, maxSeen = null;
-        foreach (var (t, v) in _points)
+        foreach (var s in _points)
         {
-            if (t < t0) continue;
+            if (s.Time < t0 || Value(s, series) is not { } v) continue;
             if (minSeen is null || v < minSeen) minSeen = v;
             if (maxSeen is null || v > maxSeen) maxSeen = v;
         }
-        if (minSeen is null || maxSeen is null) return;
+        if (minSeen is null || maxSeen is null)
+        {
+            Spark.Points = new PointCollection();
+            MaxLabel.Text = MinLabel.Text = "";
+            ZeroLine.Visibility = Visibility.Collapsed;
+            return;
+        }
         var rawMin = minSeen.Value;
         var rawMax = maxSeen.Value;
 
-        MaxLabel.Text = UnitFormatter.Power(rawMax, signed: true);
-        MinLabel.Text = UnitFormatter.Power(rawMin, signed: true);
+        MaxLabel.Text = Format(series, rawMax);
+        MinLabel.Text = Format(series, rawMin);
 
         var span = Math.Max(rawMax - rawMin, 1);
         var min = rawMin - span * 0.08;
@@ -122,10 +194,10 @@ public partial class MiniGraphWindow : Window
         span = max - min;
 
         var pts = new PointCollection();
-        foreach (var (t, v) in _points)
+        foreach (var s in _points)
         {
-            if (t < t0) continue;
-            var x = (t - t0).TotalSeconds / windowSec * wPx;
+            if (s.Time < t0 || Value(s, series) is not { } v) continue;
+            var x = (s.Time - t0).TotalSeconds / windowSec * wPx;
             var y = hPx - (v - min) / span * hPx;
             pts.Add(new Point(x, y));
         }
@@ -137,16 +209,61 @@ public partial class MiniGraphWindow : Window
         ZeroLine.Visibility = zeroY >= 0 && zeroY <= hPx ? Visibility.Visible : Visibility.Collapsed;
     }
 
+    /// <summary>Move on drag, cycle the plotted series on click. <see cref="Window.DragMove"/> is
+    /// modal — it returns only once the button comes back up — so there is no click event to
+    /// listen for separately: the two are told apart afterwards, by whether the window actually
+    /// travelled. Under <see cref="ClickSlopPx"/> it was a click, and the window is put back so
+    /// the click can't nudge it by the pixel of tremor that got it there.</summary>
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.ButtonState == MouseButtonState.Pressed)
+        if (e.ButtonState != MouseButtonState.Pressed) return;
+
+        var (x0, y0) = (Left, Top);
+        try
         {
             DragMove();
-            AppSettings.Current.MiniGraphX = Left;
-            AppSettings.Current.MiniGraphY = Top;
-            AppSettings.Save();
         }
+        catch (InvalidOperationException)
+        {
+            // a click fast enough that the button was already up by the time we got here —
+            // nothing was dragged, so fall through and treat it as the click it was
+        }
+
+        if (Math.Abs(Left - x0) < ClickSlopPx && Math.Abs(Top - y0) < ClickSlopPx)
+        {
+            Left = x0;
+            Top = y0;
+            CycleSeries();
+            return;
+        }
+
+        AppSettings.Current.MiniGraphX = Left;
+        AppSettings.Current.MiniGraphY = Top;
+        AppSettings.Save();
     }
+
+    /// <summary>Advances to the next series the user has opted into, skipping any this machine
+    /// can't currently measure — cycling onto a permanently empty graph reads as a bug, not as a
+    /// sensor that isn't there. Does nothing until at least two series qualify.</summary>
+    private void CycleSeries()
+    {
+        var cycle = AppSettings.Current.MiniGraphCycle
+            .Distinct()
+            .Where(HasData)
+            .OrderBy(x => x)
+            .ToList();
+        if (cycle.Count < 2) return;
+
+        // IndexOf returns -1 when the current series was un-ticked out of the cycle, which the
+        // +1 turns into "start at the beginning" — the right answer for that case too.
+        var next = cycle[(cycle.IndexOf(AppSettings.Current.MiniGraphSeries) + 1) % cycle.Count];
+        AppSettings.Current.MiniGraphSeries = next;
+        AppSettings.Save();
+        RefreshReadout();
+        Redraw();
+    }
+
+    private bool HasData(MiniGraphSeries series) => _points.Any(s => Value(s, series) is not null);
 
     /// <summary>Grows/shrinks the window directly from an edge/corner thumb — works regardless
     /// of ResizeMode since there's no window chrome to hand this off to. Dragging the west or
@@ -234,7 +351,44 @@ public partial class MiniGraphWindow : Window
         MenuWin120.IsChecked = s.MiniGraphWindowSeconds == 120;
         MenuWin300.IsChecked = s.MiniGraphWindowSeconds == 300;
         MenuWin900.IsChecked = s.MiniGraphWindowSeconds == 900;
+        MenuWin3600.IsChecked = s.MiniGraphWindowSeconds == 3600;
+        MenuWin86400.IsChecked = s.MiniGraphWindowSeconds == 86400;
         MenuAlwaysOnTop.IsChecked = s.MiniGraphAlwaysOnTop;
+
+        MenuCycleNet.IsChecked = s.MiniGraphCycle.Contains(MiniGraphSeries.Net);
+        MenuCycleCpu.IsChecked = s.MiniGraphCycle.Contains(MiniGraphSeries.Cpu);
+        MenuCycleGpu.IsChecked = s.MiniGraphCycle.Contains(MiniGraphSeries.Gpu);
+        MenuCycleWall.IsChecked = s.MiniGraphCycle.Contains(MiniGraphSeries.Wall);
+        MenuCyclePercent.IsChecked = s.MiniGraphCycle.Contains(MiniGraphSeries.Percent);
+        MenuCycleLoad.IsChecked = s.MiniGraphCycle.Contains(MiniGraphSeries.Load);
+        MenuCycleCpuTemp.IsChecked = s.MiniGraphCycle.Contains(MiniGraphSeries.CpuTemp);
+        MenuCycleDriveTemp.IsChecked = s.MiniGraphCycle.Contains(MiniGraphSeries.DriveTemp);
+    }
+
+    /// <summary>Opts a series into or out of the click-cycle. Ticking one also jumps straight to
+    /// it — picking a series from the menu should show it, not just enrol it for later.</summary>
+    private void Cycle_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: string tag } || !Enum.TryParse<MiniGraphSeries>(tag, out var series))
+            return;
+
+        var cycle = AppSettings.Current.MiniGraphCycle;
+        if (cycle.Contains(series))
+        {
+            cycle.Remove(series);
+        }
+        else
+        {
+            cycle.Add(series);
+            if (HasData(series))
+            {
+                AppSettings.Current.MiniGraphSeries = series;
+                RefreshReadout();
+                Redraw();
+            }
+        }
+        AppSettings.Save();
+        SyncMenuChecks();
     }
 
     private void AlwaysOnTop_Click(object sender, RoutedEventArgs e)
