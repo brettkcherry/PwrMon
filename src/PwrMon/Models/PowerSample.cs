@@ -50,6 +50,13 @@ public sealed class PowerSample
     /// elevation or driver, so it's the one temperature available in the default tier.</summary>
     public double? DriveTempC { get; init; }
 
+    /// <summary>Estimated wall/adapter input in watts — the one derived value that lives on the
+    /// sample rather than on <see cref="Estimates"/>, because it has to be persisted to be
+    /// chartable after a restart and the CSV row is built from a sample alone. Null whenever it
+    /// is unknowable: off AC, and during adapter assist (the battery is covering an unknown
+    /// share of the load, so "system + charge" no longer describes what the wall is supplying).</summary>
+    public double? EstWallW { get; init; }
+
     /// <summary>True when the wall-clock gap since the previous sample is large (sleep/hibernate) —
     /// charts should break the line before this sample.</summary>
     public bool GapBefore { get; init; }

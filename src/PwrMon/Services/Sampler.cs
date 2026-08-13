@@ -240,6 +240,7 @@ public sealed class Sampler : IDisposable
                 CpuTempMaxC = h.CpuTempMaxC,
                 CpuTjMaxDeltaC = h.CpuTjMaxDeltaC,
                 DriveTempC = _driveTemp.Read(),
+                EstWallW = estWall,
                 GapBefore = gap,
                 RateAge = rateAge,
             };

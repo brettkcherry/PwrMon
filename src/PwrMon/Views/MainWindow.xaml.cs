@@ -21,14 +21,15 @@ public partial class MainWindow : Window
     private static readonly ScottPlot.Color LoadColor = ScottPlot.Color.FromHex("#8B93A7");
     private static readonly ScottPlot.Color CpuTempColor = ScottPlot.Color.FromHex("#F85149");
     private static readonly ScottPlot.Color DriveTempColor = ScottPlot.Color.FromHex("#F0883E");
+    private static readonly ScottPlot.Color WallColor = ScottPlot.Color.FromHex("#4FD1C5");
 
     private DataLogger _netLog = null!, _cpuLog = null!, _gpuLog = null!, _pctLog = null!, _loadLog = null!;
-    private DataLogger _cpuTempLog = null!, _driveTempLog = null!;
+    private DataLogger _cpuTempLog = null!, _driveTempLog = null!, _wallLog = null!;
     private VerticalLine _hoverLine = null!;
 
     // parallel history kept locally for hover readout + Y autoscale (single owner: UI thread)
     private readonly List<double> _times = new(), _net = new(), _cpu = new(), _gpu = new(), _pct = new(), _load = new();
-    private readonly List<double> _cpuTemp = new(), _driveTemp = new();
+    private readonly List<double> _cpuTemp = new(), _driveTemp = new(), _wall = new();
 
     private bool _initializing = true;
     private bool _live = true;
@@ -106,6 +107,9 @@ public partial class MainWindow : Window
         _loadLog = NewLogger(plot, LoadColor, 1.0f);
         _cpuTempLog = NewLogger(plot, CpuTempColor, 1.2f);
         _driveTempLog = NewLogger(plot, DriveTempColor, 1.2f);
+        // Wall is on the left (watts) axis with Net/CPU/iGPU — it's the outermost envelope of
+        // the same quantity, so it has to share their scale to mean anything.
+        _wallLog = NewLogger(plot, WallColor, 1.4f);
         _pctLog.Axes.YAxis = plot.Axes.Right;
         _loadLog.Axes.YAxis = plot.Axes.Right;
         // °C shares the right axis with the percentage series: both live in 0–105, so a third
@@ -144,6 +148,7 @@ public partial class MainWindow : Window
         _gpuLog.Color = ScottPlot.Color.FromHex(t.SeriesGpu);
         _pctLog.Color = ScottPlot.Color.FromHex(t.SeriesPct);
         _loadLog.Color = ScottPlot.Color.FromHex(t.SeriesLoad);
+        _wallLog.Color = ScottPlot.Color.FromHex(t.SeriesWall);
         // Heat reuses each palette's existing red/orange rather than adding two more series
         // slots to all twelve themes — and they're already tuned per theme.
         _cpuTempLog.Color = ScottPlot.Color.FromHex(t.Red);
@@ -188,6 +193,7 @@ public partial class MainWindow : Window
         ChkLoad.IsChecked = AppSettings.Current.ChartShowCpuLoad;
         ChkCpuTemp.IsChecked = AppSettings.Current.ChartShowCpuTemp;
         ChkDriveTemp.IsChecked = AppSettings.Current.ChartShowDriveTemp;
+        ChkWall.IsChecked = AppSettings.Current.ChartShowWall;
         ApplySeriesVisibility();
 
         // the visual tree doesn't exist until Loaded, so the saved range pill is checked there
@@ -702,6 +708,7 @@ public partial class MainWindow : Window
             _loadLog.Add(gapX, double.NaN);
             _cpuTempLog.Add(gapX, double.NaN);
             _driveTempLog.Add(gapX, double.NaN);
+            _wallLog.Add(gapX, double.NaN);
         }
 
         _times.Add(x);
@@ -712,6 +719,7 @@ public partial class MainWindow : Window
         _load.Add(s.CpuLoadPct ?? double.NaN);
         _cpuTemp.Add(s.CpuTempC ?? double.NaN);
         _driveTemp.Add(s.DriveTempC ?? double.NaN);
+        _wall.Add(s.EstWallW ?? double.NaN);
 
         _netLog.Add(x, s.NetW);
         _pctLog.Add(x, s.BatteryPercent);
@@ -720,6 +728,7 @@ public partial class MainWindow : Window
         if (s.CpuLoadPct is double lw) _loadLog.Add(x, lw);
         if (s.CpuTempC is double ct) _cpuTempLog.Add(x, ct);
         if (s.DriveTempC is double dtv) _driveTempLog.Add(x, dtv);
+        if (s.EstWallW is double ww) _wallLog.Add(x, ww);
 
         if (_times.Count > MaxChartPoints) TrimChart();
     }
@@ -735,6 +744,7 @@ public partial class MainWindow : Window
         _load.RemoveRange(0, remove);
         _cpuTemp.RemoveRange(0, remove);
         _driveTemp.RemoveRange(0, remove);
+        _wall.RemoveRange(0, remove);
 
         _netLog.Clear();
         _cpuLog.Clear();
@@ -743,6 +753,7 @@ public partial class MainWindow : Window
         _loadLog.Clear();
         _cpuTempLog.Clear();
         _driveTempLog.Clear();
+        _wallLog.Clear();
         for (var i = 0; i < _times.Count; i++)
         {
             _netLog.Add(_times[i], _net[i]);
@@ -752,6 +763,7 @@ public partial class MainWindow : Window
             if (!double.IsNaN(_load[i])) _loadLog.Add(_times[i], _load[i]);
             if (!double.IsNaN(_cpuTemp[i])) _cpuTempLog.Add(_times[i], _cpuTemp[i]);
             if (!double.IsNaN(_driveTemp[i])) _driveTempLog.Add(_times[i], _driveTemp[i]);
+            if (!double.IsNaN(_wall[i])) _wallLog.Add(_times[i], _wall[i]);
         }
         Log.Info($"chart trimmed to {_times.Count} points");
     }
@@ -807,6 +819,7 @@ public partial class MainWindow : Window
         Scan(_net, ChkNet.IsChecked == true);
         Scan(_cpu, ChkCpu.IsChecked == true);
         Scan(_gpu, ChkGpu.IsChecked == true);
+        Scan(_wall, ChkWall.IsChecked == true);
         var pad = Math.Max((max - min) * 0.1, 0.5);
         Chart.Plot.Axes.SetLimitsY(min - pad, max + pad);
         Chart.Plot.Axes.SetLimitsY(0, 105, Chart.Plot.Axes.Right);
@@ -939,6 +952,7 @@ public partial class MainWindow : Window
         if (!double.IsNaN(_load[i])) parts.Add($"load {_load[i]:F0}%");
         if (!double.IsNaN(_cpuTemp[i])) parts.Add($"CPU {_cpuTemp[i]:F0} °C");
         if (!double.IsNaN(_driveTemp[i])) parts.Add($"drive {_driveTemp[i]:F0} °C");
+        if (!double.IsNaN(_wall[i])) parts.Add($"wall ≈ {UnitFormatter.Power(_wall[i])}");
         HoverReadout.Text = string.Join("  •  ", parts);
 
         if (!_live) Chart.Refresh();
@@ -973,6 +987,7 @@ public partial class MainWindow : Window
         s.ChartShowCpuLoad = _loadLog.IsVisible;
         s.ChartShowCpuTemp = _cpuTempLog.IsVisible;
         s.ChartShowDriveTemp = _driveTempLog.IsVisible;
+        s.ChartShowWall = _wallLog.IsVisible;
         AppSettings.Save();
         UpdateAxes();
         Chart.Refresh();
@@ -987,6 +1002,7 @@ public partial class MainWindow : Window
         _loadLog.IsVisible = ChkLoad.IsChecked == true;
         _cpuTempLog.IsVisible = ChkCpuTemp.IsChecked == true;
         _driveTempLog.IsVisible = ChkDriveTemp.IsChecked == true;
+        _wallLog.IsVisible = ChkWall.IsChecked == true;
     }
 
     private void Live_Checked(object sender, RoutedEventArgs e) => SetLive(true);

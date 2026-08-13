@@ -14,7 +14,7 @@ public sealed class HistoryStore : IDisposable
 {
     // Columns are append-only: ParseLine length-guards every field past index 10 so older
     // CSVs keep loading unchanged.
-    private const string Header = "time,charge_w,discharge_w,cpu_w,igpu_w,cpu_load,percent,remaining_wh,voltage_v,ac,gap,platform_w,cpu_temp_c,drive_temp_c";
+    private const string Header = "time,charge_w,discharge_w,cpu_w,igpu_w,cpu_load,percent,remaining_wh,voltage_v,ac,gap,platform_w,cpu_temp_c,drive_temp_c,wall_w";
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
     private readonly object _gate = new();
@@ -28,7 +28,7 @@ public sealed class HistoryStore : IDisposable
     /// <summary>Builds one CSV line for a sample, matching <see cref="Header"/>'s column order.</summary>
     internal static string FormatLine(PowerSample s) =>
         string.Create(Inv,
-            $"{s.Time:yyyy-MM-ddTHH:mm:ss.fffzzz},{s.ChargeRateW:F3},{s.DischargeRateW:F3},{Opt(s.CpuPackageW)},{Opt(s.IGpuW)},{Opt(s.CpuLoadPct)},{s.BatteryPercent:F2},{s.RemainingWh:F3},{s.VoltageV:F3},{(s.AcOnline ? 1 : 0)},{(s.GapBefore ? 1 : 0)},{Opt(s.CpuPlatformW)},{Opt(s.CpuTempC)},{Opt(s.DriveTempC)}");
+            $"{s.Time:yyyy-MM-ddTHH:mm:ss.fffzzz},{s.ChargeRateW:F3},{s.DischargeRateW:F3},{Opt(s.CpuPackageW)},{Opt(s.IGpuW)},{Opt(s.CpuLoadPct)},{s.BatteryPercent:F2},{s.RemainingWh:F3},{s.VoltageV:F3},{(s.AcOnline ? 1 : 0)},{(s.GapBefore ? 1 : 0)},{Opt(s.CpuPlatformW)},{Opt(s.CpuTempC)},{Opt(s.DriveTempC)},{Opt(s.EstWallW)}");
 
     /// <summary>True when the buffer must be flushed before <paramref name="sampleDay"/> joins
     /// it — i.e. it already holds a different, earlier day's rows. Pulled out of
@@ -166,6 +166,7 @@ public sealed class HistoryStore : IDisposable
                 CpuPlatformW = p.Length > 11 ? OptParse(p[11]) : null,
                 CpuTempC = p.Length > 12 ? OptParse(p[12]) : null,
                 DriveTempC = p.Length > 13 ? OptParse(p[13]) : null,
+                EstWallW = p.Length > 14 ? OptParse(p[14]) : null,
             };
         }
         catch { return null; }

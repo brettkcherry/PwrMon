@@ -286,6 +286,8 @@
                         <CheckBox x:Name="ChkNet" Style="{StaticResource SeriesCheck}" Content="Net" Foreground="{DynamicResource AccentBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
                         <CheckBox x:Name="ChkCpu" Style="{StaticResource SeriesCheck}" Content="CPU" Foreground="{DynamicResource BlueBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
                         <CheckBox x:Name="ChkGpu" Style="{StaticResource SeriesCheck}" Content="iGPU" Foreground="{DynamicResource GpuBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
+                        <CheckBox x:Name="ChkWall" Style="{StaticResource SeriesCheck}" Content="Wall" Foreground="{DynamicResource WallBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"
+                                  ToolTip="Estimated power drawn from the wall: system draw plus battery charging, over ~90% adapter efficiency. Blank while off AC, and while the battery is assisting the adapter — the wall's share is unknowable then."/>
                         <CheckBox x:Name="ChkPct" Style="{StaticResource SeriesCheck}" Content="Battery %" Foreground="{DynamicResource GreenBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
                         <CheckBox x:Name="ChkLoad" Style="{StaticResource SeriesCheck}" Content="Load %" Foreground="{DynamicResource TextDimBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"/>
                         <CheckBox x:Name="ChkCpuTemp" Style="{StaticResource SeriesCheck}" Content="CPU °C" Foreground="{DynamicResource RedBrush}" Checked="Series_Toggled" Unchecked="Series_Toggled"

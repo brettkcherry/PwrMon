@@ -9,8 +9,9 @@ namespace PwrMon.Tests;
 /// </summary>
 public class HistoryStoreTests
 {
-    private static PowerSample MakeSample() => new()
+    private static PowerSample MakeSample(double? wall = null) => new()
     {
+        EstWallW = wall,
         Time = new DateTimeOffset(2026, 3, 14, 9, 26, 53, 500, TimeSpan.FromHours(-5)),
         HasBattery = true,
         AcOnline = true,
@@ -105,6 +106,33 @@ public class HistoryStoreTests
         Assert.Null(parsed.CpuPlatformW);
         Assert.Null(parsed.CpuTempC);
         Assert.Null(parsed.DriveTempC);
+    }
+
+    [Fact]
+    public void Legacy_14_column_line_without_wall_w_still_parses()
+    {
+        // Back-compat: every history file written before 2026-08-13 stops at drive_temp_c.
+        // Those rows must keep loading, with wall simply absent rather than zero — a chart
+        // series that plots 0 W for all of history would be a lie, not a gap.
+        var s = MakeSample();
+        var legacy = string.Join(',', HistoryStore.FormatLine(s).Split(',').Take(14));
+
+        var parsed = HistoryStore.ParseLine(legacy);
+
+        Assert.NotNull(parsed);
+        Assert.Equal(s.DriveTempC!.Value, parsed!.DriveTempC!.Value, 3);
+        Assert.Null(parsed.EstWallW);
+    }
+
+    [Fact]
+    public void Wall_w_round_trips_and_stays_null_when_unknowable()
+    {
+        var withWall = HistoryStore.ParseLine(HistoryStore.FormatLine(MakeSample(wall: 81.4)));
+        Assert.Equal(81.4, withWall!.EstWallW!.Value, 3);
+
+        // off AC / adapter-assist: the sampler leaves it null and the CSV field is empty
+        var noWall = HistoryStore.ParseLine(HistoryStore.FormatLine(MakeSample(wall: null)));
+        Assert.Null(noWall!.EstWallW);
     }
 
     [Fact]

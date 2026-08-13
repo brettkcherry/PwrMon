@@ -29,6 +29,23 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
   the alerts themselves stay on). Strictly scoped to the AC-contradiction case: normal
   on-battery low-battery warnings are Windows' job and it does those fine.
 
+- **Wall input is now a chart series.** The estimate already existed on the Power Budget card;
+  it just had nowhere to live over time. Plotted on the left (watts) axis alongside Net and
+  CPU, since it's the outermost envelope of the same quantity. Off by default.
+
+  It required a new `wall_w` CSV column, so history written before this has no wall data — the
+  reader treats the missing column as absent rather than zero, and old files keep loading
+  unchanged (the columns have always been append-only). The series is also deliberately blank
+  while the battery is assisting the adapter: the wall's share is genuinely unknowable then,
+  and a plausible-looking line there would be an invention.
+
+  Each of the 13 themes got its own wall colour rather than reusing an existing slot, picked
+  from whichever hue family that palette wasn't already spending on a series. `ThemePaletteTests`
+  now enforces this in CIELAB: every series pair within a theme must clear ΔE 15, and wall must
+  clear ΔE 25 against the plot background. That check also caught two pre-existing collisions
+  it wasn't written to look for yet — Meadow and Phosphor both had Battery % landing on nearly
+  the same color as Net — fixed alongside it.
+
 - **PwrMon can update itself.** Settings → Updates checks for a new release, verifies it, and
   runs the installer. Until now a fix could be released but never reached anyone who had
   already installed — for the one app here that runs elevated and talks to a kernel driver,
