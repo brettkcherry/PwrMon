@@ -40,7 +40,13 @@ old one. `tools/new-release-key.ps1` refuses to overwrite an existing key for th
 
 ## Cutting a release
 
-1. Bump `<Version>` in `src/PwrMon/PwrMon.csproj` and update `CHANGELOG.md`.
+1. Bump the version in **both** places, and update `CHANGELOG.md` (turn `[Unreleased]` into a
+   dated section):
+   - `<Version>` in `src/PwrMon/PwrMon.csproj`
+   - `#define AppVersion` in `installer/PwrMon.iss`
+
+   Nothing cross-checks these two automatically. Miss the second and the installer reports a
+   different version from the app it installs — step 5 below is what catches it.
 
 2. Build both flavours:
 
@@ -48,23 +54,52 @@ old one. `tools/new-release-key.ps1` refuses to overwrite an existing key for th
 ./tools/publish.ps1
 ```
 
-3. Build the installer from `installer/PwrMon.iss` (Inno Setup), producing
-   `installer/Output/PwrMon-Setup.exe`.
+3. Build the installer with Inno Setup, producing `installer/Output/PwrMon-Setup.exe`:
+
+```bash
+& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" installer\PwrMon.iss
+```
+
+   Inno Setup installs per-user by default, so `ISCC.exe` lands under `%LocalAppData%\Programs`
+   rather than `Program Files` and is **not** on `PATH` — hence the full path above. Confirm
+   the compile ends with "Successful compile"; it silently reuses stale input otherwise, since
+   it reads whatever `publish/standalone/` currently holds rather than rebuilding it.
 
 4. Sign the release:
 
 ```bash
-./tools/sign-release.ps1 -Version 1.5.0
+pwsh -File ./tools/sign-release.ps1 -Version 1.6.0
 ```
 
 That writes `latest.json` (version, download URL, installer SHA-256) and `latest.json.sig`
 (detached ECDSA-SHA256 signature over the manifest's exact bytes), and verifies its own output
 before finishing.
 
-5. Create the GitHub release tagged `v1.5.0` and upload **all three** assets:
+5. Verify the chain independently, before uploading anything. `sign-release.ps1` checks its
+   own output, which cannot catch the failure that actually happens: a signed build that is
+   simply *older than the code*. Every link below has to agree.
+
+```bash
+$out = 'installer\Output'
+$m = Get-Content "$out\latest.json" -Raw | ConvertFrom-Json
+$actual = (Get-FileHash "$out\PwrMon-Setup.exe" -Algorithm SHA256).Hash.ToLower()
+"hash matches manifest : $($m.sha256 -eq $actual)"
+"manifest version      : $($m.version)"
+"installer version     : $((Get-Item "$out\PwrMon-Setup.exe").VersionInfo.ProductVersion)"
+"csproj version        : $((Select-String -Path 'src\PwrMon\PwrMon.csproj' -Pattern '<Version>(.*?)</Version>').Matches.Groups[1].Value)"
+"iss version           : $((Select-String -Path 'installer\PwrMon.iss' -Pattern '#define AppVersion "(.*?)"').Matches.Groups[1].Value)"
+```
+
+   All four version strings must read the same, and the hash must match. A mismatch between
+   the *installer's* version and the csproj's means the installer was built from an older
+   `publish/` — go back to step 2. This check exists because that exact thing has happened:
+   a fix committed one minute after a build left a signed installer that verified perfectly
+   and silently lacked the fix.
+
+6. Create the GitHub release tagged `v1.6.0` and upload **all three** assets:
    `PwrMon-Setup.exe`, `latest.json`, `latest.json.sig`.
 
-6. Publish it.
+7. Publish it.
 
 Publishing is what moves `releases/latest`, which is the endpoint installed copies read.
 A draft is invisible to them, so a half-finished release cannot escape.

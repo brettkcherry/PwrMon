@@ -93,9 +93,9 @@ gets changes merged or bounced.
 - **Temperatures** — drive temperature read straight from the disk with no administrator or
   driver required, so it works in every tier; CPU package, hottest core and throttle headroom
   arrive with the full sensor tier. See "Temperature coverage" below for what isn't available.
-- **History chart** — pan/zoomable multi-series chart (net W, CPU W, iGPU W, battery %,
-  CPU load, CPU °C, drive °C) over 5 minutes to 48 hours, with AC plug/unplug and resume
-  event markers.
+- **History chart** — pan/zoomable multi-series chart (net W, CPU W, iGPU W, wall W,
+  battery %, CPU load, CPU °C, drive °C) over 5 minutes to 48 hours, with AC plug/unplug
+  and resume event markers.
   History persists across restarts (daily CSV files, configurable retention).
 - **Time estimates that aren't garbage** — time-to-empty / time-to-full computed from
   30-second smoothed rates, not Windows' famously bogus `EstimatedRunTime`.
@@ -105,8 +105,19 @@ gets changes merged or bounced.
   timestamp, time on battery.
 - **Tray ticker** — the live wattage (or battery %) rendered *as* the tray icon,
   color-coded: green charging, orange discharging, red heavy draw.
-- **Floating mini-graph** — borderless always-on-top sparkline of the last 1–5 minutes;
-  draggable, translucent, optional click-through.
+- **Floating mini-graph** — a borderless, translucent sparkline that stays out of the way.
+  Plots any of eight series (net W, CPU W, iGPU W, wall W, battery %, CPU load, CPU °C,
+  drive °C), each keeping the colour it wears on the history chart; click the graph to cycle
+  between whichever ones you've enabled. Window lengths from 60 seconds to 24 hours,
+  draggable, resizable from any edge or corner, optional always-on-top and click-through.
+- **Plugged-in-but-draining alert** — when the charger is connected but the battery is
+  going down anyway, PwrMon says so: a tray notification when the state is confirmed, and
+  again at 50 / 35 / 20 / 15 / 10% on the way down. Windows sees "AC connected" and stays
+  quiet, which is exactly how a laptop gets to flat while plugged in. Sound is on by
+  default and can be turned off; the alerts themselves stay.
+- **Self-update** — Settings → Updates checks for a new signed release, verifies it against
+  a key compiled into the binary, and runs the installer. No background checks, nothing
+  automatic; see [SECURITY.md](SECURITY.md).
 - **Adjustable units** — W/mW, Wh/mAh, sampling interval 0.5–5 s.
 - **CSV export** of any visible chart range.
 
