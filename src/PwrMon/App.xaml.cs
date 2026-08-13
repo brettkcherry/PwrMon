@@ -116,6 +116,7 @@ public partial class App : Application
         Tray.ExitRequested += () => ExitApp();
         Tray.MiniGraphToggleRequested += ToggleMiniGraph;
         Tray.MiniGraphClickThroughToggleRequested += ToggleMiniGraphClickThrough;
+        Tray.MiniGraphAlwaysOnTopToggleRequested += ToggleMiniGraphAlwaysOnTop;
 
         _drainAlerts = new DrainAlertService((title, body) => Tray.ShowAlert(title, body));
 
@@ -238,6 +239,14 @@ public partial class App : Application
         AppSettings.Current.MiniGraphClickThrough = enabled;
         AppSettings.Save();
         _miniGraph?.SetClickThrough(enabled);
+    }
+
+    public void ToggleMiniGraphAlwaysOnTop()
+    {
+        var enabled = !AppSettings.Current.MiniGraphAlwaysOnTop;
+        AppSettings.Current.MiniGraphAlwaysOnTop = enabled;
+        AppSettings.Save();
+        if (_miniGraph is not null) _miniGraph.Topmost = enabled;
     }
 
     public void ExitApp()

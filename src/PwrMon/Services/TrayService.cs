@@ -19,11 +19,13 @@ public sealed class TrayService : IDisposable
     public event Action? OpenRequested;
     public event Action? MiniGraphToggleRequested;
     public event Action? MiniGraphClickThroughToggleRequested;
+    public event Action? MiniGraphAlwaysOnTopToggleRequested;
     public event Action? SettingsRequested;
     public event Action? ExitRequested;
 
     private readonly ToolStripMenuItem _miniGraphItem;
     private readonly ToolStripMenuItem _miniGraphClickThroughItem;
+    private readonly ToolStripMenuItem _miniGraphAlwaysOnTopItem;
     private readonly ToolStripMenuItem _trayWattsItem;
     private readonly ToolStripMenuItem _trayPercentItem;
 
@@ -34,11 +36,13 @@ public sealed class TrayService : IDisposable
         open.Font = new Font(open.Font, System.Drawing.FontStyle.Bold);
         _miniGraphItem = new ToolStripMenuItem("Mini graph", null, (_, _) => MiniGraphToggleRequested?.Invoke());
         _miniGraphClickThroughItem = new ToolStripMenuItem("Mini graph click-through", null, (_, _) => MiniGraphClickThroughToggleRequested?.Invoke());
+        _miniGraphAlwaysOnTopItem = new ToolStripMenuItem("Mini graph always on top", null, (_, _) => MiniGraphAlwaysOnTopToggleRequested?.Invoke());
         _trayWattsItem = new ToolStripMenuItem("Tray shows watts", null, (_, _) => SetTrayDisplay(TrayDisplay.Watts));
         _trayPercentItem = new ToolStripMenuItem("Tray shows battery %", null, (_, _) => SetTrayDisplay(TrayDisplay.Percent));
 
         menu.Items.Add(open);
         menu.Items.Add(_miniGraphItem);
+        menu.Items.Add(_miniGraphAlwaysOnTopItem);
         menu.Items.Add(_miniGraphClickThroughItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_trayWattsItem);
@@ -71,6 +75,7 @@ public sealed class TrayService : IDisposable
     {
         _miniGraphItem.Checked = AppSettings.Current.MiniGraphEnabled;
         _miniGraphClickThroughItem.Checked = AppSettings.Current.MiniGraphClickThrough;
+        _miniGraphAlwaysOnTopItem.Checked = AppSettings.Current.MiniGraphAlwaysOnTop;
         _trayWattsItem.Checked = AppSettings.Current.TrayDisplay == TrayDisplay.Watts;
         _trayPercentItem.Checked = AppSettings.Current.TrayDisplay == TrayDisplay.Percent;
     }

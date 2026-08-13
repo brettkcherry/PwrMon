@@ -30,6 +30,7 @@ public partial class MiniGraphWindow : Window
 
         var s = AppSettings.Current;
         Opacity = s.MiniGraphOpacityPct / 100.0;
+        Topmost = s.MiniGraphAlwaysOnTop;
         Width = Math.Max(MinWidth, s.MiniGraphWidth);
         Height = Math.Max(MinHeight, s.MiniGraphHeight);
         if (!double.IsNaN(s.MiniGraphX) && !double.IsNaN(s.MiniGraphY))
@@ -204,6 +205,7 @@ public partial class MiniGraphWindow : Window
             AppSettings.Current.MiniGraphOpacityPct = pct;
             AppSettings.Save();
         }
+        SyncMenuChecks();
     }
 
     private void WindowSecs_Click(object sender, RoutedEventArgs e)
@@ -214,6 +216,31 @@ public partial class MiniGraphWindow : Window
             AppSettings.Save();
             Redraw();
         }
+        SyncMenuChecks();
+    }
+
+    private void ContextMenu_Opened(object sender, RoutedEventArgs e) => SyncMenuChecks();
+
+    /// <summary>Clicking a checkable item toggles its own tick before the handler runs, so every
+    /// handler re-syncs from settings rather than trusting what the click left behind.</summary>
+    private void SyncMenuChecks()
+    {
+        var s = AppSettings.Current;
+        MenuOpacity100.IsChecked = s.MiniGraphOpacityPct == 100;
+        MenuOpacity85.IsChecked = s.MiniGraphOpacityPct == 85;
+        MenuOpacity70.IsChecked = s.MiniGraphOpacityPct == 70;
+        MenuOpacity50.IsChecked = s.MiniGraphOpacityPct == 50;
+        MenuWin60.IsChecked = s.MiniGraphWindowSeconds == 60;
+        MenuWin120.IsChecked = s.MiniGraphWindowSeconds == 120;
+        MenuWin300.IsChecked = s.MiniGraphWindowSeconds == 300;
+        MenuWin900.IsChecked = s.MiniGraphWindowSeconds == 900;
+        MenuAlwaysOnTop.IsChecked = s.MiniGraphAlwaysOnTop;
+    }
+
+    private void AlwaysOnTop_Click(object sender, RoutedEventArgs e)
+    {
+        App.Current.ToggleMiniGraphAlwaysOnTop();
+        SyncMenuChecks();
     }
 
     private void ClickThrough_Click(object sender, RoutedEventArgs e)

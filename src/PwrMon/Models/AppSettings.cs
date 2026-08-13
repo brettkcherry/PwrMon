@@ -35,6 +35,7 @@ public sealed class AppSettings
     public int MiniGraphOpacityPct { get; set; } = 85;
     public int MiniGraphWindowSeconds { get; set; } = 120;
     public bool MiniGraphClickThrough { get; set; }
+    public bool MiniGraphAlwaysOnTop { get; set; } = true;
 
     public bool ChartShowNet { get; set; } = true;
     public bool ChartShowCpu { get; set; } = true;
