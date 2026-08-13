@@ -30,6 +30,10 @@
         <CheckBox x:Name="ChkSlimMode" Content="Slim mode (free dashboard memory when closed)"
                   Foreground="{DynamicResource TextBrush}" Margin="0,4"
                   ToolTip="The dashboard window is fully released when closed instead of hidden — the app keeps sampling from the tray with a much smaller footprint. Reopening rebuilds the chart from saved history."/>
+        <CheckBox x:Name="ChkDrainAlertSound" Foreground="{DynamicResource TextBrush}" Margin="0,4"
+                  ToolTip="PwrMon always warns when the charger is connected but the battery is draining anyway — a failure Windows never reports. This controls whether those warnings also make a sound.">
+            <TextBlock Text="Sound with &quot;plugged in but draining&quot; alerts" TextWrapping="Wrap"/>
+        </CheckBox>
 
         <TextBlock Style="{StaticResource CardTitle}" Text="START WITH WINDOWS" Margin="0,14,0,6"/>
         <CheckBox x:Name="ChkAutostart" Content="Start PwrMon at logon"

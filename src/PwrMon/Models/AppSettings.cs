@@ -22,6 +22,11 @@ public sealed class AppSettings
     public bool SlimMode { get; set; }
     public int HistoryRetentionDays { get; set; } = 7;
 
+    /// <summary>Play a sound with the "plugged in but draining" alerts. On by default: the
+    /// failure this warns about is silent, invisible to Windows, and ends in a dead machine —
+    /// a notification the user never happens to look at is what we already had.</summary>
+    public bool DrainAlertSound { get; set; } = true;
+
     public bool MiniGraphEnabled { get; set; }
     public double MiniGraphX { get; set; } = double.NaN;
     public double MiniGraphY { get; set; } = double.NaN;
@@ -36,6 +41,9 @@ public sealed class AppSettings
     public bool ChartShowGpu { get; set; } = true;
     public bool ChartShowPercent { get; set; } = true;
     public bool ChartShowCpuLoad { get; set; }
+    /// <summary>Off by default: wall input is an estimate, and it's blank off AC — a series
+    /// that's absent half the time shouldn't be one the user never asked for.</summary>
+    public bool ChartShowWall { get; set; }
     // Off by default: temperature is a secondary story to watts, and the CPU series only has
     // data in the full sensor tier.
     public bool ChartShowCpuTemp { get; set; }

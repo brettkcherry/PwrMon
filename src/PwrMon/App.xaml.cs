@@ -27,6 +27,7 @@ public partial class App : Application
 
     private MainWindow? _mainWindow;
     private MiniGraphWindow? _miniGraph;
+    private DrainAlertService _drainAlerts = null!;
     private bool _exiting;
 
     public static new App Current => (App)Application.Current;
@@ -116,6 +117,8 @@ public partial class App : Application
         Tray.MiniGraphToggleRequested += ToggleMiniGraph;
         Tray.MiniGraphClickThroughToggleRequested += ToggleMiniGraphClickThrough;
 
+        _drainAlerts = new DrainAlertService((title, body) => Tray.ShowAlert(title, body));
+
         Sampler.SampleReady += (s, stats, est) =>
         {
             History.Append(s);
@@ -123,6 +126,7 @@ public partial class App : Application
             {
                 if (_exiting) return;
                 Tray.Update(s, est);
+                _drainAlerts.OnSample(s, est);
                 _mainWindow?.OnSample(s, stats, est);
                 _miniGraph?.OnSample(s, est);
             });

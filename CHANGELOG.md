@@ -15,6 +15,20 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
 
 ### Added
 
+- **"Plugged in but draining" now actually alerts you.** PwrMon has detected this state since
+  the 2026-07-16 TB4 incident, but only ever showed it passively — a red hero state in a
+  window that's usually closed, and a tray tooltip you have to hover. On 2026-08-13 the same
+  failure recurred: the charger stopped holding the machine up at 10:47, the detector was
+  correct the entire way down, and the laptop still went from 91% to flat over 70 minutes
+  with no warning from PwrMon or from Windows (which sees "AC connected" and stays quiet).
+  A smoke detector with no siren.
+
+  Now the same signal pushes a tray notification when the state is confirmed, and again at
+  50 / 35 / 20 / 15 / 10% on the way down — the first alert can easily land while you're away
+  from the machine. Alerts carry a sound by default (Settings → Behavior turns the sound off;
+  the alerts themselves stay on). Strictly scoped to the AC-contradiction case: normal
+  on-battery low-battery warnings are Windows' job and it does those fine.
+
 - **PwrMon can update itself.** Settings → Updates checks for a new release, verifies it, and
   runs the installer. Until now a fix could be released but never reached anyone who had
   already installed — for the one app here that runs elevated and talks to a kernel driver,

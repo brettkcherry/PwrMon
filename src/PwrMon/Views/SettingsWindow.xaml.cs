@@ -23,7 +23,7 @@ public partial class SettingsWindow : Window
     // so undoing it belongs to its own confirm flow, not a generic settings revert.
     private sealed record SettingsSnapshot(
         string Theme, string NumeralFont, string TextFont,
-        bool CloseToTray, bool StartMinimized, bool SlimMode, int RetentionDays);
+        bool CloseToTray, bool StartMinimized, bool SlimMode, bool DrainAlertSound, int RetentionDays);
     private SettingsSnapshot _snapshot = null!;
 
     public SettingsWindow()
@@ -65,6 +65,7 @@ public partial class SettingsWindow : Window
         ChkCloseToTray.IsChecked = AppSettings.Current.CloseToTray;
         ChkStartMinimized.IsChecked = AppSettings.Current.StartMinimized;
         ChkSlimMode.IsChecked = AppSettings.Current.SlimMode;
+        ChkDrainAlertSound.IsChecked = AppSettings.Current.DrainAlertSound;
 
         ChkAutostart.IsChecked = StartupHelper.IsRunKeyEnabled() || StartupHelper.IsElevatedTaskEnabled();
         ChkAutostartElevated.IsChecked = StartupHelper.IsElevatedTaskEnabled();
@@ -93,12 +94,13 @@ public partial class SettingsWindow : Window
         ChkCloseToTray.Click += (_, _) => SaveBehavior();
         ChkStartMinimized.Click += (_, _) => SaveBehavior();
         ChkSlimMode.Click += (_, _) => SaveBehavior();
+        ChkDrainAlertSound.Click += (_, _) => SaveBehavior();
         CmbRetention.SelectionChanged += (_, _) => SaveBehavior();
 
         _snapshot = new SettingsSnapshot(
             AppSettings.Current.Theme, AppSettings.Current.NumeralFont, AppSettings.Current.TextFont,
             AppSettings.Current.CloseToTray, AppSettings.Current.StartMinimized, AppSettings.Current.SlimMode,
-            AppSettings.Current.HistoryRetentionDays);
+            AppSettings.Current.DrainAlertSound, AppSettings.Current.HistoryRetentionDays);
 
         _initializing = false;
     }
@@ -113,6 +115,7 @@ public partial class SettingsWindow : Window
             || s.CloseToTray != _snapshot.CloseToTray
             || s.StartMinimized != _snapshot.StartMinimized
             || s.SlimMode != _snapshot.SlimMode
+            || s.DrainAlertSound != _snapshot.DrainAlertSound
             || s.HistoryRetentionDays != _snapshot.RetentionDays;
     }
 
@@ -126,6 +129,7 @@ public partial class SettingsWindow : Window
         s.CloseToTray = _snapshot.CloseToTray;
         s.StartMinimized = _snapshot.StartMinimized;
         s.SlimMode = _snapshot.SlimMode;
+        s.DrainAlertSound = _snapshot.DrainAlertSound;
         s.HistoryRetentionDays = _snapshot.RetentionDays;
         AppSettings.Save();
 
@@ -139,6 +143,7 @@ public partial class SettingsWindow : Window
         ChkCloseToTray.IsChecked = _snapshot.CloseToTray;
         ChkStartMinimized.IsChecked = _snapshot.StartMinimized;
         ChkSlimMode.IsChecked = _snapshot.SlimMode;
+        ChkDrainAlertSound.IsChecked = _snapshot.DrainAlertSound;
         CmbRetention.SelectedItem = new[] { 1, 3, 7, 14, 30, 60 }
             .OrderBy(d => Math.Abs(d - _snapshot.RetentionDays)).First();
 
@@ -259,6 +264,7 @@ public partial class SettingsWindow : Window
         AppSettings.Current.CloseToTray = ChkCloseToTray.IsChecked == true;
         AppSettings.Current.StartMinimized = ChkStartMinimized.IsChecked == true;
         AppSettings.Current.SlimMode = ChkSlimMode.IsChecked == true;
+        AppSettings.Current.DrainAlertSound = ChkDrainAlertSound.IsChecked == true;
         if (CmbRetention.SelectedItem is int days)
             AppSettings.Current.HistoryRetentionDays = days;
         AppSettings.Save();

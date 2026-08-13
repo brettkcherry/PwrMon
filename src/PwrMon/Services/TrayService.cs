@@ -55,6 +55,8 @@ public sealed class TrayService : IDisposable
             Text = "PwrMon",
         };
         _icon.DoubleClick += (_, _) => OpenRequested?.Invoke();
+        // clicking a drain alert should land on the chart that shows what's happening
+        _icon.BalloonTipClicked += (_, _) => OpenRequested?.Invoke();
 
         RenderIcon("…", "", System.Drawing.Color.White);
     }
@@ -134,6 +136,20 @@ public sealed class TrayService : IDisposable
                 : "";
         var tip = $"PwrMon — {state}{rate} • {s.BatteryPercent:F0}%{eta}";
         _icon.Text = tip.Length <= 63 ? tip : tip[..63];
+    }
+
+    /// <summary>Pushes a balloon/toast from the tray icon. The only thing in PwrMon that
+    /// interrupts the user, and deliberately so — see <see cref="DrainAlertService"/>.</summary>
+    public void ShowAlert(string title, string body)
+    {
+        try
+        {
+            _icon.BalloonTipTitle = title;
+            _icon.BalloonTipText = body;
+            _icon.BalloonTipIcon = ToolTipIcon.Warning;
+            _icon.ShowBalloonTip(30_000); // the shell caps this; it's a request, not a promise
+        }
+        catch (Exception ex) { Log.Error($"tray alert: {ex.Message}"); }
     }
 
     private static string FormatWatts(double w) =>
