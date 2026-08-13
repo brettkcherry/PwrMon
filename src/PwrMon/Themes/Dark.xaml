@@ -56,10 +56,13 @@
         <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
-        <!-- default NoWrap lets long labels run straight into the value column instead of
-             overflowing onto a second line — a fixed-width card plus a font/precision change
-             (either can widen the value column's Auto share) is enough to trigger it -->
-        <Setter Property="TextWrapping" Value="Wrap"/>
+        <!-- WrapWithOverflow, not Wrap. Both stop a long label running into the value column,
+             but plain Wrap also breaks *inside* a word when one doesn't fit, which rendered
+             "Temperature" as "Temperatu / re" once a wide monospace numeral font (Cascadia
+             Mono) pushed the Auto-sized value column wide enough to squeeze the label. Word
+             boundaries only: "Cores / Platform" still wraps at its space, and a single long
+             word overflows into the value column's slack instead of being cut in half. -->
+        <Setter Property="TextWrapping" Value="WrapWithOverflow"/>
     </Style>
 
     <Style x:Key="StatValue" TargetType="TextBlock">

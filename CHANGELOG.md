@@ -68,6 +68,17 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
   offered — compromised packages are usually caught within a day or two, and the people they
   reach are the ones who upgraded within hours.
 
+### Fixed
+
+- **A stat label could break mid-word instead of at a space.** "Temperature" wrapped as
+  "Temperatu" / "re" once a wide monospace numeral font (Cascadia Mono) pushed the Auto-sized
+  value column wide enough to squeeze the label column — visible in the Processor card's
+  screenshot before this shipped. `TextWrapping="Wrap"` breaks anywhere it has to;
+  `WrapWithOverflow` only breaks at a word boundary and lets a single long word overflow into
+  the value column's slack instead, so "Cores / Platform" still wraps at its space and
+  "Temperature" no longer splits. One shared style in `Themes/Dark.xaml`, so every theme's
+  cards inherit the fix together.
+
 ### Security
 
 - **CI actions are pinned to full commit SHAs** rather than tags. A tag is mutable: whoever
