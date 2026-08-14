@@ -1,11 +1,9 @@
 # ⚡ PwrMon
 
-Live, real-time power telemetry for Windows laptops — because every battery app on the
-Microsoft Store shows you *health summaries* when what you actually want to know is
-**what is my machine pulling right now, in watts?**
+Live, real-time power telemetry for Windows PCs. 
 
-No ads, no telemetry, no account. PwrMon only reaches the network when you press a button —
-checking for updates, or downloading the optional PawnIO driver — and never in the
+No ads, no telemetry, no account. PwrMon only reaches the network when you press a button -
+checking for updates, or downloading the optional PawnIO driver - and never in the
 background.
 
 <p align="center">
@@ -21,6 +19,47 @@ background.
 <p align="center">
   <img src="docs/assets/settings-alerts.png" alt="Settings: the plugged-in-but-draining alert, autostart, and history retention" width="380">
 </p>
+
+## What it shows
+
+- **Live power flow** — charge/discharge wattage straight from the battery's fuel gauge
+  (ACPI via WMI), plus net flow, voltage, and current. PwrMon polls as often as twice a
+  second.
+- **CPU & iGPU silicon power** — RAPL package, cores and iGPU watts with **no administrator
+  and no kernel driver**, read from Windows' own Energy Meter counters. *Verified on Intel
+  (12th–14th gen); untested on AMD — see [what needs work](#what-needs-work-and-how-you-can-help).*
+  Elevation plus PawnIO adds platform (PSys) power and CPU temperatures. See "Sensor tiers"
+  below.
+- **Temperatures** — drive temperature read straight from the disk with no administrator or
+  driver required, so it works in every tier; CPU package, hottest core and throttle headroom
+  arrive with the full sensor tier. See "Temperature coverage" below for what isn't available.
+- **History chart** — pan/zoomable multi-series chart (net W, CPU W, iGPU W, wall W,
+  battery %, CPU load, CPU °C, drive °C) over 5 minutes to 48 hours, with AC plug/unplug
+  and resume event markers.
+  History persists across restarts (daily CSV files, configurable retention).
+- **Time estimates that aren't (total) garbage** — time-to-empty / time-to-full computed from
+  30-second smoothed rates, not Windows' famously bogus `EstimatedRunTime`.
+- **Battery health** — wear % (design vs. actual full-charge capacity), cycle count,
+  chemistry, design capacity.
+- **Session stats** — energy drawn/charged this session, average and peak draw with
+  timestamp, time on battery.
+- **Tray ticker** — the live wattage (or battery %) rendered *as* the tray icon,
+  color-coded: green charging, orange discharging, red heavy draw.
+- **Floating mini-graph** — a borderless, translucent sparkline that stays out of the way.
+  Plots any of eight series (net W, CPU W, iGPU W, wall W, battery %, CPU load, CPU °C,
+  drive °C), each keeping the colour it wears on the history chart; click the graph to cycle
+  between whichever ones you've enabled. Window lengths from 60 seconds to 24 hours,
+  draggable, resizable from any edge or corner, optional always-on-top and click-through.
+- **Plugged-in-but-draining alert** — when the charger is connected but the battery is
+  going down anyway, PwrMon says so: a tray notification when the state is confirmed, and
+  again at 50 / 35 / 20 / 15 / 10% on the way down. Windows sees "AC connected" and stays
+  quiet, which is exactly how a laptop gets to flat while plugged in. Sound is on by
+  default and can be turned off; the alerts themselves stay.
+- **Self-update** — Settings → Updates checks for a new signed release, verifies it against
+  a key compiled into the binary, and runs the installer. No background checks, nothing
+  automatic; see [SECURITY.md](SECURITY.md).
+- **Adjustable units** — W/mW, Wh/mAh, sampling interval 0.5–5 s.
+- **CSV export** of any visible chart range.
 
 ## Getting it
 
@@ -95,47 +134,7 @@ Also useful, in rough order:
 See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR; the ethos section there is what
 gets changes merged or bounced.
 
-## What it shows
 
-- **Live power flow** — charge/discharge wattage straight from the battery's fuel gauge
-  (ACPI via WMI), plus net flow, voltage, and current. PwrMon polls as often as twice a
-  second; how often that number actually *changes* is the gauge's call, and most publish on
-  their own cadence (~15–30 s on this project's reference machine).
-- **CPU & iGPU silicon power** — RAPL package, cores and iGPU watts with **no administrator
-  and no kernel driver**, read from Windows' own Energy Meter counters. *Verified on Intel
-  (12th–14th gen); untested on AMD — see [what needs work](#what-needs-work-and-how-you-can-help).*
-  Elevation plus PawnIO adds platform (PSys) power and CPU temperatures. See "Sensor tiers"
-  below.
-- **Temperatures** — drive temperature read straight from the disk with no administrator or
-  driver required, so it works in every tier; CPU package, hottest core and throttle headroom
-  arrive with the full sensor tier. See "Temperature coverage" below for what isn't available.
-- **History chart** — pan/zoomable multi-series chart (net W, CPU W, iGPU W, wall W,
-  battery %, CPU load, CPU °C, drive °C) over 5 minutes to 48 hours, with AC plug/unplug
-  and resume event markers.
-  History persists across restarts (daily CSV files, configurable retention).
-- **Time estimates that aren't garbage** — time-to-empty / time-to-full computed from
-  30-second smoothed rates, not Windows' famously bogus `EstimatedRunTime`.
-- **Battery health** — wear % (design vs. actual full-charge capacity), cycle count,
-  chemistry, design capacity.
-- **Session stats** — energy drawn/charged this session, average and peak draw with
-  timestamp, time on battery.
-- **Tray ticker** — the live wattage (or battery %) rendered *as* the tray icon,
-  color-coded: green charging, orange discharging, red heavy draw.
-- **Floating mini-graph** — a borderless, translucent sparkline that stays out of the way.
-  Plots any of eight series (net W, CPU W, iGPU W, wall W, battery %, CPU load, CPU °C,
-  drive °C), each keeping the colour it wears on the history chart; click the graph to cycle
-  between whichever ones you've enabled. Window lengths from 60 seconds to 24 hours,
-  draggable, resizable from any edge or corner, optional always-on-top and click-through.
-- **Plugged-in-but-draining alert** — when the charger is connected but the battery is
-  going down anyway, PwrMon says so: a tray notification when the state is confirmed, and
-  again at 50 / 35 / 20 / 15 / 10% on the way down. Windows sees "AC connected" and stays
-  quiet, which is exactly how a laptop gets to flat while plugged in. Sound is on by
-  default and can be turned off; the alerts themselves stay.
-- **Self-update** — Settings → Updates checks for a new signed release, verifies it against
-  a key compiled into the binary, and runs the installer. No background checks, nothing
-  automatic; see [SECURITY.md](SECURITY.md).
-- **Adjustable units** — W/mW, Wh/mAh, sampling interval 0.5–5 s.
-- **CSV export** of any visible chart range.
 
 ## Building
 
@@ -181,7 +180,7 @@ That path is verified on Intel; **it has not been tested on AMD** — see [ISSUE
 Battery wattage — the number that actually tells you your total system draw on battery —
 works at every tier, elevated or not.
 
-> On battery, **discharge rate = total system draw**. That's physics, not an estimate.
+> On battery, **discharge rate = total system draw**.
 > When plugged in, the wall draw isn't measurable on most laptops; you get charge rate
 > into the battery plus CPU/iGPU silicon power.
 
@@ -192,8 +191,7 @@ works at every tier, elevated or not.
 | Drive | `IOCTL_STORAGE_QUERY_PROPERTY` on a query-only volume handle | every tier — no admin, no driver |
 | CPU package / hottest core / throttle headroom | LibreHardwareMonitor MSRs | admin + PawnIO, same as CPU watts |
 
-**iGPU temperature is not available** on Intel integrated graphics, and it isn't for lack of
-trying. LibreHardwareMonitor exposes no temperature sensor for Intel GPUs; Level Zero Sysman
+As far as I have been able to tell **iGPU temperature is not available** on Intel integrated graphics. LibreHardwareMonitor exposes no temperature sensor for Intel GPUs; Level Zero Sysman
 can't initialise on a stock driver install (no `HKLM\SOFTWARE\Khronos\OneAPI\LevelZero`
 registration); Intel's IGCL `ctlEnumTemperatureSensors` returns `CTL_RESULT_ERROR_ZE_LOADER`
 because it's implemented over Level Zero; and the kernel's own `D3DKMT` adapter perf data
@@ -279,7 +277,7 @@ In plain English, because nobody should have to read a license to know where the
 
 - **Using PwrMon?** Free, forever, for anything including at work. Nothing is asked of you.
 - **Reading, forking, modifying, packaging it?** Go ahead. If you distribute something built
-  on it, that has to be GPL-3.0 with source too — that's the deal, and it's the only
+  on it, that has to be GPL-3.0 with source too — it's the only
   obligation the license creates.
 - **Contributing?** Inbound is GPL-3.0 plus a one-time [CLA](CLA.md). You keep your copyright.
   Bug reports and hardware dumps need no agreement at all.
