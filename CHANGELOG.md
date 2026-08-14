@@ -4,6 +4,8 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.6.1] — 2026-08-14
+
 ### Changed
 
 - **"Heavy draw" is now measured against this machine, not against a 70 Wh Zenbook.** The tray
