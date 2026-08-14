@@ -4,10 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PwrMon — live power telemetry for Windows laptops</title>
-<meta name="description" content="A Windows app that answers one question: what is my machine pulling right now, in watts? In development — not yet released.">
+<meta name="description" content="A Windows app that answers one question: what is my machine pulling right now, in watts? Free, open source, no telemetry.">
 <meta property="og:title" content="PwrMon — live power telemetry for Windows laptops">
-<meta property="og:description" content="Battery, CPU and iGPU watts in real time. No ads, no telemetry, no kernel driver. In development — not yet released.">
+<meta property="og:description" content="Battery, CPU and iGPU watts in real time. No ads, no telemetry, no kernel driver.">
 <meta property="og:type" content="website">
+<meta property="og:image" content="https://brettkcherry.github.io/PwrMon/assets/social-card.png">
 <style>
   :root {
     --bg: #ffffff;
@@ -71,6 +72,14 @@
   .status strong { display: block; }
   .status p { margin: .2rem 0 0; color: var(--fg-dim); font-size: .94rem; }
 
+  .cta { display: flex; flex-wrap: wrap; align-items: center; gap: .9rem; margin: 0 0 1.5rem; }
+  .cta .btn {
+    background: var(--accent); color: var(--bg); font-weight: 600;
+    border-radius: 8px; padding: .65rem 1.15rem; text-decoration: none;
+  }
+  .cta .btn:hover { text-decoration: none; filter: brightness(1.08); }
+  .cta .note { font-size: .88rem; color: var(--fg-dim); }
+
   .meta { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
   .pill {
     font-size: .8rem; font-family: var(--mono);
@@ -95,12 +104,8 @@
   figure { margin: 1.5rem 0; }
   figure img { width: 100%; border: 1px solid var(--line); border-radius: 10px; display: block; }
   figcaption { font-size: .87rem; color: var(--fg-dim); margin-top: .5rem; }
-  .shot-todo {
-    border: 1px dashed var(--line); border-radius: 10px;
-    padding: 2.4rem 1.2rem; text-align: center;
-    color: var(--fg-dim); font-size: .9rem; background: var(--bg-alt);
-  }
-  .shot-todo code { background: transparent; }
+  .shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; }
+  .shots figure { margin: 0; }
 
   /* ---- tables ---- */
   .scroll { overflow-x: auto; margin: 1.2rem 0; }
@@ -133,22 +138,28 @@
   <p class="tagline">Live power telemetry for Windows laptops. Because every battery app shows you
   <em>health summaries</em> when what you want to know is what your machine is pulling right now, in watts.</p>
 
+  <div class="cta">
+    <a class="btn" href="https://github.com/brettkcherry/PwrMon/releases/latest">Download for Windows</a>
+    <span class="note">Free, no account, no telemetry. Not code-signed yet — SmartScreen will
+    warn on first run; verify the SHA-256 in the release notes.</span>
+  </div>
+
   <div class="status">
     <span class="dot"></span>
     <div>
-      <strong>In development — not yet released.</strong>
-      <p>There's no download here yet. PwrMon runs daily on the developer's machine, but it has
-      been verified on exactly one laptop, and its driverless sensor path is confirmed on Intel
-      only. Publishing a build people would install means testing it on hardware I don't own.
-      This page is here to say what it is and where it actually stands.</p>
+      <strong>Released, and tested on exactly one machine.</strong>
+      <p>PwrMon runs daily on its author's machine and does what this page says. What it hasn't
+      had is contact with other hardware: verified on one laptop, and its driverless sensor path
+      is confirmed on Intel only. Every claim here is scoped to what has actually been observed,
+      and will widen as hardware reports arrive.</p>
     </div>
   </div>
 
   <div class="meta">
     <span class="pill">C# / .NET 8 / WPF</span>
     <span class="pill">Windows 10–11 x64</span>
-    <span class="pill">MIT</span>
-    <span class="pill">v1.4.0 — unreleased</span>
+    <span class="pill">GPL-3.0 — commercial license available</span>
+    <span class="pill">v1.6.1</span>
   </div>
 </header>
 
@@ -187,12 +198,13 @@ PwrMon doesn't, and never loads it.</blockquote>
   <div class="cell">
     <h3>Tray wattage ticker</h3>
     <p>The live number rendered <em>as</em> the tray icon — green charging, orange discharging,
-    red heavy draw.</p>
+    red heavy draw. "Heavy" is learned from this machine's own discharge history rather than a
+    fixed wattage, so it means the same thing on a tablet and a gaming laptop.</p>
   </div>
   <div class="cell">
     <h3>Floating mini-graph</h3>
-    <p>Borderless always-on-top sparkline of the last 1–5 minutes. Draggable, translucent,
-    resizable, optionally click-through.</p>
+    <p>Borderless translucent sparkline plotting any of eight series over 60 seconds to 24 hours.
+    Draggable, resizable, optionally always-on-top and click-through.</p>
   </div>
   <div class="cell">
     <h3>Estimates that aren't garbage</h3>
@@ -209,20 +221,38 @@ PwrMon doesn't, and never loads it.</blockquote>
 <h2>What it looks like</h2>
 
 <!--
-  SCREENSHOTS — currently placeholders.
-  Drop curated captures into docs/assets/ and replace each .shot-todo block with:
-
-    <figure>
-      <img src="assets/dashboard.png" alt="PwrMon dashboard showing live wattage, stat cards and history chart">
-      <figcaption>…</figcaption>
-    </figure>
-
-  .gitignore excludes images tree-wide on purpose; docs/assets/ is excepted so these can be
-  committed. Check each capture for other windows, filenames and personal data before committing.
+  SCREENSHOTS live in docs/assets/. .gitignore excludes images tree-wide on purpose and
+  docs/assets/ is excepted, so these are the only images that can reach the repo. Check any
+  new capture for other windows, filenames and personal data before committing — these are
+  published permanently.
 -->
 
-<div class="shot-todo">Dashboard capture goes here — <code>docs/assets/dashboard.png</code></div>
-<div class="shot-todo" style="margin-top:1rem">Tray ticker + floating mini-graph — <code>docs/assets/minigraph.png</code></div>
+<figure>
+  <img src="assets/dashboard-full-telemetry.png" alt="PwrMon dashboard, plugged in at 100%, full silicon telemetry: CPU/iGPU watts, thermal, health, and a 24-hour history chart">
+  <figcaption>The dashboard with the full sensor tier available: CPU and iGPU watts, package
+  temperature, battery health, and a 24-hour history chart with plug/unplug markers.</figcaption>
+</figure>
+
+<div class="shots">
+  <figure>
+    <img src="assets/dashboard-charging.png" alt="Charging at 15.6 W, the Wall series live on a 1-hour chart">
+    <figcaption>Charging at 15.6 W.</figcaption>
+  </figure>
+  <figure>
+    <img src="assets/dashboard-discharging.png" alt="Discharging at 14.5 W with a 3:23 time-to-empty estimate">
+    <figcaption>Discharging at 14.5 W, 3:23 to empty.</figcaption>
+  </figure>
+  <figure>
+    <img src="assets/mini-graph.png" alt="The floating always-on-top mini-graph, translucent and draggable">
+    <figcaption>The floating mini-graph.</figcaption>
+  </figure>
+</div>
+
+<figure>
+  <img src="assets/settings-alerts.png" alt="Settings: the plugged-in-but-draining alert, autostart, and history retention">
+  <figcaption>The plugged-in-but-draining alert — the case Windows stays quiet about, because it
+  sees "AC connected" and stops there.</figcaption>
+</figure>
 
 <h2>Sensor tiers</h2>
 
@@ -279,9 +309,15 @@ the repo's own <a href="https://github.com/brettkcherry/PwrMon/blob/main/ISSUES.
 <h2>Privacy &amp; security</h2>
 
 <ul class="honest">
-  <li><strong>No telemetry, no analytics, no auto-update, no crash reporting.</strong> There is
-  exactly one outbound URL in the codebase: the optional PawnIO download, behind an explicit
-  consent dialog, with the installer's signature verified and its signer shown to you first.</li>
+  <li><strong>No telemetry, no analytics, no crash reporting.</strong> PwrMon reaches the network
+  only when you press a button, and never in the background. Two paths exist: the optional PawnIO
+  download, behind an explicit consent dialog with the installer's signature verified and its
+  signer shown to you first; and the update check under Settings → Updates.</li>
+  <li><strong>Updates are checked only on request, and verified before they run.</strong> The
+  release manifest is signed with an ECDSA P-256 key whose public half is compiled into the
+  binary, and it carries the installer's SHA-256 — so one signature authenticates both. A manifest
+  that fails verification is reported as a failure, not swallowed as "no update available." There
+  is no background check and no silent install.</li>
   <li><strong>No WinRing0</strong> — the driver on Microsoft's vulnerable-driver blocklist that
   most tools in this category use to read CPU power. Not shipped, never loaded.</li>
   <li><strong>Elevation is optional and never silent.</strong> Battery telemetry needs none.</li>
@@ -289,12 +325,17 @@ the repo's own <a href="https://github.com/brettkcherry/PwrMon/blob/main/ISSUES.
 
 <footer>
   <div class="links">
+    <a href="https://github.com/brettkcherry/PwrMon/releases/latest">Download</a>
     <a href="https://github.com/brettkcherry/PwrMon">Source on GitHub</a>
     <a href="https://github.com/brettkcherry/PwrMon/blob/main/ISSUES.md">Known issues</a>
     <a href="https://github.com/brettkcherry/PwrMon/blob/main/CHANGELOG.md">Changelog</a>
     <a href="https://github.com/brettkcherry/PwrMon/blob/main/SECURITY.md">Security</a>
   </div>
-  <p>Built by Brett Cherry. MIT licensed. Runs on Windows 10 and 11, x64.<br>
+  <p>Built by Brett Cherry. Free software under the
+  <a href="https://github.com/brettkcherry/PwrMon/blob/main/LICENSE">GPL-3.0</a>, and separately
+  available under a
+  <a href="https://github.com/brettkcherry/PwrMon/blob/main/COMMERCIAL-LICENSE.md">commercial license</a>.
+  Runs on Windows 10 and 11, x64.<br>
   If you have an AMD laptop and a spare ten minutes, that's the single most useful thing anyone
   could contribute — see
   <a href="https://github.com/brettkcherry/PwrMon/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>.</p>

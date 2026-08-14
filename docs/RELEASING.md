@@ -3,12 +3,22 @@
 PwrMon can now update itself. This is how a release gets built, signed, and delivered — and
 why each step is shaped the way it is.
 
-## Once: create the release signing key
+## Once: create the release signing key — **done**
 
 The updater refuses any manifest that does not verify against a public key compiled into the
-binary. That key pair does not exist yet, so `UpdateService.PublicKeyBase64` holds a
-placeholder and the updater is **completely inert** — it does not even make a network request.
-That is deliberate: an unconfigured updater does nothing rather than something unverified.
+binary.
+
+**This key exists and is in use as of v1.6.0.** `UpdateService.PublicKeyBase64` holds the real
+public key; the private half is at `~/.pwrmon/release-key.txt`, offline, and has never entered
+this repository. Nothing in this section needs doing again — it is kept for the rotation case
+and so the trust model is written down somewhere.
+
+Before the key existed, `PublicKeyBase64` held a placeholder and the updater was completely
+inert — it did not even make a network request. That was deliberate: an unconfigured updater
+does nothing rather than something unverified. `UpdateService.IsConfigured` is the check that
+distinguishes the two, and it still guards the path.
+
+Were a key ever needed from scratch:
 
 ```bash
 ./tools/new-release-key.ps1
