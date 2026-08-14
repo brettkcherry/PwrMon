@@ -47,6 +47,59 @@ hiding the information — the state is still on screen, just no longer taking a
 dismisses at `NeedsAdmin`, then installs PawnIO and re-detects into `DriverBlocked`, they
 should see that banner. Dismissal suppresses a *specific message*, not the banner mechanism.
 
+### Heavy-draw threshold that isn't one machine's number
+
+**What's there now.** The tray icon turns from orange to red above 60 W of discharge
+([TrayService.cs:111](src/PwrMon/Services/TrayService.cs#L111)). One constant, no setting, no
+comment saying where it came from.
+
+**Why it's wrong.** It fails in both directions on hardware that isn't the reference machine:
+
+| Machine | Idle | Heavy | What 60 W means there |
+|---|---|---|---|
+| Tablet-class, ~28 Wh | 3–4 W | 12–15 W | Never reached. Red never fires; orange forever. |
+| Zenbook UX3404VA, 70 Wh | 6–8 W | 45–55 W | About right. |
+| Gaming 17", ~99 Wh | 25–35 W | 100–150 W | Permanently red. The colour stops meaning anything. |
+
+Not "too low" — simultaneously unreachable on small machines and constantly tripped on large
+ones. No single constant survives that spread.
+
+**What the number actually was.** 60 W against this machine's 70.03 Wh design capacity is
+0.86C — a draw that empties the pack in about 70 minutes. The constant was never arbitrary; it
+was *"roughly an hour of runtime left"*, worked out by hand and then hard-coded as watts. The
+fix is to have the app do that arithmetic instead of carrying its result.
+
+**The change is to what red means.** Today: "a big number." Proposed: "you are about to run
+out." Capacity doesn't predict what a machine *can* draw — nothing does without watching it —
+but it converts any draw into the thing the user actually wants, which is time:
+
+```
+hours remaining  =  capacity (Wh)  ÷  draw (W)
+red threshold W  =  fullChargeCapacityWh ÷ hoursFloor      // hoursFloor ≈ 1.2
+```
+
+**Use full-charge capacity, not design.** Runtime is governed by the pack you actually have,
+so the threshold should tighten as the battery ages — the same wattage genuinely does buy less
+time on a worn cell. Note this *lowers* the reference machine's threshold from ~58 W to ~47 W
+(70.03 Wh design, ~20% wear ⇒ ~56 Wh actual), and that drop is the feature working, not a
+regression.
+
+**Known consequence, and it's acceptable.** On a machine efficient enough that it can never
+empty its battery in 1.2 h at full tilt, red never fires. Under this definition that's
+correct — that machine never enters urgency — but it does mean the tray colour is a runtime
+warning, not a load gauge. If a load gauge is wanted too, that's a different signal built from
+observed history, and a separate item.
+
+**Watch for.**
+
+- **Hysteresis.** Trip at the 1.2 h equivalent, release at ~1.4 h, or it flickers on the
+  boundary.
+- Compute the threshold from the static capacity figure, not from the live 30 s-smoothed
+  time-to-empty, so it stays stable while the draw moves.
+- Clamp to a sane band (~15–150 W) and fall back to the current 60 W when capacity is missing
+  or implausible — bad firmware and UPS-backed desktops both report nonsense here.
+- Machines with no battery already render white and are untouched by this.
+
 ---
 
 ## Unscheduled
@@ -64,7 +117,8 @@ Wanted, not yet assigned to a release.
   Needs specifying before it needs coding.
 - **Window open/close behaviour**, from the tray and app-wide — what opens where, and what
   closing actually does. Currently inconsistent enough to be worth one deliberate pass.
-- **Configurable heavy-draw threshold.** The tray icon turns red above 60 W discharge
-  ([TrayService.cs:111](src/PwrMon/Services/TrayService.cs#L111)). That number is right for a
-  35 W-class ultrabook and wrong for a gaming laptop that idles near it. Either make it a
-  setting or derive it from the battery's design capacity.
+- **A load gauge, as distinct from the runtime warning above.** "This draw is unusual *for
+  this machine*" is a different signal from "you're about to run out", and it can't come from
+  capacity — it needs the machine's own observed distribution. PwrMon already has the raw
+  material (daily history CSVs, session peak draw). Open question whether it's worth having
+  both, and how two signals would share one tray icon.

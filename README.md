@@ -1,6 +1,6 @@
 # ⚡ PwrMon
 
-Live, real-time power telemetry for Windows PCs. 
+Live, real-time power telemetry for Windows PCs.
 
 No ads, no telemetry, no account. PwrMon only reaches the network when you press a button -
 checking for updates, or downloading the optional PawnIO driver - and never in the
@@ -47,9 +47,10 @@ background.
   color-coded: green charging, orange discharging, red heavy draw.
 - **Floating mini-graph** — a borderless, translucent sparkline that stays out of the way.
   Plots any of eight series (net W, CPU W, iGPU W, wall W, battery %, CPU load, CPU °C,
-  drive °C), each keeping the colour it wears on the history chart; click the graph to cycle
-  between whichever ones you've enabled. Window lengths from 60 seconds to 24 hours,
-  draggable, resizable from any edge or corner, optional always-on-top and click-through.
+  drive °C), each wearing the same colour it has on the history chart, in whichever theme
+  you're running. Click the graph to cycle between whichever ones you've enabled. Window
+  lengths from 60 seconds to 24 hours, draggable, resizable from any edge or corner, optional
+  always-on-top and click-through.
 - **Plugged-in-but-draining alert** — when the charger is connected but the battery is
   going down anyway, PwrMon says so: a tray notification when the state is confirmed, and
   again at 50 / 35 / 20 / 15 / 10% on the way down. Windows sees "AC connected" and stays
@@ -60,20 +61,6 @@ background.
   automatic; see [SECURITY.md](SECURITY.md).
 - **Adjustable units** — W/mW, Wh/mAh, sampling interval 0.5–5 s.
 - **CSV export** of any visible chart range.
-
-## Getting it
-
-Download the installer from the [latest
-release](https://github.com/brettkcherry/PwrMon/releases/latest). PwrMon then keeps itself
-up to date: Settings → Updates checks for a new signed release and verifies it against a key
-compiled into the binary, only when you ask it to.
-
-Releases are **not code-signed yet**, so Windows SmartScreen will warn on first run. Verify
-the SHA-256 against the release notes before installing:
-
-```powershell
-Get-FileHash .\PwrMon-Setup.exe -Algorithm SHA256
-```
 
 ## Project status — released, and tested on one machine
 
@@ -123,6 +110,11 @@ GPU and Windows version.
 counters don't exist on this chip" is a finding, and it's one that changes what this README is
 allowed to claim. Please file it either way.
 
+**And tell me what it was actually like.** A dump is data; what I can't get from here is the
+experience of running PwrMon on a machine that isn't mine — whether the numbers looked right,
+whether anything was unreadable, confusing or broken. That needs no dump attached, and I'd
+far rather hear it got something wrong than never hear from you.
+
 Also useful, in rough order:
 
 - **Discrete GPUs.** PwrMon is integrated-graphics-focused today. Whether NVIDIA/AMD dGPU
@@ -134,7 +126,19 @@ Also useful, in rough order:
 See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR; the ethos section there is what
 gets changes merged or bounced.
 
+## Getting it
 
+Download the installer from the [latest
+release](https://github.com/brettkcherry/PwrMon/releases/latest). PwrMon then keeps itself
+up to date: Settings → Updates checks for a new signed release and verifies it against a key
+compiled into the binary, only when you ask it to.
+
+Releases are **not code-signed yet**, so Windows SmartScreen will warn on first run. Verify
+the SHA-256 against the release notes before installing:
+
+```powershell
+Get-FileHash .\PwrMon-Setup.exe -Algorithm SHA256
+```
 
 ## Building
 
