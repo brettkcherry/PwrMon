@@ -53,6 +53,12 @@ public sealed class Sampler : IDisposable
     private double _baselineW = AppSettings.Current.LearnedSystemBaselineW;
     private DateTime _baselinePersisted = DateTime.UtcNow;
 
+    // this machine's own discharge distribution, so "heavy draw" can be answered from evidence
+    // instead of from a constant tuned on one laptop — see DrawProfile
+    private readonly DrawProfile _drawProfile = new();
+    private const double HeavyTripPercentile = 0.90;
+    private const double HeavyReleasePercentile = 0.75;
+
     // session accumulators
     private DateTimeOffset _sessionStart = DateTimeOffset.Now;
     private double _energyOutWh, _energyInWh, _peakDischargeW, _peakCpuW;
@@ -102,6 +108,7 @@ public sealed class Sampler : IDisposable
 
     private async Task LoopAsync()
     {
+        _drawProfile.Load();
         _hardware.Init();
         Tick(); // immediate first sample so the UI isn't empty for a full interval
         try
@@ -174,6 +181,15 @@ public sealed class Sampler : IDisposable
             if (_lastAc is bool prevAc && prevAc != b.AcOnline)
                 PowerEventRaised?.Invoke(new PowerEvent(now, b.AcOnline ? PowerEventKind.AcConnected : PowerEventKind.AcDisconnected));
             _lastAc = b.AcOnline;
+
+            // --- learn this machine's normal draw, on the same OFF-AC guard as the baseline
+            // below: draining while plugged in is an abnormal state and a lower bound on the
+            // real draw, so folding it in would teach the profile the wrong shape.
+            if (b.Discharging && !b.AcOnline && !gap && b.DischargeRateW > 0.5)
+            {
+                _drawProfile.Add(b.DischargeRateW, dtClamped);
+                _drawProfile.SaveIfDue();
+            }
 
             // --- power-budget estimation
             // baseline learns only while discharging OFF AC: on AC the adapter contributes
@@ -256,6 +272,16 @@ public sealed class Sampler : IDisposable
                 TimeOnBattery = _timeOnBattery,
             };
 
+            // heavy-draw thresholds: this machine's own p90/p75 once there's enough history,
+            // otherwise the draw that would flatten its pack in ~1.2 h
+            var learned = _drawProfile.IsLearned;
+            var trip = learned
+                ? _drawProfile.Percentile(HeavyTripPercentile) ?? PowerMath.CapacityDerivedHeavyDrawW(b.FullChargeWh)
+                : PowerMath.CapacityDerivedHeavyDrawW(b.FullChargeWh);
+            var release = learned
+                ? _drawProfile.Percentile(HeavyReleasePercentile) ?? trip * 0.85
+                : trip * 0.85;
+
             var estimates = new Estimates
             {
                 SmoothedChargeW = _emaCharge,
@@ -266,6 +292,9 @@ public sealed class Sampler : IDisposable
                 EstWallW = estWall,
                 IsSystemEstimate = isEstimate,
                 LearnedBaselineW = _baselineW,
+                HeavyDrawTripW = trip,
+                HeavyDrawReleaseW = release,
+                HeavyDrawLearned = learned,
             };
 
             SampleReady?.Invoke(sample, stats, estimates);
@@ -333,6 +362,7 @@ public sealed class Sampler : IDisposable
             AppSettings.Current.LearnedSystemBaselineW = _baselineW;
             AppSettings.Save();
         }
+        _drawProfile.Save();
         _cts.Cancel();
         try { _loop?.Wait(1500); } catch { }
         _timer?.Dispose();

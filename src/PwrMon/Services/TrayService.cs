@@ -83,6 +83,10 @@ public sealed class TrayService : IDisposable
         _trayPercentItem.Checked = AppSettings.Current.TrayDisplay == TrayDisplay.Percent;
     }
 
+    /// <summary>Latched heavy-draw state, so the icon colour has hysteresis instead of
+    /// flickering whenever the load sits on the threshold.</summary>
+    private bool _heavyDraw;
+
     public void Update(PowerSample s, Estimates est)
     {
         string text, unit;
@@ -108,7 +112,10 @@ public sealed class TrayService : IDisposable
             // on battery: discharge rate IS total system draw (measured)
             text = FormatWatts(s.DischargeRateW);
             unit = "w";
-            color = s.DischargeRateW > 60 ? System.Drawing.Color.OrangeRed : System.Drawing.Color.Orange;
+            // "heavy" is relative to what this machine normally pulls, not to a constant — see
+            // DrawProfile. Hysteresis is why the previous state is an input.
+            _heavyDraw = PowerMath.IsHeavyDraw(_heavyDraw, s.DischargeRateW, est.HeavyDrawTripW, est.HeavyDrawReleaseW);
+            color = _heavyDraw ? System.Drawing.Color.OrangeRed : System.Drawing.Color.Orange;
         }
         else if (s.AcOnline)
         {

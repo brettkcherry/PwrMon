@@ -58,4 +58,29 @@ public static class PowerMath
     /// republished yet — see <see cref="UnitFormatter.IsStale"/> for what the UI does with
     /// that.</summary>
     public static bool RateChanged(double previousW, double currentW) => Math.Abs(currentW - previousW) > 0.0005;
+
+    // ---- heavy-draw threshold ----
+    //
+    // "Heavy" has to mean heavy *for this machine*. See DrawProfile for why no constant works
+    // and why the primary answer comes from observation.
+
+    /// <summary>Last-resort trip point when there is neither observation nor a readable pack —
+    /// the constant PwrMon shipped with, kept only so behaviour degrades to the old behaviour
+    /// rather than to nothing.</summary>
+    public const double FallbackHeavyDrawW = 60;
+
+    /// <summary>Trip point before the profile is trusted, derived from the pack: the draw that
+    /// would empty it in <paramref name="hoursFloor"/>. Not the same signal as the learned one
+    /// — it's runtime urgency standing in for "unusual for you" until there's history — but it
+    /// is at least this machine's number rather than another laptop's.</summary>
+    public static double CapacityDerivedHeavyDrawW(double fullChargeWh, double hoursFloor = 1.2) =>
+        fullChargeWh > 1 && hoursFloor > 0
+            ? Math.Clamp(fullChargeWh / hoursFloor, 15, 150)
+            : FallbackHeavyDrawW;
+
+    /// <summary>Whether the draw counts as heavy right now, with hysteresis: once tripped it
+    /// takes a fall all the way to <paramref name="releaseW"/> to clear. A single trip point
+    /// would flicker the tray icon between two colours whenever the load sat on it.</summary>
+    public static bool IsHeavyDraw(bool wasHeavy, double drawW, double tripW, double releaseW) =>
+        wasHeavy ? drawW > releaseW : drawW > tripW;
 }

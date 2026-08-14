@@ -2,6 +2,37 @@
 
 Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+
+### Changed
+
+- **"Heavy draw" is now measured against this machine, not against a 70 Wh Zenbook.** The tray
+  icon turned red above a flat 60 W. That number is 0.86C on the reference machine's pack — it
+  was "about an hour of runtime left", worked out by hand once and hard-coded as watts, and it
+  fails in both directions on anything else. A tablet-class machine peaking at 15 W never
+  reached it, so red never fired and the colour carried no information at all. A gaming laptop
+  idling at 30 W sat red permanently, which carries just as little.
+
+  No constant survives that spread, and no constant can be derived from the hardware either —
+  nothing predicts what a machine *can* draw without watching it. So PwrMon now watches.
+  `DrawProfile` keeps a time-weighted histogram of observed off-AC discharge in 1 W bins, and
+  the icon reads heavy above that machine's own 90th percentile: not "this is a big number"
+  but "this is more than you normally pull". It's weighted by seconds rather than samples, so
+  changing the sampling interval doesn't silently reweight months of history, and it halves
+  itself every ~100 battery-hours so an ageing pack and changing habits don't get averaged in
+  forever. The profile lives in `%LocalAppData%\PwrMon\drawprofile.json` — its own file, since
+  it's observed data rather than a preference, and 200 bins would drown a settings file people
+  are invited to hand-edit.
+
+  Before there's enough history to say anything (30 battery-minutes), the threshold falls back
+  to the draw that would flatten *this* pack in ~1.2 h, and to the old 60 W only when the
+  battery can't be read at all. Two thresholds rather than one — trips at p90, clears at p75 —
+  because a load parked on a single threshold flickers the icon between two colours.
+
+  Learning is gated to genuine off-AC discharge, the same guard the system baseline already
+  uses: draining while plugged in is an abnormal state and a lower bound on the real draw, so
+  folding it in would teach the profile the wrong shape.
+
 ## [1.6.0] — 2026-08-13
 
 ### Changed

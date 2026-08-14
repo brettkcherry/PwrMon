@@ -106,6 +106,17 @@ public sealed class Estimates
     public bool IsSystemEstimate { get; init; }
     /// <summary>The learned "everything except CPU package" draw (screen, RAM, SSD, board). NaN until learned.</summary>
     public double LearnedBaselineW { get; init; } = double.NaN;
+
+    /// <summary>Discharge above which this machine's draw counts as heavy — the p90 of its own
+    /// observed distribution once <see cref="HeavyDrawLearned"/>, and a capacity-derived stand-in
+    /// before that. See <see cref="PwrMon.Services.DrawProfile"/>.</summary>
+    public double HeavyDrawTripW { get; init; } = PwrMon.Services.PowerMath.FallbackHeavyDrawW;
+    /// <summary>Where a tripped heavy-draw state clears again. Below the trip point on purpose;
+    /// see <see cref="PwrMon.Services.PowerMath.IsHeavyDraw"/>.</summary>
+    public double HeavyDrawReleaseW { get; init; } = PwrMon.Services.PowerMath.FallbackHeavyDrawW;
+    /// <summary>True when the thresholds above come from this machine's observed history rather
+    /// than from its battery capacity.</summary>
+    public bool HeavyDrawLearned { get; init; }
 }
 
 public enum PowerEventKind { AcConnected, AcDisconnected, Resumed, AppStarted }
