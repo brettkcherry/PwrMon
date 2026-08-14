@@ -1,0 +1,78 @@
+# Contributor License Agreement check.
+#
+# Every pull request from someone not on the allowlist gets a bot comment
+# asking them to agree to CLA.md by replying once. Signatures are stored as
+# JSON on this repo's own `cla-signatures` branch, so there is no third-party
+# service holding them.
+#
+# This exists because PwrMon is dual-licensed: GPL-3.0 for everyone, plus a
+# separate commercial license (COMMERCIAL-LICENSE.md). That only works if one
+# person can license the whole codebase under both. A single unsigned merge
+# closes that permanently — the alternative is going back to every contributor
+# afterward, or removing their work. CLA.md explains the reasoning to
+# contributors, including why declining is a legitimate position.
+#
+# Setup: none beyond the `cla-signatures` branch. The action writes signatures
+# with the built-in GITHUB_TOKEN, which is why `contents` below must be
+# `write` -- committing the signature file IS the storage. PERSONAL_ACCESS_TOKEN
+# is deliberately NOT used: upstream needs it only when signatures live in a
+# DIFFERENT repository or organisation, which is not the case here.
+#
+# If you ever move signatures to another repo, that is when you add the PAT
+# (classic, `repo` scope) and can drop `contents` back to `read`.
+#
+# If you use the hosted cla-assistant.io GitHub App instead of this action,
+# delete this file — otherwise both will comment on every pull request.
+#
+# The agreement sentence below must stay identical to the one in CLA.md
+# ("How to agree"). It appears twice here — in the `if:` condition and in
+# `custom-pr-sign-comment` — and all three have to match, or a contributor
+# will post exactly what they were told to post and nothing will record it.
+name: CLA
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+# Set explicitly rather than inherited, in case the repository's default
+# workflow permissions are read-only.
+permissions:
+  actions: write
+  contents: write # must be `write`: signatures are committed to this repo
+  pull-requests: write
+  statuses: write
+
+jobs:
+  cla:
+    name: Check the CLA
+    runs-on: ubuntu-latest
+    steps:
+      - name: CLA assistant
+        if: (github.event.comment.body == 'recheck' || startsWith(github.event.comment.body, 'I have read the CLA and I agree to it.')) || github.event_name == 'pull_request_target'
+        # SHA-pinned like every other action here, and it matters more in this
+        # file than anywhere else: `pull_request_target` runs with write
+        # permissions and repo secrets in the BASE repo's context, so a
+        # mutable tag on a third-party action would be a live supply-chain
+        # hole rather than a theoretical one.
+        uses: contributor-assistant/github-action@ca4a40a7d1004f18d9960b404b97e5f30a505a08 # v2.6.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          path-to-signatures: signatures/version1/cla.json
+          path-to-document: https://github.com/brettkcherry/PwrMon/blob/main/CLA.md
+          branch: cla-signatures
+          allowlist: brettkcherry,dependabot[bot],dependabot-preview[bot]
+          custom-notsigned-prcomment: >
+            Thank you for the pull request. Before it can be merged, please
+            read the [Contributor License Agreement](https://github.com/brettkcherry/PwrMon/blob/main/CLA.md)
+            and agree to it by posting the comment below. It applies to all
+            your future contributions here, so you only do this once. You keep
+            the copyright in your work.
+
+
+            Bug reports, hardware dumps, reproductions and design feedback need
+            no agreement at all — this only applies to code.
+          custom-pr-sign-comment: 'I have read the CLA and I agree to it.'
+          custom-allsigned-prcomment: 'CLA signed. Thank you.'
