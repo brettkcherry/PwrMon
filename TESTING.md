@@ -36,6 +36,13 @@ safe to use as a CI/pre-commit gate.
 - **`Services\UnitFormatter.cs`** — `Power`, `Energy`, `Duration`, `Percent`, covering unit modes,
   the signed/`+` threshold, the decimal-count threshold, the mAh voltage fallback, and all the
   `Duration` bucket boundaries.
+- **`Services\DrawProfile.cs`** — the time-weighted histogram (`Add`/`Percentile`, time-weighting
+  vs. sample-counting, saturation at the top bin, nonsense-input rejection), the trust gate and
+  its one-time "just learned" transition flag, and decay's halving. Instances are constructed
+  fresh in memory; see the safety rule below for why `Save`/`Load` are excluded.
+- **`Services\PowerMath.cs`'s heavy-draw helpers** — `CapacityDerivedHeavyDrawW`'s scaling,
+  clamping, and its fallback on unreadable capacity; `IsHeavyDraw`'s hysteresis, including a
+  walk of a load across the trip point that asserts it flips state at most once per direction.
 
 ## What's deliberately NOT covered
 
@@ -54,8 +61,9 @@ what the tests are supposed to verify. Out of scope for this bench:
 - **WPF `Views\*`** — no UI/XAML testing here.
 - **`Services\ThemeService.cs`, `Services\TrayService.cs`, `Services\StartupHelper.cs`,
   `Services\Log.cs`, `App.xaml.cs`** — OS/shell/tray integration and logging; not pure logic.
-- **Settings persistence (`AppSettings.Load`/`Save`)** — see the safety rule below; these touch
-  the user's real `%LocalAppData%\PwrMon` files and are never exercised by tests.
+- **Settings and draw-profile persistence (`AppSettings.Load`/`Save`, `DrawProfile.Load`/`Save`)**
+  — see the safety rule below; these touch the user's real `%LocalAppData%\PwrMon` files and are
+  never exercised by tests.
 - **`tools\SensorProbe`** — out of scope per the task brief; it's a standalone diagnostic tool,
   not part of the app under test.
 
@@ -92,6 +100,15 @@ so these tests can't race each other — or anything else — over that shared s
 `HistoryStoreTests` exercises `FormatLine`/`ParseLine` purely in memory (strings in, `PowerSample`
 out) and never touches disk or `HistoryStore.HistoryDir`.
 
+The same rule applies to `DrawProfile.Save()`/`Load()`, which read and write
+`%LocalAppData%\PwrMon\drawprofile.json` — a real user's learned battery history, not a
+throwaway file. `DrawProfileTests` exercises everything through fresh in-memory instances and
+`Add()` calls, never `Save()`/`Load()`. A round-trip test was drafted once during development
+and caught before being committed — it would have overwritten a live soak's profile with
+synthetic test data the moment `run-tests.ps1` ran. If persistence round-tripping is ever worth
+testing directly, it needs an injectable path first (see "Future test surface" below, which
+already flags the same gap for `HistoryStore`).
+
 ## Future test surface
 
 Ideas for extending coverage later, none of which fit this pass's "pure logic only" scope:
@@ -108,3 +125,6 @@ Ideas for extending coverage later, none of which fit this pass's "pure logic on
   `ExportRange`) against a redirectable/injectable directory instead of the hardcoded
   `AppSettings.Dir`-derived path, so it can be tested against a temp directory without touching
   the safety rule above.
+- **`DrawProfile.Save`/`Load` round-tripping** — same shape of gap, same fix: an injectable path
+  instead of the hardcoded one, so the sparse-JSON round trip (including a corrupt-file fallback
+  to an empty profile) can be tested against a temp directory instead of skipped entirely.

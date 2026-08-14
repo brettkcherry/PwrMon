@@ -72,7 +72,7 @@ Wanted, not yet assigned to a release.
   different question, it comes from capacity rather than history, and one icon colour can't
   carry both without meaning neither. If it's wanted, it needs its own channel — the hero
   readout or a notification, not the tray colour.
-- **Seed the draw profile from existing history.** `DrawProfile` starts empty and needs 30
+- **Seed the draw profile from existing history.** `DrawProfile` starts empty and needs 20
   battery-minutes before it's trusted, but `history\*.csv` may already hold weeks of discharge
   samples for this machine. A one-time backfill on first run would skip the cold start
   entirely. Deferred only because the cold-start fallback is decent and the backfill needs its

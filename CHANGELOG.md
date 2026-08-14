@@ -24,14 +24,22 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
   it's observed data rather than a preference, and 200 bins would drown a settings file people
   are invited to hand-edit.
 
-  Before there's enough history to say anything (30 battery-minutes), the threshold falls back
+  Before there's enough history to say anything (20 battery-minutes), the threshold falls back
   to the draw that would flatten *this* pack in ~1.2 h, and to the old 60 W only when the
   battery can't be read at all. Two thresholds rather than one — trips at p90, clears at p75 —
-  because a load parked on a single threshold flickers the icon between two colours.
+  because a load parked on a single threshold flickers the icon between two colours. The first
+  time a profile actually crosses that 20-minute line, it says so once in the log — the
+  colour's meaning just changed from a guess to something learned, and that moment is worth a
+  record.
 
   Learning is gated to genuine off-AC discharge, the same guard the system baseline already
   uses: draining while plugged in is an abnormal state and a lower bound on the real draw, so
   folding it in would teach the profile the wrong shape.
+
+- **A fresh install now opens in Volt, at a size that shows the whole dashboard.** The old
+  defaults — Phosphor, 1100×780 — were never actually measured against the current layout;
+  1100×780 was short by ~120 px and needed a manual resize before the history chart was fully
+  visible. Volt and 1146×942 are what that resize produces.
 
 ## [1.6.0] — 2026-08-13
 

@@ -43,8 +43,10 @@ background.
   chemistry, design capacity.
 - **Session stats** — energy drawn/charged this session, average and peak draw with
   timestamp, time on battery.
-- **Tray ticker** — the live wattage (or battery %) rendered *as* the tray icon,
-  color-coded: green charging, orange discharging, red heavy draw.
+- **Tray ticker** — the live wattage (or battery %) rendered *as* the tray icon, color-coded:
+  green charging, orange discharging, red heavy draw. "Heavy" is learned from this machine's
+  own battery history rather than a fixed wattage, so it means the same thing on a 28 Wh tablet
+  and a 99 Wh gaming laptop — see [Data & files](#data--files).
 - **Floating mini-graph** — a borderless, translucent sparkline that stays out of the way.
   Plots any of eight series (net W, CPU W, iGPU W, wall W, battery %, CPU load, CPU °C,
   drive °C), each wearing the same colour it has on the history chart, in whichever theme
@@ -215,6 +217,11 @@ Everything lives in `%LocalAppData%\PwrMon\`:
 - `settings.json` — preferences
 - `history\history-YYYY-MM-DD.csv` — one file per day, pruned after the retention window
 - `history\events.csv` — AC/resume event marks
+- `drawprofile.json` — a time-weighted histogram of this machine's own observed discharge, in
+  1 W bins. It's what decides what counts as a heavy draw on the tray icon (the machine's own
+  90th percentile, once there's 20 minutes of battery time to learn from — a capacity-derived
+  estimate stands in before that). Its own file rather than a corner of `settings.json`: this
+  is observed data, not a preference.
 - `logs\` — one file per day, pruned on the same retention window as history
 
 ## Architecture
@@ -227,6 +234,7 @@ src/PwrMon/
     DriveTemperature.cs drive °C via a query-only volume handle (no admin, no driver)
     Sampler.cs          polling loop, EMA smoothing, session stats, AC/sleep events
     PowerMath.cs        pure power/energy formulas, lifted out of Sampler to be testable
+    DrawProfile.cs      this machine's learned discharge histogram (what counts as heavy draw)
     HistoryStore.cs     daily CSV persistence, backfill, retention, export
     TrayService.cs      dynamic GDI+ tray icon (live wattage as the icon)
     StartupHelper.cs    HKCU Run key / elevated Task Scheduler autostart (+ ACL safety check)
