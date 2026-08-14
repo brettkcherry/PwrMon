@@ -12,10 +12,11 @@ Grouped by target release. Within a group, roughly in the order they'll be picke
 
 ---
 
-## v1.6.1 — next
+## v1.6.2 — next
 
 Tweaks to things that are already there, not new capability — hence a patch rather than a
-minor bump.
+minor bump. (v1.6.1 is the already-built learned heavy-draw threshold and default-theme/size
+fix, still sitting under `[Unreleased]` in [CHANGELOG.md](CHANGELOG.md) until it's tagged.)
 
 ### Dismissible sensor-tier banner
 
