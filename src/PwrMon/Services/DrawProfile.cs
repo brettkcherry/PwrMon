@@ -32,9 +32,10 @@ public sealed class DrawProfile
     public const int BinCount = 200;
 
     /// <summary>Battery-seconds of observation before the learned percentiles are trusted.
-    /// 30 minutes is enough for a distribution with a usable shoulder; below it a single
-    /// compile or video call is the entire history and the percentile is just that spike.</summary>
-    public const double MinSecondsToTrust = 1800;
+    /// 20 minutes is enough for a distribution with a usable shoulder — most sessions cross
+    /// idle and at least one load spike in that span; below it a single compile or video call
+    /// is the entire history and the percentile is just that spike.</summary>
+    public const double MinSecondsToTrust = 1200;
 
     /// <summary>Total observation is halved on reaching this, giving the profile a rolling
     /// ~100-battery-hour half-life. Usage patterns change and packs age; a profile that

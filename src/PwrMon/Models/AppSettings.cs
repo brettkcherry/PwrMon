@@ -61,10 +61,14 @@ public sealed class AppSettings
     public bool ChartShowDriveTemp { get; set; }
     public int ChartRangeMinutes { get; set; } = 15;
 
-    public double WindowWidth { get; set; } = 1100;
-    public double WindowHeight { get; set; } = 780;
+    // Measured 2026-08-14 as the smallest size that shows the full dashboard — stat cards
+    // plus history chart — without a manual resize on first launch. These are outer window
+    // dimensions (WPF's Width/Height includes title bar and borders); the client area they
+    // produce is smaller by whatever the current theme/OS chrome costs.
+    public double WindowWidth { get; set; } = 1146;
+    public double WindowHeight { get; set; } = 942;
 
-    public string Theme { get; set; } = "Phosphor";
+    public string Theme { get; set; } = "Volt";
     /// <summary>Font family for the large live numerals (needs stable digit widths).</summary>
     public string NumeralFont { get; set; } = "Bahnschrift";
     /// <summary>Font family for all interface text (labels, titles, body).</summary>
