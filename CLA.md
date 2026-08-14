@@ -1,9 +1,5 @@
 # Contributor License Agreement
 
-> **Draft — needs a lawyer's review before the repository goes public.** The intent below is
-> right and the shape is conventional, but this is a legal document and it has not been
-> reviewed by one. Do not rely on it as-is.
-
 PwrMon is dual-licensed: GPL-3.0 for everyone, with a separate commercial license available
 (see [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)). That arrangement only works if one
 person can license the whole codebase under both. This agreement is how contributed code stays

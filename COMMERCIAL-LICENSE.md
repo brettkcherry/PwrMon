@@ -45,5 +45,4 @@ and a commercial licensee must preserve it.
 ---
 
 > **Note:** this document describes the licensing arrangement; it is not itself the commercial
-> agreement, and it is not legal advice. Any actual commercial license should be a written
-> agreement reviewed by a lawyer on both sides.
+> agreement. A commercial license is a separate, written agreement negotiated per case.
