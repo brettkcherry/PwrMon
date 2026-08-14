@@ -95,6 +95,26 @@ public class DrawProfileTests
     }
 
     [Fact]
+    public void Crossing_the_trust_line_is_flagged_exactly_once()
+    {
+        // WasLearnedForTest mirrors what gates the one-time "draw profile learned" log line —
+        // it must flip false-to-true on the Add() call that actually crosses the threshold,
+        // and never flip back, so a first-time user's log shows the moment once, not on every
+        // tick afterward.
+        var p = new DrawProfile();
+        Assert.False(p.WasLearnedForTest);
+
+        p.Add(20, DrawProfile.MinSecondsToTrust - 1);
+        Assert.False(p.WasLearnedForTest);
+
+        p.Add(20, 1);   // the crossing tick
+        Assert.True(p.WasLearnedForTest);
+
+        p.Add(20, 500); // well past the line now — must not re-trigger, just stay set
+        Assert.True(p.WasLearnedForTest);
+    }
+
+    [Fact]
     public void Decay_halves_the_profile_but_keeps_its_shape()
     {
         var p = new DrawProfile();

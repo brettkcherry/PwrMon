@@ -47,6 +47,13 @@ public sealed class DrawProfile
     private DateTime _lastSaved = DateTime.UtcNow;
     private bool _dirty;
 
+    /// <summary>Whether <see cref="IsLearned"/> was already true as of the last time it was
+    /// checked — so the transition log fires exactly once, the moment it actually happens,
+    /// rather than on every startup of an already-learned profile. Internal rather than
+    /// private so a test can confirm the log fires once and not on every subsequent Add().</summary>
+    internal bool WasLearnedForTest => _wasLearned;
+    private bool _wasLearned;
+
     /// <summary>Battery-seconds observed so far.</summary>
     public double TotalSeconds => _totalSeconds;
 
@@ -64,6 +71,17 @@ public sealed class DrawProfile
         _binSeconds[BinOf(watts)] += seconds;
         _totalSeconds += seconds;
         _dirty = true;
+
+        // fires once, the first time this profile earns its keep — after this, the tray's
+        // heavy-draw colour is answering from this machine's own history rather than a
+        // guess from its battery capacity. Worth a line: it's the moment the feature this
+        // session exists to test actually turns on.
+        if (!_wasLearned && IsLearned)
+        {
+            Log.Info($"draw profile learned: {_totalSeconds:F0} battery-seconds observed — " +
+                     "heavy-draw threshold now comes from this machine's history, not capacity");
+            _wasLearned = true;
+        }
 
         if (_totalSeconds >= DecayAtSeconds) Decay();
     }
@@ -132,6 +150,9 @@ public sealed class DrawProfile
                 _binSeconds[bin] += seconds;
                 _totalSeconds += seconds;
             }
+            // an already-learned profile from a prior session must not re-announce "learned"
+            // on every subsequent startup — only the actual crossing, in Add(), is news.
+            _wasLearned = IsLearned;
             Log.Info($"draw profile loaded: {_totalSeconds:F0} battery-seconds, learned={IsLearned}");
         }
         catch (Exception ex)
