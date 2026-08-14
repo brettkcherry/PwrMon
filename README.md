@@ -266,7 +266,8 @@ Found something? See [SECURITY.md](SECURITY.md).
 
 ## Known issues
 
-Open bugs and the punch list live in [ISSUES.md](ISSUES.md).
+Open bugs and the punch list live in [ISSUES.md](ISSUES.md). What's planned but not yet built
+is in [ROADMAP.md](ROADMAP.md).
 
 ## License
 

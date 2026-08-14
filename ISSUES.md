@@ -2,7 +2,8 @@
 
 Open work on PwrMon, roughly in the order it bothers us. Items here are things we've
 confirmed on real hardware or in the code, not speculative polish. Anything already shipped
-lives in [CHANGELOG.md](CHANGELOG.md) — this file is only what's still outstanding.
+lives in [CHANGELOG.md](CHANGELOG.md); planned work that isn't a defect lives in
+[ROADMAP.md](ROADMAP.md). This file is only what's still outstanding and wrong.
 
 ## Known limitations
 
