@@ -17,6 +17,11 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
 
 ### Changed
 
+- **Default font, both interface and numerals, is now JetBrains Mono** instead of Segoe UI /
+  Bahnschrift. Both fonts were already curated picks in Settings; this only changes what a
+  fresh install starts with. Anyone with an existing `settings.json` keeps whatever font
+  they've already got — this is a new-install default, not a forced switch. Falls back to
+  Segoe UI automatically on a machine that doesn't have JetBrains Mono installed.
 - **Autostart has a single owner.** Setup used to offer its own "start with Windows"
   checkbox that wrote a machine-wide `HKLM` Run entry, while the app's Settings toggle wrote
   an `HKCU` entry or a scheduled task. Neither knew about the other, so a machine that used

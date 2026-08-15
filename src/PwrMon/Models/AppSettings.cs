@@ -70,9 +70,9 @@ public sealed class AppSettings
 
     public string Theme { get; set; } = "Volt";
     /// <summary>Font family for the large live numerals (needs stable digit widths).</summary>
-    public string NumeralFont { get; set; } = "Bahnschrift";
+    public string NumeralFont { get; set; } = "JetBrains Mono";
     /// <summary>Font family for all interface text (labels, titles, body).</summary>
-    public string TextFont { get; set; } = "Segoe UI";
+    public string TextFont { get; set; } = "JetBrains Mono";
 
     /// <summary>Comma-separated card keys in display order; empty = default layout.</summary>
     public string CardOrder { get; set; } = "";
