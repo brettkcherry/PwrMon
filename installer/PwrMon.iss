@@ -5,7 +5,7 @@
 
 ; Keep AppVersion in step with <Version> in src\PwrMon\PwrMon.csproj.
 #define AppName "PwrMon"
-#define AppVersion "1.6.1"
+#define AppVersion "1.6.2"
 #define AppExe "PwrMon.exe"
 #define AppPublisher "Brett Cherry"
 #define AppURL "https://github.com/brettkcherry/PwrMon"
@@ -74,6 +74,48 @@ Filename: "{app}\{#AppExe}"; Description: "Launch {#AppName}"; Flags: nowait pos
 Filename: "schtasks"; Parameters: "/Delete /TN ""PwrMon Autostart"" /F"; \
     Flags: runhidden skipifdoesntexist; RunOnceId: "DelSchedTask"
 
-[UninstallDelete]
-; user data stays by default (history/settings survive reinstall); uncomment to purge:
-; Type: filesandordirs; Name: "{localappdata}\PwrMon"
+; No [UninstallDelete] entry for user data: it's handled in [Code] below, so the user is
+; asked rather than having the decision made for them either way.
+
+[Code]
+// Uninstalling should be able to mean "remove all of it" — settings, battery history, logs —
+// but that data is the one part of PwrMon that can't be regenerated, and someone uninstalling
+// to troubleshoot or roll back a version expects to reinstall onto their history. Neither
+// silent default is right, so ask.
+//
+// Defaults to No: the prompt appears mid-uninstall when attention is low, and the cost of
+// guessing wrong is asymmetric — keeping data the user wanted gone is untidy, deleting data
+// they wanted kept is unrecoverable.
+//
+// Note for editors: these are // comments on purpose. Inno's Pascal treats { } as a comment
+// delimiter, so a braced constant like the one expanded below would close a { } comment early
+// and the rest of the sentence would be compiled as code.
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  DataDir: String;
+begin
+  // usPostUninstall: the app's files are already gone, so a Yes here removes what remains
+  // rather than racing the uninstaller for the same directory.
+  if CurUninstallStep <> usPostUninstall then
+    Exit;
+
+  // A silent uninstall has nobody to answer the prompt. Keeping the data is the reversible
+  // choice, so unattended removal never destroys history on its own.
+  if UninstallSilent then
+    Exit;
+
+  // Setup runs elevated (PrivilegesRequired=admin), so the local-appdata constant resolves to
+  // whichever admin account UAC handed control to. On a single-user machine that's the right
+  // person; on a shared one it may not be, and the folder simply won't exist — hence the
+  // guard, and hence this being best-effort the same way the HKCU cleanup above is.
+  DataDir := ExpandConstant('{localappdata}\PwrMon');
+  if not DirExists(DataDir) then
+    Exit;
+
+  if MsgBox('Also delete PwrMon''s settings and battery history?' + #13#10#13#10 +
+            DataDir + #13#10#13#10 +
+            'Your recorded battery history cannot be recovered afterwards. ' +
+            'Choose No to keep it for a future reinstall.',
+            mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
+    DelTree(DataDir, True, True, True);
+end;

@@ -4,10 +4,44 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
-## [1.6.1] — 2026-08-14
+## [1.6.2] — 2026-08-15
+
+### Added
+
+- **Uninstall now asks whether to remove your data.** Previously it always kept
+  `%LocalAppData%\PwrMon` (settings, battery history, logs) with no way to say otherwise, so
+  "uninstall" never actually removed all of PwrMon. There's now a prompt at the end of
+  uninstall offering to delete it. It defaults to No — that data can't be regenerated, and
+  someone uninstalling to troubleshoot or roll back expects to reinstall onto their history.
+  A silent uninstall never deletes it.
 
 ### Changed
 
+- **Autostart has a single owner.** Setup used to offer its own "start with Windows"
+  checkbox that wrote a machine-wide `HKLM` Run entry, while the app's Settings toggle wrote
+  an `HKCU` entry or a scheduled task. Neither knew about the other, so a machine that used
+  both launched PwrMon twice at logon while Settings showed autostart as off. Setup no longer
+  offers the option and clears that legacy value on install, so affected machines heal on
+  upgrade; Settings is now the only thing that creates an autostart entry.
+
+### Fixed
+
+- **Uninstall left the app's own `HKCU` Run entry behind**, pointing at a deleted exe.
+
+## [1.6.1] — 2026-08-14
+
+### Added
+
+- **Sideways scrolling on the main chart.** Shift+wheel, or a tilt-wheel/two-finger
+  horizontal swipe, pans the time axis the same way dragging does — WPF doesn't route
+  horizontal wheel events on its own, so this hooks the window's HWND directly.
+
+### Changed
+
+- **Chart wheel-zoom is less sensitive**, especially on precision trackpads sending many
+  small-delta events per gesture — it zoomed a fixed step per event instead of scaling by the
+  actual delta, so a light two-finger scroll could blow past the intended range in one swipe.
+  Now scales proportionally to wheel delta with a gentler per-notch step.
 - **"Heavy draw" is now measured against this machine, not against a 70 Wh Zenbook.** The tray
   icon turned red above a flat 60 W. That number is 0.86C on the reference machine's pack — it
   was "about an hour of runtime left", worked out by hand once and hard-coded as watts, and it
@@ -42,6 +76,17 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
   defaults — Phosphor, 1100×780 — were never actually measured against the current layout;
   1100×780 was short by ~120 px and needed a manual resize before the history chart was fully
   visible. Volt and 1146×942 are what that resize produces.
+
+### Fixed
+
+- **Mini-graph resize only worked from the bottom-right corner**, and drew a visible triangle
+  grip there. It now resizes from all four edges and all four corners via invisible grips;
+  dragging the top or left edge grows the window in that direction while the opposite edge
+  stays anchored, matching native resize. Dragging the body still moves the widget.
+- **Mini-graph click-through was a dead end.** Its menu said to disable it "via tray menu",
+  but no such item existed there — and once enabled the widget can't be right-clicked to
+  reach its own menu, so there was no way back short of editing settings by hand. The tray
+  icon menu now has a real "Mini graph click-through" toggle.
 
 ## [1.6.0] — 2026-08-13
 
