@@ -48,8 +48,14 @@ public static class UpdateService
     /// While this holds the placeholder, <see cref="IsConfigured"/> is false and no update
     /// check runs at all — not even a network request. An unconfigured updater does nothing,
     /// rather than doing something unverified.
+    ///
+    /// Rotated 2026-08-15. The original key (used to sign v1.6.0 and v1.6.1) could not be
+    /// found after an uninstall/cleanup pass on the machine it lived on and is presumed lost
+    /// — see docs/RELEASING.md's rotation note. This orphans those two manifests: a copy of
+    /// PwrMon built with this key will correctly refuse them, same as it would refuse a
+    /// tampered one. Low-stakes here since this repo has no outside installs yet.
     /// </summary>
-    private const string PublicKeyBase64 = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEZnVS2PL/AhUMLFOQcQDnRKqCW05SlDP2LNC2xrUyoPu7SBpe3FEFpv8yF2MzKrwbmlxYTgBlf3Rxcq/h4LDi1Q==";
+    private const string PublicKeyBase64 = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE5RtAByi8zYVSrfrM/WCPKxOciRDpqRmS60hOIhRwJ46UyvLFIju5PFkXJB8LTETBWHFJ4IUmDQmw43KZyEoWfQ==";
 
     private const string ManifestUrl =
         "https://github.com/brettkcherry/PwrMon/releases/latest/download/latest.json";

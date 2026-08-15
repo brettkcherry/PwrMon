@@ -8,10 +8,26 @@ why each step is shaped the way it is.
 The updater refuses any manifest that does not verify against a public key compiled into the
 binary.
 
-**This key exists and is in use as of v1.6.0.** `UpdateService.PublicKeyBase64` holds the real
+**This key exists and is in use as of v1.6.2.** `UpdateService.PublicKeyBase64` holds the real
 public key; the private half is at `~/.pwrmon/release-key.txt`, offline, and has never entered
 this repository. Nothing in this section needs doing again — it is kept for the rotation case
 and so the trust model is written down somewhere.
+
+**Rotated 2026-08-15 (this is the second key).** The original, generated for v1.6.0, could
+not be located after an uninstall/cleanup pass (Revo's post-uninstall leftover scan is the
+leading suspect — its folder-name match against "pwrmon" is broad enough to have swept up
+`~/.pwrmon` along with the app's actual leftovers) and is presumed lost. Checked: the working
+machine, Desktop/Documents/Downloads/OneDrive, every attached drive including the offline
+backup drive, both Recycle Bins, and Revo's own log (which turned out not to record individual
+deletions). Nothing. `~/.pwrmon` only ever held this one file, so nothing else was lost with
+it. The clean rotation path below (sign a transition release with the *old* key) wasn't
+possible without the old private key, so this was a cold rotation instead: v1.6.0 and v1.6.1's
+existing `latest.json`/`latest.json.sig` are now orphaned and any copy of PwrMon built with
+the new key correctly refuses them — the same as it would refuse a tampered manifest, since
+there's no way for it to tell the difference. Acceptable here only because this repo has no
+outside installs to strand. **Lesson for next time:** move the offline copy somewhere that
+survives an uninstaller's leftover scan — not the home directory root, and not under a name
+containing "pwrmon."
 
 Before the key existed, `PublicKeyBase64` held a placeholder and the updater was completely
 inert — it did not even make a network request. That was deliberate: an unconfigured updater
