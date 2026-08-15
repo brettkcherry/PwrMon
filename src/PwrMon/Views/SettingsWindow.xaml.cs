@@ -67,12 +67,7 @@ public partial class SettingsWindow : Window
         ChkSlimMode.IsChecked = AppSettings.Current.SlimMode;
         ChkDrainAlertSound.IsChecked = AppSettings.Current.DrainAlertSound;
 
-        ChkAutostart.IsChecked = StartupHelper.IsRunKeyEnabled() || StartupHelper.IsElevatedTaskEnabled();
-        ChkAutostartElevated.IsChecked = StartupHelper.IsElevatedTaskEnabled();
-        ChkAutostartElevated.IsEnabled = _elevated;
-        AutostartNote.Text = _elevated
-            ? "Creates a Task Scheduler entry with highest privileges."
-            : "Run PwrMon as administrator to enable the elevated option.";
+        RefreshAutostartState();
 
         foreach (var d in new[] { 1, 3, 7, 14, 30, 60 })
             CmbRetention.Items.Add(d);
@@ -280,7 +275,7 @@ public partial class SettingsWindow : Window
         if (!enabled)
         {
             StartupHelper.Disable();
-            ChkAutostartElevated.IsChecked = false;
+            RefreshAutostartState();
             return;
         }
 
@@ -305,9 +300,31 @@ public partial class SettingsWindow : Window
         if (!StartupHelper.Enable(elevated))
         {
             MessageBox.Show(this, "Could not configure autostart — see logs.", "PwrMon");
-            ChkAutostart.IsChecked = StartupHelper.IsRunKeyEnabled() || StartupHelper.IsElevatedTaskEnabled();
-            ChkAutostartElevated.IsChecked = StartupHelper.IsElevatedTaskEnabled();
+            RefreshAutostartState();
         }
+    }
+
+    /// <summary>Points the autostart controls at what the registry and task scheduler actually
+    /// say, rather than at what was just asked for — the two can differ when a write is refused
+    /// or a legacy machine-wide entry can't be cleared without admin.</summary>
+    private void RefreshAutostartState()
+    {
+        var task = StartupHelper.IsElevatedTaskEnabled();
+        var machine = StartupHelper.IsMachineRunKeyEnabled();
+
+        ChkAutostart.IsChecked = StartupHelper.IsRunKeyEnabled() || task || machine;
+        ChkAutostartElevated.IsChecked = task;
+        ChkAutostartElevated.IsEnabled = _elevated;
+
+        // Installers before v1.6.2 wrote their own machine-wide autostart entry, which needs
+        // admin to remove. Say so inline instead of in a dialog: it's rare, it's not the
+        // user's mistake, and reinstalling clears it without them doing anything.
+        AutostartNote.Text = machine && !_elevated
+            ? "A machine-wide entry from an older install is also starting PwrMon. "
+              + "Run PwrMon as administrator to remove it, or reinstall to clear it."
+            : _elevated
+                ? "Creates a Task Scheduler entry with highest privileges."
+                : "Run PwrMon as administrator to enable the elevated option.";
     }
 
     private void OpenHistory_Click(object sender, RoutedEventArgs e)

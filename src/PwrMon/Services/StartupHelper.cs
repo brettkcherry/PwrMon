@@ -7,11 +7,18 @@ using Microsoft.Win32;
 namespace PwrMon.Services;
 
 /// <summary>
-/// "Start with Windows" wiring. Two mechanisms:
-///  - HKCU Run key (normal start),
+/// "Start with Windows" wiring. Three mechanisms exist, though this class only ever writes
+/// two of them:
+///  - HKCU Run key (normal start), written here,
 ///  - a Task Scheduler entry with RunLevel=Highest (elevated start without a UAC prompt
-///    each logon — the same pattern G-Helper uses). Creating/removing the task requires
-///    the current process to be elevated.
+///    each logon — the same pattern G-Helper uses), written here. Creating/removing the
+///    task requires the current process to be elevated.
+///  - a machine-wide HKLM Run key, which installers before v1.6.2 wrote from their own
+///    "start with Windows" checkbox. That checkbox is gone — autostart has one owner now,
+///    this class — and Setup deletes the value on install. This class never writes it, but
+///    still reads it (<see cref="IsMachineRunKeyEnabled"/>) so the Settings checkbox tells
+///    the truth on a machine that still carries one, and clears it in <see cref="Disable"/>
+///    when running elevated.
 /// </summary>
 public static class StartupHelper
 {
@@ -94,6 +101,15 @@ public static class StartupHelper
         return key?.GetValue(AppName) is string;
     }
 
+    /// <summary>The installer's machine-wide autostart entry (installer/PwrMon.iss), which
+    /// this class doesn't create — only HKLM is writable there, and Setup already runs
+    /// elevated when it writes it. Reading HKLM needs no special rights.</summary>
+    public static bool IsMachineRunKeyEnabled()
+    {
+        using var key = Registry.LocalMachine.OpenSubKey(RunKeyPath);
+        return key?.GetValue(AppName) is string;
+    }
+
     public static bool IsElevatedTaskEnabled()
     {
         try
@@ -107,6 +123,10 @@ public static class StartupHelper
         catch { return false; }
     }
 
+    /// <summary>Clears every autostart mechanism: this app's own HKCU Run key and scheduled
+    /// task, plus the machine-wide HKLM entry written by installers before v1.6.2. The last
+    /// one needs admin rights, so it succeeds only when PwrMon is running elevated — callers
+    /// read the state back (<see cref="IsMachineRunKeyEnabled"/>) rather than assuming.</summary>
     public static void Disable()
     {
         try
@@ -116,6 +136,13 @@ public static class StartupHelper
         }
         catch (Exception ex) { Log.Error("run key remove", ex); }
         RunSchtasks($"/Delete /TN \"{TaskName}\" /F");
+
+        try
+        {
+            using var machineKey = Registry.LocalMachine.OpenSubKey(RunKeyPath, writable: true);
+            machineKey?.DeleteValue(AppName, throwOnMissingValue: false);
+        }
+        catch (Exception ex) { Log.Info($"machine run key not removed (needs admin): {ex.Message}"); }
     }
 
     /// <summary>Enable startup; elevated=true creates the scheduled task (requires admin now).</summary>

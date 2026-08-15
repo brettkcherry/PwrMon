@@ -49,20 +49,22 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopico
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Additional icons:"; Flags: unchecked
-Name: "autostart"; Description: "Start {#AppName} when Windows starts"; GroupDescription: "Startup:"; Flags: unchecked
 
 [Registry]
-; HKLM, not HKCU. PrivilegesRequired=admin means Setup itself always runs elevated, and
-; "current user" during an elevated process is not reliably the person who launched it — on
-; a machine with more than one admin account, a UAC prompt can hand control to a *different*
-; admin, and an HKCU write here would land in that account's hive instead of the installing
-; user's. The install would look successful and the checkbox would silently do nothing for
-; whoever actually uses the machine. HKLM's Run key has no such ambiguity: it's one location,
-; already reachable because admin is required either way, and it starts PwrMon for whichever
-; account logs in — which is also the more standard behavior for a machine-wide installer.
-Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; \
-    ValueName: "{#AppName}"; ValueData: """{app}\{#AppExe}"" --minimized"; \
-    Flags: uninsdeletevalue; Tasks: autostart
+; Autostart belongs to the app's Settings, and only to it. Setup used to offer its own
+; "start with Windows" checkbox that wrote this HKLM value — but the app can only see and
+; write HKCU + its scheduled task, so the two disagreed: Settings showed autostart off while
+; an invisible machine-wide entry kept launching PwrMon anyway, and turning the Settings
+; toggle off couldn't clear it. One owner is worth more than the extra install-time option.
+; Deleting the value here heals machines that carry it from an older install.
+Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; \
+    ValueName: "{#AppName}"; Flags: deletevalue
+; Best-effort cleanup of the app's own per-user entry at uninstall, so a removed PwrMon
+; doesn't leave a Run value pointing at a deleted exe. Best-effort because Setup runs
+; elevated: on a machine with several admins, UAC can hand control to a different account
+; than the one that uses PwrMon, and HKCU would then resolve to that admin's hive instead.
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; \
+    ValueName: "{#AppName}"; Flags: uninsdeletevalue
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "Launch {#AppName}"; Flags: nowait postinstall skipifsilent
