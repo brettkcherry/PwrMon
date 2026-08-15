@@ -81,9 +81,6 @@ where nothing works is worth as much as one where everything does** — see [wha
 work](#what-needs-work-and-how-you-can-help) below. The full punch list is in
 [ISSUES.md](ISSUES.md).
 
-The project page lives at [brettkcherry.github.io/PwrMon](https://brettkcherry.github.io/PwrMon/)
-(source in [docs/](docs/)).
-
 ## What needs work, and how you can help
 
 One thing is worth more than everything else combined: **a sensor dump from a machine that

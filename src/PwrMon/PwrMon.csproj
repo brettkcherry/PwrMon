@@ -23,7 +23,11 @@
          binary is distributed under. -->
     <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/brettkcherry/PwrMon</RepositoryUrl>
-    <PackageProjectUrl>https://brettkcherry.github.io/PwrMon/</PackageProjectUrl>
+    <!-- Points at the repo, not brettkcherry.github.io/PwrMon: the Pages site isn't
+         published yet, and this URL is baked into the shipped assembly's metadata, so
+         a dead link here outlives any release it goes out in. Switch it to the Pages
+         URL once that site is actually live. -->
+    <PackageProjectUrl>https://github.com/brettkcherry/PwrMon</PackageProjectUrl>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
