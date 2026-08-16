@@ -36,6 +36,11 @@ installer/Output/
 # internal working notes — not for publication
 HANDOFF.md
 GO-PUBLIC.md
+# Working analysis written for an audience of one, while the repo was still private: the
+# licensing brief carries revenue sizing, competitor pricing and an employer-IP question,
+# and the instrument studies are unedited design research. These shipped publicly by
+# oversight in the go-public pass and were withdrawn on 2026-08-16 — keep them local.
+ProjectAnalysis/
 # Branding exploration. The images beside it are already covered by the blanket *.jpg rule,
 # so committing the catalogue alone would publish a page of broken image links.
 docs/branding/
