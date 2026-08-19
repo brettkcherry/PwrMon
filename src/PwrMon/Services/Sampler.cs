@@ -23,12 +23,9 @@ public sealed class Sampler : IDisposable
     // fuel-gauge direction sanity: some firmware (seen on ASUS adapter-assist, i.e. the
     // battery covering what the AC source can't) reports the drain in ChargeRate with
     // Charging=true. RemainingCapacity never lies, so its trend arbitrates the direction.
-    private readonly Queue<(DateTimeOffset Time, double Wh)> _capTrend = new();
-    private (bool, bool, bool) _trendFlags;
-    private bool _directionOverridden;
-    private const double TrendWindowSeconds = 90;
-    private const double TrendMinSpanSeconds = 60;
-    private const double TrendContradictionW = 3;
+    // Direction arbitration lives in its own class so it can be replayed against recorded
+    // incident data in tests; see DirectionArbiter for why each gate is there.
+    private readonly DirectionArbiter _direction = new();
 
     // CPU package EMA (τ ≈ 15 s) used only in the wall estimate: the gauge publishes
     // charge rate every ~15–30 s, so summing an instantaneous CPU spike with a stale
@@ -310,39 +307,21 @@ public sealed class Sampler : IDisposable
     /// when the direction is wrong), with the measured trend as a floor.</summary>
     private BatteryReading SanitizeDirection(BatteryReading b, DateTimeOffset now, bool gap)
     {
-        if (!b.HasBattery) { _capTrend.Clear(); return b; }
+        var wasOverriding = _direction.IsOverriding;
+        var verdict = _direction.Evaluate(
+            b.HasBattery, b.Charging, b.Discharging, b.AcOnline, b.RemainingWh, now, gap);
 
-        // the trend is only meaningful while the reported state is stable — reset on any
-        // flag change (a real plug/unplug makes capacity lag the flags briefly) or sleep gap
-        var flags = (b.Charging, b.Discharging, b.AcOnline);
-        if (gap || flags != _trendFlags) _capTrend.Clear();
-        _trendFlags = flags;
-
-        _capTrend.Enqueue((now, b.RemainingWh));
-        while ((now - _capTrend.Peek().Time).TotalSeconds > TrendWindowSeconds)
-            _capTrend.Dequeue();
-
-        var (t0, wh0) = _capTrend.Peek();
-        var spanSec = (now - t0).TotalSeconds;
-        var slopeW = PowerMath.DirectionSlopeW(b.RemainingWh, wh0, spanSec, TrendMinSpanSeconds);
-
-        var claimsChargingButDraining = PowerMath.ClaimsChargingButDraining(b.Charging, slopeW, TrendContradictionW);
-        var claimsDischargingButFilling = PowerMath.ClaimsDischargingButFilling(b.Discharging, slopeW, TrendContradictionW);
-        var flip = claimsChargingButDraining || claimsDischargingButFilling;
-        if (flip != _directionOverridden)
-        {
-            Log.Info(flip
-                ? $"fuel-gauge direction override: firmware says {(b.Charging ? "charging" : "discharging")} but capacity trend is {slopeW:F1} W"
+        if (_direction.IsOverriding != wasOverriding)
+            Log.Info(_direction.IsOverriding
+                ? $"fuel-gauge direction override: firmware says {(b.Charging ? "charging" : "discharging")} but capacity trend is {verdict.SlopeW:F1} W"
                 : "fuel-gauge direction override cleared");
-            _directionOverridden = flip;
-        }
 
         // reported magnitude is primary (observed accurate even with the direction wrong);
         // the trend slope is quantization-noisy, so it's only the fallback when rate ≈ 0
-        if (claimsChargingButDraining)
-            return b with { Charging = false, Discharging = true, ChargeRateW = 0, DischargeRateW = b.ChargeRateW > 1 ? b.ChargeRateW : -slopeW };
-        if (claimsDischargingButFilling)
-            return b with { Charging = true, Discharging = false, ChargeRateW = b.DischargeRateW > 1 ? b.DischargeRateW : slopeW, DischargeRateW = 0 };
+        if (verdict.ClaimsChargingButDraining)
+            return b with { Charging = false, Discharging = true, ChargeRateW = 0, DischargeRateW = b.ChargeRateW > 1 ? b.ChargeRateW : -verdict.SlopeW };
+        if (verdict.ClaimsDischargingButFilling)
+            return b with { Charging = true, Discharging = false, ChargeRateW = b.DischargeRateW > 1 ? b.DischargeRateW : verdict.SlopeW, DischargeRateW = 0 };
         return b;
     }
 
