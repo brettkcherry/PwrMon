@@ -44,4 +44,3 @@ wants their dashboard back has to keep looking at it forever.
 **Watch for.** Re-detection and tier transitions have to clear the right dismissals. If a user
 dismisses at `NeedsAdmin`, then installs PawnIO and re-detects into `DriverBlocked`, they
 should see that banner. Dismissal suppresses a *specific message*, not the banner mechanism.
-

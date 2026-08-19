@@ -4,6 +4,35 @@ Notable changes to PwrMon. Format loosely follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+### Changed
+
+- **The mini graph now opens at a one-minute window and widens to your chosen one as data
+  arrives**, instead of plotting the chosen window from the first sample. It has no backfill —
+  it starts empty every time it opens and fills from live samples — so "last 15 min" used to
+  mean a line covering a tenth of the width for the first ninety seconds, and "last 24 hours"
+  meant a smear against the left edge for most of a day. The window now tracks the data
+  actually collected and stops at the setting. Widening is continuous rather than stepping
+  through the menu's rungs: those are unevenly spaced (15 min → 1 h is 4x, 1 h → 24 h is 24x),
+  so landing on one would drop the fill back to 25% and 4% — the very thing this avoids.
+  Narrowing the setting mid-session still applies immediately.
+
+### Fixed
+
+- **A "plugged in but draining" alert could fire ~80 s after an ordinary plug-in.** Clearing the
+  capacity-trend window on an AC change — which the code already did for this reason — re-anchors
+  it at the instant of the transition, which is exactly when the fuel gauge is least
+  trustworthy. Observed 2026-08-19: the gauge kept reporting capacity falling for ~35 s after
+  the plug-in, and the first eligible reading measured straight across that dip at −6.4 W,
+  convicting a drain while the battery was in fact filling. The override now waits out a 45 s
+  settle before anchoring a window, and requires a contradiction to hold for 30 s before acting
+  on it — a real adapter-assist drain is sustained, so this costs nothing against it. The logic
+  moved to `DirectionArbiter`, replayable in tests against both real incidents.
+- **Test runs no longer append to the user's real log.** Nothing in the test project logs
+  deliberately, but the services under test call `Log`, which resolves to
+  `%LocalAppData%\PwrMon\logs\` — so a run wrote plausible-looking `drain-on-AC alert` lines
+  into the live diagnostic record, and those were briefly mistaken for the real incident while
+  investigating the bug above.
+
 ## [1.6.2] — 2026-08-15
 
 ### Added

@@ -25,6 +25,10 @@ public partial class MiniGraphWindow : Window
     /// the pixel or two of hand tremor between button down and up.</summary>
     private const double ClickSlopPx = 3;
 
+    /// <summary>Narrowest window the ramp starts from. Below a minute the sparkline is mostly
+    /// noise, and a minute is short enough to fill while you're still looking at it.</summary>
+    private const int RampFloorSeconds = 60;
+
     private Brush ChargeBrush => (Brush)FindResource("GreenBrush");
     private Brush DischargeBrush => (Brush)FindResource("OrangeBrush");
     private Brush IdleBrush => (Brush)FindResource("TextDimBrush");
@@ -152,6 +156,33 @@ public partial class MiniGraphWindow : Window
             : "";
     }
 
+    /// <summary>
+    /// The window actually plotted, which grows to meet the user's choice instead of starting
+    /// there.
+    ///
+    /// <para>The mini graph has no backfill — <c>_points</c> starts empty each time it opens and
+    /// fills from live samples only. Plotting the chosen window straight away therefore means
+    /// staring at a nearly-empty panel: at "last 15 min" the line covers a tenth of the width
+    /// for the first ninety seconds, and at "last 24 hours" it is a smear against the left edge
+    /// for most of a day.</para>
+    ///
+    /// <para>So: open at a minute, then track the data as it accumulates, and stop at whatever
+    /// the user picked. Growth is continuous rather than stepping through the menu's rungs
+    /// (60 s, 2 min, 5 min, 15 min, 1 h, 24 h) because those rungs are unevenly spaced — 15 min
+    /// to 1 h is a 4x jump and 1 h to 24 h is 24x, so stepping onto one would drop the fill back
+    /// to 25% and 4% respectively, which is the problem this exists to avoid. Tracking the span
+    /// keeps it at 100% the whole way up. There are no x-axis labels, so nothing on screen
+    /// depends on the window being a round number.</para>
+    /// </summary>
+    internal static int RampedWindowSeconds(double dataSpanSeconds, int chosenSeconds)
+    {
+        // A chosen window already at or below the floor has nothing to ramp through, and would
+        // invert Math.Clamp's bounds if it were let through.
+        if (chosenSeconds <= RampFloorSeconds) return chosenSeconds;
+        var span = double.IsNaN(dataSpanSeconds) || dataSpanSeconds < 0 ? 0 : dataSpanSeconds;
+        return (int)Math.Clamp(Math.Ceiling(span), RampFloorSeconds, chosenSeconds);
+    }
+
     private void Redraw()
     {
         var wPx = GraphArea.ActualWidth;
@@ -159,8 +190,10 @@ public partial class MiniGraphWindow : Window
         if (wPx < 10 || hPx < 10 || _points.Count < 2) return;
 
         var series = AppSettings.Current.MiniGraphSeries;
-        var windowSec = AppSettings.Current.MiniGraphWindowSeconds;
         var now = DateTimeOffset.Now;
+        // _points is pruned to the chosen window, so its span is what has actually been collected
+        var windowSec = RampedWindowSeconds(
+            (now - _points[0].Time).TotalSeconds, AppSettings.Current.MiniGraphWindowSeconds);
         var t0 = now.AddSeconds(-windowSec);
 
         // seed from the first in-window point, not a fixed (0, 1) sentinel — the old sentinel
