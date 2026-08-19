@@ -100,6 +100,17 @@ so these tests can't race each other — or anything else — over that shared s
 `HistoryStoreTests` exercises `FormatLine`/`ParseLine` purely in memory (strings in, `PowerSample`
 out) and never touches disk or `HistoryStore.HistoryDir`.
 
+**The same rule covers the log, but couldn't be met by discipline alone.** No test logs on
+purpose — the services under test (`DrainAlertService`, `StartupHelper`, `UpdateService`,
+`DrawProfile`) call `Log` themselves, and `Log` resolves to the user's real
+`%LocalAppData%\PwrMon\logs\`. So every run appended synthetic lines like
+`drain-on-AC alert: 31.0 W at 12%` to the live diagnostic log. That is worse than untidy: on
+2026-08-19 those fake entries were briefly mistaken for the real incident while investigating
+an actual false-positive drain alert. `Log.DirectoryOverride` is the seam, and
+`AssemblyInfo.cs` sets it to a temp directory from a `[ModuleInitializer]` — early enough to
+beat the first test, which an xUnit fixture wouldn't reliably do. `DirectionArbiter` also
+deliberately does no logging of its own for the same reason; its caller logs the transitions.
+
 The same rule applies to `DrawProfile.Save()`/`Load()`, which read and write
 `%LocalAppData%\PwrMon\drawprofile.json` — a real user's learned battery history, not a
 throwaway file. `DrawProfileTests` exercises everything through fresh in-memory instances and
@@ -118,9 +129,12 @@ Ideas for extending coverage later, none of which fit this pass's "pure logic on
   delegate seam) and asserting the resulting `PowerSample`/`SessionStats`/`Estimates` sequence
   across multiple ticks — including AC-transition events, sleep-gap handling, and baseline
   learning.
-- **`SanitizeDirection`'s `_capTrend` queue behavior** directly — window trimming, flag-change
+- ~~**`SanitizeDirection`'s `_capTrend` queue behavior** directly — window trimming, flag-change
   resets, and the override-flip logging — once/if it's extracted from `Sampler` into something
-  independently constructible.
+  independently constructible.~~ **Done 2026-08-19**: extracted as `DirectionArbiter` and
+  covered by `DirectionArbiterTests`, which replays both real incidents this surface has
+  produced — the 2026-08-13 sustained drain it must convict, and the 2026-08-19 post-plug-in
+  settling artifact it must acquit. `Sampler` keeps the logging and the magnitude handling.
 - **`HistoryStore` file I/O** (`Append`'s flush timing, `LoadRecent`, `CleanupOldFiles`,
   `ExportRange`) against a redirectable/injectable directory instead of the hardcoded
   `AppSettings.Dir`-derived path, so it can be tested against a temp directory without touching

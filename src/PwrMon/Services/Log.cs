@@ -6,7 +6,21 @@ namespace PwrMon.Services;
 public static class Log
 {
     private static readonly object Gate = new();
-    private static string LogDir => Path.Combine(Models.AppSettings.Dir, "logs");
+
+    /// <summary>
+    /// Redirects log output away from <c>AppSettings.Dir</c>. Null means the real location.
+    ///
+    /// TESTING.md's safety rule keeps tests off the user's real settings and history, but it
+    /// couldn't cover this one: nothing in the test project logs deliberately — services under
+    /// test (DrainAlertService, StartupHelper, UpdateService, DrawProfile) call Log themselves,
+    /// so a test run appended synthetic lines to the user's real `app-yyyyMMdd.log`. That is
+    /// worse than untidy: it writes plausible-looking "drain-on-AC alert" entries into the
+    /// diagnostic record, and on 2026-08-19 those fake lines were briefly mistaken for the real
+    /// incident while investigating it. The test assembly points this at a temp directory.
+    /// </summary>
+    internal static string? DirectoryOverride { get; set; }
+
+    private static string LogDir => DirectoryOverride ?? Path.Combine(Models.AppSettings.Dir, "logs");
 
     public static void Info(string msg) => Write("INFO ", msg);
     public static void Error(string msg) => Write("ERROR", msg);
